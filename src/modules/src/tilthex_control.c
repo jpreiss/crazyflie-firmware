@@ -34,7 +34,7 @@ void compute_f(struct tilthex_state s, struct tilthex_state des, float f[6])
 	f[2] = f[2] + 9.81f;
 }
 
-void control(struct tilthex_state s, struct tilthex_state des, float x[6])
+void tilthex_control(struct tilthex_state s, struct tilthex_state des, float x[6])
 {
 	// construct the Jacobian.
 	struct mat33 F1_left = {

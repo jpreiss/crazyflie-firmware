@@ -9,4 +9,4 @@ struct tilthex_state {
 };
 
 // output: propeller omega^2
-void control(struct tilthex_state s, struct tilthex_state des, float x[6]);
+void tilthex_control(struct tilthex_state s, struct tilthex_state des, float x[6]);
