@@ -2,14 +2,29 @@
 #include "math3d.h"
 #include "tilthex_control.h"
 
+#include "param.h"
+
+// control gains.
+// these are very low gain, about 10x is better, but default should be gentle...
+
+// position
+static float kP_p = 10;
+static float kP_d = 5;
+// rotational
+static float kR_p = 10;
+static float kR_d = 5;
+
+// system identification parameters.
+static float mass = 0.5;
+static float prop_rpm_max = 20000;
+static float inertia1;
+static float inertia2;
+static float inertia3;
+static float thrust_constant;
+static float drag_constant;
+
 void compute_f(struct tilthex_state s, struct tilthex_state des, float f[6])
 {
-	float kP_p = 100;
-	float kP_d = 50;
-
-	float kR_p = 100;
-	float kR_d = 50;
-
 	struct vec err_pos = vsub(s.pos, des.pos);
 	struct vec err_vel = vsub(s.vel, des.vel);
 	struct vec v_p = vadd3(
@@ -36,41 +51,18 @@ void compute_f(struct tilthex_state s, struct tilthex_state des, float f[6])
 
 void tilthex_control(struct tilthex_state s, struct tilthex_state des, float x[6])
 {
+	float J[6][6] = {{0}};
+	#include "F2.cprocessed.c"
+
 	// construct the Jacobian.
-	struct mat33 F1_left = {
-		.m = {
-			{                 0,   0.309294787065871,  -0.309294787065871 },
-			{ 0.357142857142857,  -0.178571428571429,  -0.178571428571428 },
-			{ 0.618589574131742,   0.618589574131742,   0.618589574131742 }}
-	};
-	F1_left = mscale(1.0e-5, F1_left);
+	struct mat33 F1_left = mzero();
+	#include "F1_left.cprocessed.c"
 
-	struct mat33 F1_right = {
-		.m = {
-			{ 0.000000000000000,  0.309294787065871, -0.309294787065871 },
-			{ 0.357142857142857, -0.178571428571429, -0.178571428571429 },
-			{ 0.618589574131742,  0.618589574131742,  0.618589574131742 }}
-	};
-	F1_right = mscale(1.0e-5, F1_right);
-
-	float J[6][6] = {
-		{0, },
-		{0, },
-		{0, },
-		{0,  0.858253175473055,  0.858253175473055,  0.000000000000000, -0.858253175473055, -0.858253175473055 },
-		{-0.991025403784439, -0.495512701892220,  0.495512701892219,  0.991025403784439,  0.495512701892220, -0.495512701892219 },
-		{0.141746824526945, -0.141746824526945,  0.141746824526945, -0.141746824526945,  0.141746824526945, -0.141746824526945 }
-	};
-
-	for (int r = 3; r < 6; ++r) {
-		for (int c = 0; c < 6; ++c) {
-			J[r][c] = 1.0e-4f * J[r][c];
-		}
-	}
+	struct mat33 F1_right = mzero();
+	#include "F1_right.cprocessed.c"
 
 	struct mat33 J11 = mmult(s.R, F1_left);
 	struct mat33 J12 = mmult(s.R, F1_right);
-
 	set_block33_rowmaj(&J[0][0], 6, &J11);
 	set_block33_rowmaj(&J[0][3], 6, &J12);
 
@@ -81,8 +73,23 @@ void tilthex_control(struct tilthex_state s, struct tilthex_state des, float x[6
 	compute_f(s, des, fmv);
 	solve6x6(J, fmv, x);
 
-	float const OMEGA_MAX = 1.096622711232151e6;
+	float const omega_max = ((float)(2*M_PI/60)) * prop_rpm_max;
+	float const omega2_max = omega_max * omega_max;
 	for (int i = 0; i < 6; ++i) {
-		x[i] = fmax(fmin(x[i], OMEGA_MAX), 0.0f);
+		x[i] = fmax(fmin(x[i], omega2_max), 0.0f);
 	}
 }
+
+PARAM_GROUP_START(tilthex_pid)
+PARAM_ADD(PARAM_FLOAT, pos_kp, &kP_p)
+PARAM_ADD(PARAM_FLOAT, pos_kd, &kP_d)
+PARAM_ADD(PARAM_FLOAT, att_kp, &kR_p)
+PARAM_ADD(PARAM_FLOAT, att_kd, &kR_d)
+PARAM_ADD(PARAM_FLOAT, mass, &mass)
+PARAM_ADD(PARAM_FLOAT, prop_rpm_max, &prop_rpm_max)
+PARAM_ADD(PARAM_FLOAT, inertia1, &inertia1)
+PARAM_ADD(PARAM_FLOAT, inertia2, &inertia2)
+PARAM_ADD(PARAM_FLOAT, inertia3, &inertia3)
+PARAM_ADD(PARAM_FLOAT, thrust_constant, &thrust_constant)
+PARAM_ADD(PARAM_FLOAT, drag_constant, &drag_constant)
+PARAM_GROUP_STOP(pid_rate)
