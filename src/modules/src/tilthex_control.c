@@ -15,13 +15,13 @@ static float kR_p = 10;
 static float kR_d = 5;
 
 // system identification parameters.
-static float mass = 0.5;
+static float mass = 0.5; // kg
 static float prop_rpm_max = 20000;
-static float inertia1;
-static float inertia2;
-static float inertia3;
-static float thrust_constant;
-static float drag_constant;
+static float inertia1 = 0.01;
+static float inertia2 = 0.01;
+static float inertia3 = 0.02;
+static float thrust_constant = 0.5e-5;
+static float drag_constant = 2.5e-7;
 
 void compute_f(struct tilthex_state s, struct tilthex_state des, float f[6])
 {
@@ -85,11 +85,14 @@ PARAM_ADD(PARAM_FLOAT, pos_kp, &kP_p)
 PARAM_ADD(PARAM_FLOAT, pos_kd, &kP_d)
 PARAM_ADD(PARAM_FLOAT, att_kp, &kR_p)
 PARAM_ADD(PARAM_FLOAT, att_kd, &kR_d)
+PARAM_GROUP_STOP(tilthex_pid)
+
+PARAM_GROUP_START(tilthex_dynamics)
 PARAM_ADD(PARAM_FLOAT, mass, &mass)
-PARAM_ADD(PARAM_FLOAT, prop_rpm_max, &prop_rpm_max)
+PARAM_ADD(PARAM_FLOAT, rpm_max, &prop_rpm_max)
 PARAM_ADD(PARAM_FLOAT, inertia1, &inertia1)
 PARAM_ADD(PARAM_FLOAT, inertia2, &inertia2)
 PARAM_ADD(PARAM_FLOAT, inertia3, &inertia3)
-PARAM_ADD(PARAM_FLOAT, thrust_constant, &thrust_constant)
-PARAM_ADD(PARAM_FLOAT, drag_constant, &drag_constant)
-PARAM_GROUP_STOP(pid_rate)
+PARAM_ADD(PARAM_FLOAT, k_thrust, &thrust_constant)
+PARAM_ADD(PARAM_FLOAT, k_drag, &drag_constant)
+PARAM_GROUP_STOP(tilthex_dynamics)
