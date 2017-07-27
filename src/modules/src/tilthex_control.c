@@ -15,7 +15,7 @@ static float kR_p = 10;
 static float kR_d = 5;
 
 // system identification parameters.
-static float mass = 0.5; // kg
+static float mass = 0.7; // kg
 static float prop_rpm_max = 20000;
 static float inertia1 = 0.01;
 static float inertia2 = 0.01;

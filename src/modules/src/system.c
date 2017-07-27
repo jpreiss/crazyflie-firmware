@@ -50,6 +50,7 @@
 #include "uart2.h"
 #include "comm.h"
 #include "stabilizer.h"
+#include "tilthex_stabilizer.h"
 #include "commander.h"
 #include "console.h"
 #include "usblink.h"
@@ -177,6 +178,7 @@ void systemTask(void *arg)
   estimator = deckGetRequiredEstimator();
 #endif
   stabilizerInit(estimator);
+  tilthexStabilizerInit(estimator);
   soundInit();
   memInit();
 
@@ -190,6 +192,7 @@ void systemTask(void *arg)
   pass &= commTest();
   pass &= commanderTest();
   pass &= stabilizerTest();
+  pass &= tilthexStabilizerTest();
 #ifdef PLATFORM_CF2
   pass &= deckTest();
 #endif

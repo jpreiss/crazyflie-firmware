@@ -57,10 +57,15 @@ static state_t state;
 static control_t control;
 static float thrusts[6];
 
-static void stabilizerTask(void* param);
+static void tilthexStabilizerTask(void* param);
 
-void stabilizerInit(StateEstimatorType estimator)
+void tilthexStabilizerInit(StateEstimatorType estimator)
 {
+  for (int i = 0; i < 6; ++i) {
+    thrusts[i] = i;
+  }
+
+  /*
   if(isInit)
     return;
 
@@ -68,31 +73,30 @@ void stabilizerInit(StateEstimatorType estimator)
   stateEstimatorInit(estimator);
   stateControllerInit();
   powerDistributionInit();
-  for (int i = 0; i < 6; ++i) {
-    thrusts[i] = 0;
-  }
 #if defined(SITAW_ENABLED)
   sitAwInit();
 #endif
+  */
 
-  xTaskCreate(stabilizerTask, STABILIZER_TASK_NAME,
-              STABILIZER_TASK_STACKSIZE, NULL, STABILIZER_TASK_PRI, NULL);
+  xTaskCreate(tilthexStabilizerTask, TILTHEX_STABILIZER_TASK_NAME,
+              TILTHEX_STABILIZER_TASK_STACKSIZE, NULL, TILTHEX_STABILIZER_TASK_PRI, NULL);
 
   isInit = true;
 }
 
-bool stabilizerTest(void)
+bool tilthexStabilizerTest(void)
 {
   bool pass = true;
 
-  pass &= sensorsTest();
-  pass &= stateEstimatorTest();
-  pass &= stateControllerTest();
-  pass &= powerDistributionTest();
+  //pass &= sensorsTest();
+  //pass &= stateEstimatorTest();
+  //pass &= stateControllerTest();
+  //pass &= powerDistributionTest();
 
   return pass;
 }
 
+/*
 static void checkEmergencyStopTimeout()
 {
   if (emergencyStopTimeout >= 0) {
@@ -103,6 +107,7 @@ static void checkEmergencyStopTimeout()
     }
   }
 }
+*/
 
 /* The stabilizer loop runs at 1kHz (stock) or 500Hz (kalman). It is the
  * responsibility of the different functions to run slower by skipping call
@@ -140,17 +145,17 @@ static void tilthexPowerDistribution(float const omega2[6])
   // TODO: use I2C
 }
 
-static void tilthexPowerStop()
-{
-  float x[6] = { 0, };
-  tilthexPowerDistribution(x);
-}
+//static void tilthexPowerStop()
+//{
+  //float x[6] = { 0, };
+  //tilthexPowerDistribution(x);
+//}
 
-static void stabilizerTask(void* param)
+static void tilthexStabilizerTask(void* param)
 {
   uint32_t tick;
   uint32_t lastWakeTime;
-  vTaskSetApplicationTaskTag(0, (void*)TASK_STABILIZER_ID_NBR);
+  vTaskSetApplicationTaskTag(0, (void*)TASK_TILTHEX_STABILIZER_ID_NBR);
 
   //Wait for the system to be fully started to start stabilization loop
   systemWaitStart();
@@ -176,21 +181,29 @@ static void stabilizerTask(void* param)
     //stateController(&control, &setpoint, &sensorData, &state, tick);
 
     struct tilthex_state s;
-    s.pos = vec2math(state.position);
-    s.vel = vec2math(state.velocity);
+    //s.pos = vec2math(state.position);
+    s.pos = vzero();
+    //s.vel = vec2math(state.velocity);
+    s.vel = vzero();
     s.acc = vec2math(state.acc);
     s.omega = attitude2math(state.attitudeRate);
     s.R = quat2rotmat(quat2math(state.attitudeQuaternion));
 
     struct tilthex_state des;
-    des.pos = vec2math(setpoint.position);
-    des.vel = vec2math(setpoint.velocity);
-    des.acc = vec2math(setpoint.acceleration);
-    des.omega = attitude2math(setpoint.attitudeRate);
-    des.R = quat2rotmat(quat2math(setpoint.attitudeQuaternion));
+    //des.pos = vec2math(setpoint.position);
+    des.pos = vzero();
+    //des.vel = vec2math(setpoint.velocity);
+    des.vel = vzero();
+    //des.acc = vec2math(setpoint.acceleration);
+    des.acc = vzero();
+    //des.omega = attitude2math(setpoint.attitudeRate);
+    des.omega = vzero();
+    //des.R = quat2rotmat(quat2math(setpoint.attitudeQuaternion));
+    des.R = eye();
 
     tilthex_control(s, des, thrusts);
 
+    /*
     checkEmergencyStopTimeout();
 
     if (emergencyStop) {
@@ -198,27 +211,32 @@ static void stabilizerTask(void* param)
     } else {
       tilthexPowerDistribution(thrusts);
     }
+    */
+    tilthexPowerDistribution(thrusts);
 
     tick++;
   }
 }
 
-void stabilizerSetEmergencyStop()
+/*
+void tilthexStabilizerSetEmergencyStop()
 {
   emergencyStop = true;
 }
 
-void stabilizerResetEmergencyStop()
+void tilthexStabilizerResetEmergencyStop()
 {
   emergencyStop = false;
 }
+*/
 
-void stabilizerSetEmergencyStopTimeout(int timeout)
+void tilthexStabilizerSetEmergencyStopTimeout(int timeout)
 {
   emergencyStop = false;
   emergencyStopTimeout = timeout;
 }
 
+/*
 LOG_GROUP_START(ctrltarget)
 LOG_ADD(LOG_FLOAT, roll, &setpoint.attitude.roll)
 LOG_ADD(LOG_FLOAT, pitch, &setpoint.attitude.pitch)
@@ -281,7 +299,9 @@ LOG_ADD(LOG_FLOAT, x, &state.position.x)
 LOG_ADD(LOG_FLOAT, y, &state.position.y)
 LOG_ADD(LOG_FLOAT, z, &state.position.z)
 LOG_GROUP_STOP(stateEstimate)
+*/
 
+// TiltHex parts
 LOG_GROUP_START(tilthexThrusts)
 LOG_ADD(LOG_FLOAT, t0, &thrusts[0])
 LOG_ADD(LOG_FLOAT, t1, &thrusts[1])
