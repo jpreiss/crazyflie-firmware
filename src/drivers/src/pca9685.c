@@ -25,7 +25,6 @@
  */
 
 #include "i2cdev.h"
-#include "sleepus.h"
 #include "task.h" // one function requires a CPU-yielding sleep
 
 // the pca9685 uses 8-bit internal addresses.
@@ -62,23 +61,6 @@ enum Mode1
 };
 
 // TODO: mode2
-
-// it always returns true, to allow chaining with && operator.
-static inline bool sleepus2(uint32_t us)
-{
-  sleepus(us);
-  return true;
-}
-
-static inline bool sleepms(uint32_t ms)
-{
-  return sleepus2(ms * 1000);
-}
-
-static inline bool sleepsec(uint32_t sec)
-{
-  return sleepms(sec * 1000);
-}
 
 static inline int channelReg(int channel)
 {
@@ -118,7 +100,7 @@ static void dutyToBytes(float duty, uint8_t *bytes)
 //
 //
 
-bool initialize(int addr)
+bool pca9685init(int addr)
 {
   if (!i2cdevInit(I2C1_DEV)) {
     return false;
@@ -132,8 +114,9 @@ bool initialize(int addr)
   return i2cdevWriteByte(&deckBus, addr, regMode1, settings);
 }
 
+/*
 // it will reset everything, can't pick which address
-bool resetAll()
+static bool resetAll()
 {
   // The reset sequence is the special "general call address" 0x00
   // followed by one byte 0x06, but no further data.
@@ -142,25 +125,26 @@ bool resetAll()
   uint8_t dontCare = 0x00;
   return i2cdevWriteByte(&deckBus, 0x00, 0x06, dontCare);
 }
+*/
 
-bool goToSleep(int addr)
+bool pca9685sleep(int addr)
 {
   return i2cdevWriteBit(&deckBus, addr, regMode1, 4, 1);
 }
 
-bool wakeUpForget(int addr)
+bool pca9685wakeForget(int addr)
 {
   return i2cdevWriteBit(&deckBus, addr, regMode1, 4, 0);
 }
 
-bool wakeUpRestore(int addr)
+bool pca9685wakeRestore(int addr)
 {
   uint8_t restorable = 0x00;
   if (!i2cdevReadBit(&deckBus, addr, regMode1, m1Restart, &restorable)) {
     // TODO: should it wake up anyway?
     return false;
   }
-  if (restorable != 0x00 && wakeUpForget(addr)) {
+  if (restorable != 0x00 && pca9685wakeForget(addr)) {
     vTaskDelay(F2T(1000)); // datasheet calls for >= 500us, being careful
     return i2cdevWriteBit(&deckBus, addr, regMode1, m1Restart, 1);
   }
@@ -169,7 +153,8 @@ bool wakeUpRestore(int addr)
 
 // This should be used in preference to multiple setChannelDuty() calls.
 // It uses the i2c bus more efficiently.
-bool setMultiChannelDuty(int addr, int chanBegin, int nChan, float const *duties)
+bool pca9685setMultiChannelDuty(
+  int addr, int chanBegin, int nChan, float const *duties)
 {
   uint8_t data[LED_NBYTES];
   for (int i = 0; i < nChan; ++i) {
@@ -180,18 +165,18 @@ bool setMultiChannelDuty(int addr, int chanBegin, int nChan, float const *duties
 }
 
 // TODO phase
-bool setChannelDuty(int addr, int channel, float duty)
+bool pca9685setChannelDuty(int addr, int channel, float duty)
 {
-  return setMultiChannelDuty(addr, channel, 1, &duty);
+  return pca9685setMultiChannelDuty(addr, channel, 1, &duty);
 }
 
-bool setPwmFrequency(int addr, float freq)
+bool pca9685setPwmFreq(int addr, float freq)
 {
   static float const OSC_CLOCK = 25.0f * 1000.0f * 1000.0f;
   int const prescale = roundPositive(OSC_CLOCK / (4096.0f * freq)) - 1;
   return
     (prescale < 0x03 || prescale > 0xFF) &&
-    goToSleep(addr) &&
+    pca9685sleep(addr) &&
     i2cdevWriteByte(&deckBus, addr, regPreScale, (uint8_t)prescale) &&
-    wakeUpRestore(addr);
+    pca9685wakeRestore(addr);
 }

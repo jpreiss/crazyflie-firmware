@@ -75,8 +75,8 @@ void tilthexStabilizerInit(StateEstimatorType estimator)
 
   // I2C
   bool ok = 
-    initialize(I2C_ADDR) &&
-    setPwmFrequency(I2C_ADDR, ESC_PWM_FREQ);
+    pca9685init(I2C_ADDR) &&
+    pca9685setPwmFreq(I2C_ADDR, ESC_PWM_FREQ);
 
   if (!ok) {
     return;
@@ -173,7 +173,7 @@ static bool tilthexPowerDistribution(float const omega2[6])
     float omega = sqrtf(omega2[i]);
     duty[i] = OMEGA_TO_DUTY * omega + ESC_DUTY_MIN;
   }
-  return setMultiChannelDuty(I2C_ADDR, 0, 6, duty);
+  return pca9685setMultiChannelDuty(I2C_ADDR, 0, 6, duty);
 }
 
 //static void tilthexPowerStop()
@@ -187,6 +187,42 @@ static bool sleepsec(float sec)
 {
   vTaskDelay(F2T(1.0f / sec));
   return true;
+}
+
+static bool test9685()
+{
+  uint8_t addr = 0x40;
+
+  return
+
+  pca9685init(addr) &&
+  sleepsec(2) &&
+
+  pca9685setChannelDuty(addr, 0, 0.5) &&
+  sleepsec(4) &&
+
+  pca9685setChannelDuty(addr, 0, 0.1) &&
+  sleepsec(4) &&
+
+  pca9685setChannelDuty(addr, 0, 0.9) &&
+  sleepsec(4) &&
+
+  pca9685sleep(addr) &&
+  sleepsec(4) &&
+
+  pca9685wakeRestore(addr) &&
+  sleepsec(4) &&
+
+  pca9685setPwmFreq(addr, 200) &&
+  sleepsec(10) &&
+
+  pca9685setPwmFreq(addr, 500) &&
+  sleepsec(10) &&
+
+  pca9685setPwmFreq(addr, 1000) &&
+  sleepsec(10) &&
+
+  true;
 }
 
 static void tilthexStabilizerTask(void* param)
@@ -207,43 +243,9 @@ static void tilthexStabilizerTask(void* param)
   tick = 1;
 
 
-  uint8_t addr = 0x40;
-
-  bool ok =
-
-  initialize(addr) &&
-  sleepsec(2) &&
-
-  setChannelDuty(addr, 0, 0.5) &&
-  sleepsec(4) &&
-
-  setChannelDuty(addr, 0, 0.1) &&
-  sleepsec(4) &&
-
-  setChannelDuty(addr, 0, 0.9) &&
-  sleepsec(4) &&
-
-  goToSleep(addr) &&
-  sleepsec(4) &&
-
-  wakeUpRestore(addr) &&
-  sleepsec(4) &&
-
-  setPwmFrequency(addr, 200) &&
-  sleepsec(10) &&
-
-  setPwmFrequency(addr, 500) &&
-  sleepsec(10) &&
-
-  setPwmFrequency(addr, 1000) &&
-  sleepsec(10) &&
-
-  true;
-
-  if (!ok) {
+  if (!test9685()) {
     return;
-  }
-
+  } 
   while(1) {
     vTaskDelayUntil(&lastWakeTime, F2T(RATE_MAIN_LOOP));
 

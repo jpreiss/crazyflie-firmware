@@ -26,30 +26,35 @@
 
 
 // start the device. All channels will be initialized to 0% duty.
-bool initialize(int addr);
+// returns true if successful.
+bool pca9685init(int addr);
 
 // set all signals to 0 and go into low-power mode.
 // call wakeUpRestore() to wake up with same PWM values.
-bool goToSleep(int addr);
+// returns true if successful.
+bool pca9685sleep(int addr);
 
 // wake up from sleep and revert to 0% duty for all channels.
-bool wakeUpForget(int addr);
+// returns true if successful.
+bool pca9685wakeForget(int addr);
 
 // wake up from sleep and restore the PWM settings from before sleeping.
 // will not work if any other functions are called in between sleep and wake.
-bool wakeUpRestore(int addr);
+// returns true if successful.
+bool pca9685wakeRestore(int addr);
 
 // set duty cycle of several channels at once.
 // this should be used in preference to multiple setChannelDuty() calls.
 // it uses the i2c bus more efficiently.
-bool setMultiChannelDuty(int addr, int chanBegin, int nChan, float const *duties);
+// returns true if successful.
+bool pca9685setMultiChannelDuty(int addr, int chanBegin, int nChan, float const *duties);
 
 // set the duty cycle of one channel.
-bool setChannelDuty(int addr, int channel, float duty);
+// returns true if successful.
+bool pca9685setChannelDuty(int addr, int channel, float duty);
 
 // set the PWM frequency. it's the same for all channels.
-// note: this function sleeps for about 500us as required by the hardware.
-bool setPwmFrequency(int addr, float freq);
-
-// for debugging only!!!
-bool bigTest(int addr);
+// note: this function sleeps your task for about 500us,
+// as required by the hardware.
+// returns true if successful.
+bool pca9685setPwmFreq(int addr, float freq);
