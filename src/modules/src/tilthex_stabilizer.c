@@ -45,8 +45,9 @@
 #include "estimator.h"
 
 #include "tilthex_control.h"
+#include "pca9685.h"
 
-static bool isInit;
+static bool isInit = false;
 static bool emergencyStop = false;
 static int emergencyStopTimeout = EMERGENCY_STOP_TIMEOUT_DISABLED;
 
@@ -59,10 +60,26 @@ static float thrusts[6];
 
 static void tilthexStabilizerTask(void* param);
 
+static int const I2C_ADDR = 0x40;
+static int const ESC_PWM_FREQ = 1000;
+
 void tilthexStabilizerInit(StateEstimatorType estimator)
 {
   for (int i = 0; i < 6; ++i) {
     thrusts[i] = i;
+  }
+
+  if (isInit) {
+    return;
+  }
+
+  // I2C
+  bool ok = 
+    initialize(I2C_ADDR) &&
+    setPwmFrequency(I2C_ADDR, ESC_PWM_FREQ);
+
+  if (!ok) {
+    return;
   }
 
   /*
@@ -140,9 +157,23 @@ static struct quat quat2math(struct quaternion_s q)
   return quat;
 }
 
-static void tilthexPowerDistribution(float const omega2[6])
+// TODO these values
+#define ESC_DUTY_MAX 0.9f
+#define ESC_DUTY_MIN 0.2f
+#define ESC_DUTY_RANGE (ESC_DUTY_MAX - ESC_DUTY_MIN)
+#define RPM_MAX 20000
+
+#define OMEGA_MAX ((float)(2.0 * M_PI * RPM_MAX / 60.0))
+#define OMEGA_TO_DUTY (ESC_DUTY_RANGE / OMEGA_MAX)
+
+static bool tilthexPowerDistribution(float const omega2[6])
 {
-  // TODO: use I2C
+  float duty[6];
+  for (int i = 0; i < 6; ++i) {
+    float omega = sqrtf(omega2[i]);
+    duty[i] = OMEGA_TO_DUTY * omega + ESC_DUTY_MIN;
+  }
+  return setMultiChannelDuty(I2C_ADDR, 0, 6, duty);
 }
 
 //static void tilthexPowerStop()
@@ -150,6 +181,13 @@ static void tilthexPowerDistribution(float const omega2[6])
   //float x[6] = { 0, };
   //tilthexPowerDistribution(x);
 //}
+
+
+static bool sleepsec(float sec)
+{
+  vTaskDelay(F2T(1.0f / sec));
+  return true;
+}
 
 static void tilthexStabilizerTask(void* param)
 {
@@ -167,6 +205,44 @@ static void tilthexStabilizerTask(void* param)
   }
   // Initialize tick to something else then 0
   tick = 1;
+
+
+  uint8_t addr = 0x40;
+
+  bool ok =
+
+  initialize(addr) &&
+  sleepsec(2) &&
+
+  setChannelDuty(addr, 0, 0.5) &&
+  sleepsec(4) &&
+
+  setChannelDuty(addr, 0, 0.1) &&
+  sleepsec(4) &&
+
+  setChannelDuty(addr, 0, 0.9) &&
+  sleepsec(4) &&
+
+  goToSleep(addr) &&
+  sleepsec(4) &&
+
+  wakeUpRestore(addr) &&
+  sleepsec(4) &&
+
+  setPwmFrequency(addr, 200) &&
+  sleepsec(10) &&
+
+  setPwmFrequency(addr, 500) &&
+  sleepsec(10) &&
+
+  setPwmFrequency(addr, 1000) &&
+  sleepsec(10) &&
+
+  true;
+
+  if (!ok) {
+    return;
+  }
 
   while(1) {
     vTaskDelayUntil(&lastWakeTime, F2T(RATE_MAIN_LOOP));
