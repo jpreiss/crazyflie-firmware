@@ -63,6 +63,7 @@ static void tilthexStabilizerTask(void* param);
 static int const I2C_ADDR = 0x40;
 static int const ESC_PWM_FREQ = 1000;
 
+
 void tilthexStabilizerInit(StateEstimatorType estimator)
 {
   for (int i = 0; i < 6; ++i) {
@@ -73,19 +74,7 @@ void tilthexStabilizerInit(StateEstimatorType estimator)
     return;
   }
 
-  // I2C
-  bool ok = 
-    pca9685init(I2C_ADDR) &&
-    pca9685setPwmFreq(I2C_ADDR, ESC_PWM_FREQ);
-
-  if (!ok) {
-    return;
-  }
-
   /*
-  if(isInit)
-    return;
-
   sensorsInit();
   stateEstimatorInit(estimator);
   stateControllerInit();
@@ -94,6 +83,15 @@ void tilthexStabilizerInit(StateEstimatorType estimator)
   sitAwInit();
 #endif
   */
+
+  // I2C
+  bool ok =
+    pca9685init(I2C_ADDR) &&
+    pca9685setPwmFreq(I2C_ADDR, ESC_PWM_FREQ);
+  if (!ok) {
+    return;
+  }
+
 
   xTaskCreate(tilthexStabilizerTask, TILTHEX_STABILIZER_TASK_NAME,
               TILTHEX_STABILIZER_TASK_STACKSIZE, NULL, TILTHEX_STABILIZER_TASK_PRI, NULL);
@@ -176,14 +174,14 @@ static bool tilthexPowerDistribution(float const omega2[6])
   return pca9685setMultiChannelDuty(I2C_ADDR, 0, 6, duty);
 }
 
-//static void tilthexPowerStop()
-//{
-  //float x[6] = { 0, };
-  //tilthexPowerDistribution(x);
-//}
+static void tilthexPowerStop()
+{
+  float x[6] = { 0.0f, };
+  tilthexPowerDistribution(x);
+}
 
 
-static bool sleepsec(float sec)
+bool sleepsec(float sec)
 {
   vTaskDelay(F2T(1.0f / sec));
   return true;
@@ -191,71 +189,74 @@ static bool sleepsec(float sec)
 
 static bool test9685()
 {
-  uint8_t addr = 0x40;
+  int sleeptime = 1;
 
-  return
+  int const N_DUTIES = 10;
+  float duties[N_DUTIES];
+  for (int i = 0; i < N_DUTIES; ++i) {
+    duties[i] = i / (N_DUTIES - 1.0f);
+  }
 
-  pca9685init(addr) &&
-  sleepsec(2) &&
+  bool val =
 
-  pca9685setChannelDuty(addr, 0, 0.5) &&
-  sleepsec(4) &&
+  pca9685setMultiChannelDuty(I2C_ADDR, 0, N_DUTIES, duties);
+  //pca9685setChannelDuty(I2C_ADDR, 0, 0.5) &&
 
-  pca9685setChannelDuty(addr, 0, 0.1) &&
-  sleepsec(4) &&
+  //pca9685setChannelDuty(I2C_ADDR, 1, 0.1) &&
 
-  pca9685setChannelDuty(addr, 0, 0.9) &&
-  sleepsec(4) &&
+  /*
+  sleepsec() &&
 
-  pca9685sleep(addr) &&
-  sleepsec(4) &&
+  pca9685setChannelDuty(I2C_ADDR, 0, 0.9) &&
+  sleepsec(sleeptime) &&
 
-  pca9685wakeRestore(addr) &&
-  sleepsec(4) &&
+  pca9685sleep(I2C_ADDR) &&
+  sleepsec(sleeptime) &&
 
-  pca9685setPwmFreq(addr, 200) &&
-  sleepsec(10) &&
+  pca9685wakeForget(I2C_ADDR) &&
+  sleepsec(sleeptime) &&
 
-  pca9685setPwmFreq(addr, 500) &&
-  sleepsec(10) &&
+  pca9685setPwmFreq(I2C_ADDR, 200) &&
+  sleepsec(2*sleeptime) &&
 
-  pca9685setPwmFreq(addr, 1000) &&
-  sleepsec(10) &&
+  pca9685setPwmFreq(I2C_ADDR, 500) &&
+  sleepsec(2*sleeptime) &&
+
+  pca9685setPwmFreq(I2C_ADDR, 1000) &&
+  sleepsec(2*sleeptime) &&
+  */
 
   true;
+
+  return val;
 }
 
 static void tilthexStabilizerTask(void* param)
 {
-  uint32_t tick;
-  uint32_t lastWakeTime;
+  uint32_t tick = 1;
   vTaskSetApplicationTaskTag(0, (void*)TASK_TILTHEX_STABILIZER_ID_NBR);
 
   //Wait for the system to be fully started to start stabilization loop
   systemWaitStart();
 
   // Wait for sensors to be calibrated
-  lastWakeTime = xTaskGetTickCount ();
-  while(!sensorsAreCalibrated()) {
+  uint32_t lastWakeTime = xTaskGetTickCount();
+  while (!sensorsAreCalibrated()) {
     vTaskDelayUntil(&lastWakeTime, F2T(RATE_MAIN_LOOP));
   }
-  // Initialize tick to something else then 0
-  tick = 1;
-
 
   if (!test9685()) {
     return;
-  } 
+  }
+
   while(1) {
     vTaskDelayUntil(&lastWakeTime, F2T(RATE_MAIN_LOOP));
 
     getExtPosition(&state);
     stateEstimator(&state, &sensorData, &control, tick);
 
-    commanderGetSetpoint(&setpoint, &state);
-
-    sitAwUpdateSetpoint(&setpoint, &sensorData, &state);
-
+    //commanderGetSetpoint(&setpoint, &state);
+    //sitAwUpdateSetpoint(&setpoint, &sensorData, &state);
     //stateController(&control, &setpoint, &sensorData, &state, tick);
 
     struct tilthex_state s;
@@ -280,17 +281,15 @@ static void tilthexStabilizerTask(void* param)
     des.R = eye();
 
     tilthex_control(s, des, thrusts);
-
-    /*
-    checkEmergencyStopTimeout();
-
-    if (emergencyStop) {
-      tilthexPowerStop();
-    } else {
-      tilthexPowerDistribution(thrusts);
-    }
-    */
     tilthexPowerDistribution(thrusts);
+
+    //checkEmergencyStopTimeout();
+
+    //if (emergencyStop) {
+      //tilthexPowerStop();
+    //} else {
+      //tilthexPowerDistribution(thrusts);
+    //}
 
     tick++;
   }

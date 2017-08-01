@@ -175,8 +175,8 @@ bool pca9685setPwmFreq(int addr, float freq)
   static float const OSC_CLOCK = 25.0f * 1000.0f * 1000.0f;
   int const prescale = roundPositive(OSC_CLOCK / (4096.0f * freq)) - 1;
   return
-    (prescale < 0x03 || prescale > 0xFF) &&
+    (prescale >= 0x03) && (prescale <= 0xFF) &&
     pca9685sleep(addr) &&
     i2cdevWriteByte(&deckBus, addr, regPreScale, (uint8_t)prescale) &&
-    pca9685wakeRestore(addr);
+    pca9685wakeForget(addr);
 }
