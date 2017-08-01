@@ -61,7 +61,7 @@ static float thrusts[6];
 static void tilthexStabilizerTask(void* param);
 
 static int const I2C_ADDR = 0x40;
-static int const ESC_PWM_FREQ = 1000;
+static int const ESC_PWM_FREQ = 370; // TODO fix pca driver
 
 
 void tilthexStabilizerInit(StateEstimatorType estimator)
@@ -156,8 +156,8 @@ static struct quat quat2math(struct quaternion_s q)
 }
 
 // TODO these values
-#define ESC_DUTY_MAX 0.9f
-#define ESC_DUTY_MIN 0.2f
+#define ESC_DUTY_MAX 1.0f
+#define ESC_DUTY_MIN 0.0f
 #define ESC_DUTY_RANGE (ESC_DUTY_MAX - ESC_DUTY_MIN)
 #define RPM_MAX 20000
 
@@ -191,15 +191,19 @@ static bool test9685()
 {
   int sleeptime = 1;
 
+  // arm ESCs
   int const N_DUTIES = 10;
   float duties[N_DUTIES];
   for (int i = 0; i < N_DUTIES; ++i) {
-    duties[i] = i / (N_DUTIES - 1.0f);
+    duties[i] = 0.4;
   }
 
   bool val =
 
-  pca9685setMultiChannelDuty(I2C_ADDR, 0, N_DUTIES, duties);
+  pca9685setMultiChannelDuty(I2C_ADDR, 0, N_DUTIES, duties) &&
+
+  sleepsec(1.0) &&
+
   //pca9685setChannelDuty(I2C_ADDR, 0, 0.5) &&
 
   //pca9685setChannelDuty(I2C_ADDR, 1, 0.1) &&
