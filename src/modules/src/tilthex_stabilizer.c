@@ -46,6 +46,7 @@
 
 #include "tilthex_control.h"
 #include "pca9685.h"
+#include "pca9685async.h"
 
 static bool isInit = false;
 static bool emergencyStop = false;
@@ -91,6 +92,7 @@ void tilthexStabilizerInit(StateEstimatorType estimator)
   if (!ok) {
     return;
   }
+
 
 
   xTaskCreate(tilthexStabilizerTask, TILTHEX_STABILIZER_TASK_NAME,
@@ -171,7 +173,7 @@ static bool tilthexPowerDistribution(float const omega2[6])
     float omega = sqrtf(omega2[i]);
     duty[i] = OMEGA_TO_DUTY * omega + ESC_DUTY_MIN;
   }
-  return pca9685setMultiChannelDuty(I2C_ADDR, 0, 6, duty);
+  return pca9685setMultiChannelDutyAsync(I2C_ADDR, 0, 6, duty);
 }
 
 static void tilthexPowerStop()
@@ -202,7 +204,7 @@ static bool test9685()
 
   pca9685setMultiChannelDuty(I2C_ADDR, 0, N_DUTIES, duties) &&
 
-  sleepsec(1.0) &&
+  sleepsec(0.5) &&
 
   //pca9685setChannelDuty(I2C_ADDR, 0, 0.5) &&
 
@@ -250,6 +252,10 @@ static void tilthexStabilizerTask(void* param)
   }
 
   if (!test9685()) {
+    return;
+  }
+
+  if (!pca9685startAsyncTask()) {
     return;
   }
 
