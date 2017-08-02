@@ -61,7 +61,7 @@ static float thrusts[6];
 static void tilthexStabilizerTask(void* param);
 
 static int const I2C_ADDR = 0x40;
-static int const ESC_PWM_FREQ = 370; // TODO fix pca driver
+static int const ESC_PWM_FREQ = 400;
 
 
 void tilthexStabilizerInit(StateEstimatorType estimator)

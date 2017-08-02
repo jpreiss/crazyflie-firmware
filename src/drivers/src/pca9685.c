@@ -68,11 +68,6 @@ static inline int channelReg(int channel)
   return regLED_FIRST + 4 * channel;
 }
 
-static inline int roundPositive(float x)
-{
-  return x + 0.5f;
-}
-
 static inline void u16ToByte(uint16_t i, uint8_t *bytes)
 {
   bytes[0] = i & 0xFF;
@@ -123,7 +118,10 @@ bool pca9685init(int addr, float pwmFreq)
   uint8_t mode1val = m1AutoIncr;
 
   static float const OSC_CLOCK = 25.0f * 1000.0f * 1000.0f;
-  int const prescale = roundPositive(OSC_CLOCK / (4096.0f * pwmFreq)) - 1;
+  // according to my measurements with an oscilloscope,
+  // i think the datasheet is wrong about the minus one!
+  //int const prescale = OSC_CLOCK / (4096.0f * pwmFreq) + 0.5f - 1.0f
+  int const prescale = OSC_CLOCK / (4096.0f * pwmFreq) + 0.5f;
   return
     (prescale >= 0x03) && (prescale <= 0xFF) &&
     i2cdevWriteByte(&deckBus, addr, regPreScale, (uint8_t)prescale) &&
