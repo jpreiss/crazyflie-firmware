@@ -61,7 +61,7 @@ static float thrusts[6];
 static void tilthexStabilizerTask(void* param);
 
 static int const I2C_ADDR = 0x40;
-static int const ESC_PWM_FREQ = 400;
+static int const ESC_PWM_FREQ = 385;
 
 
 void tilthexStabilizerInit(StateEstimatorType estimator)
@@ -150,23 +150,26 @@ static struct quat quat2math(struct quaternion_s q)
   return quat;
 }
 
-// TODO these values
-#define ESC_DUTY_MAX 1.0f
-#define ESC_DUTY_MIN 0.0f
-#define ESC_DUTY_RANGE (ESC_DUTY_MAX - ESC_DUTY_MIN)
-#define RPM_MAX 20000
 
-#define OMEGA_MAX ((float)(2.0 * M_PI * RPM_MAX / 60.0))
-#define OMEGA_TO_DUTY (ESC_DUTY_RANGE / OMEGA_MAX)
+static uint16_t omegaToDuration(float omega)
+{
+  // experimentally determined with Afro 2-amp ESC
+  // values are in "pca9685 units" so depend on PWM_ESC_FREQ
+  // (set to 385Hz in the experiments, should be same here.)
+  uint16_t duration = 0.4f * (omega + 3683);
+  if (duration > 2400) duration = 2400;
+  if (duration < 1700) duration = 1700;
+  return duration;
+}
 
 static bool tilthexPowerDistribution(float const omega2[6])
 {
-  float duty[6];
+  uint16_t duration[6];
   for (int i = 0; i < 6; ++i) {
     float omega = sqrtf(omega2[i]);
-    duty[i] = OMEGA_TO_DUTY * omega + ESC_DUTY_MIN;
+    duration[i] = omegaToDuration(omega);
   }
-  return pca9685setDutiesAsync(I2C_ADDR, 0, 6, duty);
+  return pca9685setDurationsAsync(I2C_ADDR, 0, 6, duration);
 }
 
 static void tilthexPowerStop()

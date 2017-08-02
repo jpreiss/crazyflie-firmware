@@ -16,12 +16,20 @@ static float kR_d = 5;
 
 // system identification parameters.
 static float mass = 0.7; // kg
-static float prop_rpm_max = 20000;
-static float inertia1 = 0.01;
-static float inertia2 = 0.01;
-static float inertia3 = 0.02;
-static float thrust_constant = 0.5e-5;
-static float drag_constant = 2.5e-7;
+static float prop_rpm_max = 22000; // approx.
+// TODO: real inertia parameters
+static float inertia1 = 0.01f;
+static float inertia2 = 0.01f;
+static float inertia3 = 0.02f;
+// measured using tachometer + scale
+static float thrust_constant = 1.6e-6f;
+// the drag constant is harder to measure than thrust.
+// this value is determined based on the rough average
+//      drag_constant = 0.05 * thrust_constant
+// from system identification papers in the literature.
+// however, reported values ranged from 0.005 to 0.1,
+// so this is quite approximate and might need tuning.
+static float drag_constant = 8.0e-8f;
 
 void compute_f(struct tilthex_state s, struct tilthex_state des, float f[6])
 {
