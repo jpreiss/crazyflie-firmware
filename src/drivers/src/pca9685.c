@@ -25,7 +25,8 @@
  */
 
 #include "i2cdev.h"
-#include "task.h" // one function requires a CPU-yielding sleep
+#include "pca9685.h"
+#include "math.h" // fmax, fmin
 
 // the pca9685 uses 8-bit internal addresses.
 enum Registers
@@ -78,105 +79,158 @@ static inline void u16ToByte(uint16_t i, uint8_t *bytes)
   bytes[1] = i >> 8;
 }
 
-static void dutyToBytes(float duty, uint8_t *bytes)
+static void durationToBytes(uint16_t duration, uint8_t *bytes)
 {
-  if (duty >= 1) {
+  if (duration >= 4096) {
     u16ToByte(4096, bytes);
     u16ToByte(0, bytes + 2);
   }
-  else if (duty <= 0) {
+  else if (duration == 0) {
     u16ToByte(0, bytes);
     u16ToByte(4096, bytes + 2);
   }
   else {
     u16ToByte(0, bytes);
-    u16ToByte(duty * 4096, bytes + 2);
+    u16ToByte(duration, bytes + 2);
   }
 }
 
+static uint16_t dutyToDuration(float duty)
+{
+  duty = fmax(duty, 0.0f);
+  duty = fmin(duty, 1.0f);
+  return duty * 4096.0f;
+}
+
 //
-//
-// PUBLIC
-//
+// SYNCHRONOUS
+// (see pca9685.h for function descriptions.)
 //
 
-bool pca9685init(int addr)
+bool pca9685init(int addr, float pwmFreq)
 {
   if (!i2cdevInit(I2C1_DEV)) {
     return false;
   }
 
-  // compared to default state, we:
+  // initial state is sleeping.
+  // must be asleep to set PWM freq.
+
+  // set up value of Mode1 register. compared to default state, we:
   // - wake up from sleep
   // - enable AutoIncrement
   // - disable AllCall
-  uint8_t settings = m1AutoIncr;
-  return i2cdevWriteByte(&deckBus, addr, regMode1, settings);
+  uint8_t mode1val = m1AutoIncr;
+
+  static float const OSC_CLOCK = 25.0f * 1000.0f * 1000.0f;
+  int const prescale = roundPositive(OSC_CLOCK / (4096.0f * pwmFreq)) - 1;
+  return
+    (prescale >= 0x03) && (prescale <= 0xFF) &&
+    i2cdevWriteByte(&deckBus, addr, regPreScale, (uint8_t)prescale) &&
+    i2cdevWriteByte(&deckBus, addr, regMode1, mode1val);
 }
 
-/*
-// it will reset everything, can't pick which address
-static bool resetAll()
-{
-  // The reset sequence is the special "general call address" 0x00
-  // followed by one byte 0x06, but no further data.
-  // Technically, we shouldn't send the dontCare byte at all.
-  // However, it should still work. It might return false...
-  uint8_t dontCare = 0x00;
-  return i2cdevWriteByte(&deckBus, 0x00, 0x06, dontCare);
-}
-*/
-
-bool pca9685sleep(int addr)
-{
-  return i2cdevWriteBit(&deckBus, addr, regMode1, 4, 1);
-}
-
-bool pca9685wakeForget(int addr)
-{
-  return i2cdevWriteBit(&deckBus, addr, regMode1, 4, 0);
-}
-
-bool pca9685wakeRestore(int addr)
-{
-  uint8_t restorable = 0x00;
-  if (!i2cdevReadBit(&deckBus, addr, regMode1, m1Restart, &restorable)) {
-    // TODO: should it wake up anyway?
-    return false;
-  }
-  if (restorable != 0x00 && pca9685wakeForget(addr)) {
-    vTaskDelay(F2T(1000)); // datasheet calls for >= 500us, being careful
-    return i2cdevWriteBit(&deckBus, addr, regMode1, m1Restart, 1);
-  }
-  return false;
-}
-
-// This should be used in preference to multiple setChannelDuty() calls.
-// It uses the i2c bus more efficiently.
-bool pca9685setMultiChannelDuty(
+bool pca9685setDuties(
   int addr, int chanBegin, int nChan, float const *duties)
 {
   uint8_t data[LED_NBYTES];
   for (int i = 0; i < nChan; ++i) {
-    dutyToBytes(duties[i], data + 4*i);
+    uint16_t duration = dutyToDuration(duties[i]);
+    durationToBytes(duration, data + 4*i);
   }
   int const reg = channelReg(chanBegin);
   return i2cdevWrite(&deckBus, addr, reg, 4*nChan, data);
 }
 
-// TODO phase
-bool pca9685setChannelDuty(int addr, int channel, float duty)
+bool pca9685setDurations(
+  int addr, int chanBegin, int nChan, uint16_t const *durations)
 {
-  return pca9685setMultiChannelDuty(addr, channel, 1, &duty);
+  uint8_t data[LED_NBYTES];
+  for (int i = 0; i < nChan; ++i) {
+    durationToBytes(durations[i], data + 4*i);
+  }
+  int const reg = channelReg(chanBegin);
+  return i2cdevWrite(&deckBus, addr, reg, 4*nChan, data);
 }
 
-bool pca9685setPwmFreq(int addr, float freq)
+//
+// ASYNCHRONOUS
+// (see pca9685.h for function descriptions.)
+//
+
+#include "FreeRTOS.h"
+#include "task.h"
+#include "queue.h"
+#include "config.h"
+
+struct asyncRequest
 {
-  static float const OSC_CLOCK = 25.0f * 1000.0f * 1000.0f;
-  int const prescale = roundPositive(OSC_CLOCK / (4096.0f * freq)) - 1;
-  return
-    (prescale >= 0x03) && (prescale <= 0xFF) &&
-    pca9685sleep(addr) &&
-    i2cdevWriteByte(&deckBus, addr, regPreScale, (uint8_t)prescale) &&
-    pca9685wakeForget(addr);
+  int addr;
+  int chanBegin;
+  int nChan;
+  uint16_t durations[16];
+};
+
+static struct asyncRequest reqPush;
+static struct asyncRequest reqPop;
+
+static TaskHandle_t task;
+static QueueHandle_t queue;
+
+static void asyncTask(__attribute__((unused)) void *param)
+{
+  while (true) {
+    BaseType_t ok = xQueueReceive(queue, &reqPop, portMAX_DELAY);
+    if (ok == pdTRUE) {
+      // blocking message send.
+      pca9685setDurations(
+        reqPop.addr, reqPop.chanBegin, reqPop.nChan, reqPop.durations);
+    }
+  }
+}
+
+bool pca9685startAsyncTask()
+{
+  queue = xQueueCreate(1, sizeof(struct asyncRequest));
+  if (queue == 0) {
+    return false;
+  }
+
+  BaseType_t xReturned = xTaskCreate(
+    &asyncTask,
+    PCA9685_TASK_NAME,
+    PCA9685_TASK_STACKSIZE,
+    NULL,
+    PCA9685_TASK_PRI - 1,
+    &task);
+
+  return xReturned == pdPASS;
+}
+
+bool pca9685setDutiesAsync(
+  int addr, int chanBegin, int nChan, float const *duties)
+{
+  reqPush.addr = addr;
+  reqPush.chanBegin = chanBegin;
+  reqPush.nChan = nChan;
+  for (int i = 0; i < nChan; ++i) {
+    reqPush.durations[i] = dutyToDuration(duties[i]);
+  }
+  // drop message unless queue is empty!
+  BaseType_t sent = xQueueSend(queue, &reqPush, 0);
+  return true;
+}
+
+bool pca9685setDurationsAsync(
+  int addr, int chanBegin, int nChan, uint16_t const *durations)
+{
+  reqPush.addr = addr;
+  reqPush.chanBegin = chanBegin;
+  reqPush.nChan = nChan;
+  for (int i = 0; i < nChan; ++i) {
+    reqPush.durations[i] = durations[i];
+  }
+  // drop message unless queue is empty!
+  BaseType_t sent = xQueueSend(queue, &reqPush, 0);
+  return true;
 }
