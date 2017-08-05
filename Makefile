@@ -8,6 +8,7 @@
 -include tools/make/config.mk
 
 CFLAGS += $(EXTRA_CFLAGS)
+CFLAGS += -DZERO_LIBRARY_MODE
 
 ######### JTAG and environment configuration ##########
 OPENOCD           ?= openocd
@@ -118,7 +119,7 @@ CFLAGS += -DUSD_RUN_DISKIO_FUNCTION_TESTS
 endif
 
 # Crazyflie sources
-VPATH += src/init src/hal/src src/modules/src src/utils/src src/drivers/bosch/src src/drivers/src
+VPATH += src/init src/hal/src src/modules/src src/modules/src/cvxgen src/utils/src src/drivers/bosch/src src/drivers/src
 VPATH_CF1 += src/platform/cf1
 VPATH_CF2 += src/platform/cf2
 
@@ -175,7 +176,7 @@ PROJ_OBJ += estimator.o estimator_complementary.o
 PROJ_OBJ += controller_$(CONTROLLER).o
 PROJ_OBJ += power_distribution_$(POWER_DISTRIBUTION).o
 PROJ_OBJ_CF2 += estimator_kalman.o
-PROJ_OBJ_CF2 += tilthex_control.o tilthex_stabilizer.o
+PROJ_OBJ_CF2 += tilthex_control.o tilthex_stabilizer.o ldl.o solver.o matrix_support.o util.o
 
 
 # Deck Core
@@ -280,7 +281,7 @@ ifeq ($(DEBUG), 1)
   CFLAGS += -O0 -g3 -DDEBUG
 else
 	# Fail on warnings
-  CFLAGS += -Os -g3 -Werror -Wno-unused-function -Wno-unused-variable
+  CFLAGS += -O4 -g3 -Werror -Wno-unused-function -Wno-unused-variable
 endif
 
 ifeq ($(LTO), 1)

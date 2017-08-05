@@ -1,4 +1,5 @@
-#include "solve6x6.h"
+//#include "solve6x6.h"
+#include "cvxgen/solver.h"
 #include "math3d.h"
 #include "tilthex_control.h"
 
@@ -57,6 +58,11 @@ void compute_f(struct tilthex_state s, struct tilthex_state des, float f[6])
 	f[2] = f[2] + 9.81f;
 }
 
+struct Vars_t vars;
+struct Params_t params;
+struct Workspace_t work;
+struct Settings_t settings;
+
 void tilthex_control(struct tilthex_state s, struct tilthex_state des, float x[6])
 {
 	float J[6][6] = {{0}};
@@ -74,17 +80,34 @@ void tilthex_control(struct tilthex_state s, struct tilthex_state des, float x[6
 	set_block33_rowmaj(&J[0][0], 6, &J11);
 	set_block33_rowmaj(&J[0][3], 6, &J12);
 
-	// Jacobian done.
-
-	// construct rhs and solve.
+	// construct rhs
 	float fmv[6];
 	compute_f(s, des, fmv);
-	solve6x6(J, fmv, x);
+	float const OMEGA_MAX = 4.3865e6; // 20,000 RPM
 
-	float const omega_max = ((float)(2*M_PI/60)) * prop_rpm_max;
-	float const omega2_max = omega_max * omega_max;
+	// solve box constrained linear least squares thrust mixing with CVXGEN
 	for (int i = 0; i < 6; ++i) {
-		x[i] = fmax(fmin(x[i], omega2_max), 0.0f);
+		for (int j = 0; j < 6; ++j) {
+			params.A[i+6*j] = OMEGA_MAX * J[i][j];
+		}
+		params.b[i] = fmv[i];
+	}
+
+	// TODO move some setup stuff to init
+	// TODO warm start ???
+	set_defaults();
+	settings.verbose = 0;
+	//settings.max_iters = 10;
+	settings.eps = 0.1;
+	settings.resid_tol = 0.05;
+	setup_indexing();
+	solve();
+
+	// cvxgen thrust mixing set to loose tolerance, 
+	// so may not produce exactly valid omegas. clipping still needed.
+	for (int i = 0; i < 6; ++i) {
+		float omega = OMEGA_MAX * vars.x[i];
+		x[i] = fmax(fmin(omega, OMEGA_MAX), 0.0f);
 	}
 }
 
