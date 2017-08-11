@@ -281,7 +281,7 @@ ifeq ($(DEBUG), 1)
   CFLAGS += -O0 -g3 -DDEBUG
 else
 	# Fail on warnings
-  CFLAGS += -O4 -g3 -Werror -Wno-unused-function -Wno-unused-variable
+  CFLAGS += -O3 -g3 -Werror -Wno-unused-function -Wno-unused-variable
 endif
 
 ifeq ($(LTO), 1)
