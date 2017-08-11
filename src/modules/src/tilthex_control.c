@@ -65,24 +65,21 @@ struct Settings_t settings;
 
 void tilthex_control(struct tilthex_state s, struct tilthex_state des, float x[6])
 {
+	// construct the Jacobian using generated code from Matlab
 	float J[6][6] = {{0}};
-	#include "F2.cprocessed.c"
-
-	// construct the Jacobian.
 	struct mat33 F1_left = mzero();
-	#include "F1_left.cprocessed.c"
-
 	struct mat33 F1_right = mzero();
-	#include "F1_right.cprocessed.c"
+	#include "jacobian_fill_generated.c"
 
 	struct mat33 J11 = mmult(s.R, F1_left);
 	struct mat33 J12 = mmult(s.R, F1_right);
 	set_block33_rowmaj(&J[0][0], 6, &J11);
 	set_block33_rowmaj(&J[0][3], 6, &J12);
 
-	// construct rhs
+	// construct rhs and solve.
 	float fmv[6];
 	compute_f(s, des, fmv);
+
 	float const OMEGA_MAX = 4.3865e6; // 20,000 RPM
 
 	// solve box constrained linear least squares thrust mixing with CVXGEN
