@@ -261,7 +261,7 @@ static void tilthexStabilizerTask(void* param)
     getExtPosition(&state);
     stateEstimator(&state, &sensorData, &control, tick);
 
-    //commanderGetSetpoint(&setpoint, &state);
+    commanderGetSetpoint(&setpoint, &state);
     //sitAwUpdateSetpoint(&setpoint, &sensorData, &state);
     //stateController(&control, &setpoint, &sensorData, &state, tick);
 
@@ -275,16 +275,16 @@ static void tilthexStabilizerTask(void* param)
     s.R = quat2rotmat(quat2math(state.attitudeQuaternion));
 
     struct tilthex_state des;
-    //des.pos = vec2math(setpoint.position);
-    des.pos = vzero();
-    //des.vel = vec2math(setpoint.velocity);
-    des.vel = vzero();
-    //des.acc = vec2math(setpoint.acceleration);
-    des.acc = vzero();
-    //des.omega = attitude2math(setpoint.attitudeRate);
-    des.omega = vzero();
-    //des.R = quat2rotmat(quat2math(setpoint.attitudeQuaternion));
-    des.R = eye();
+    des.pos = vec2math(setpoint.position);
+    //des.pos = vzero();
+    des.vel = vec2math(setpoint.velocity);
+    //des.vel = vzero();
+    des.acc = vec2math(setpoint.acceleration);
+    //des.acc = vzero();
+    des.omega = attitude2math(setpoint.attitudeRate);
+    //des.omega = vzero();
+    des.R = quat2rotmat(quat2math(setpoint.attitudeQuaternion));
+    //des.R = eye();
 
     tilthex_control(s, des, thrusts);
     tilthexPowerDistribution(thrusts);

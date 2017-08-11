@@ -31,6 +31,7 @@
 
 #include "commander.h"
 #include "param.h"
+#include "log.h"
 #include "crtp.h"
 #include "num.h"
 #include "vec3compress.h"
@@ -61,6 +62,8 @@
  */
 
 typedef void (*packetDecoder_t)(setpoint_t *setpoint, uint8_t type, const void *data, size_t datalen);
+
+static float gotFASetpoint = 0;
 
 /* ---===== 1 - packetType_e enum =====--- */
 enum packet_type {
@@ -337,6 +340,8 @@ static void fullyActuatedDecoder(setpoint_t *setpoint, uint8_t type, const void 
   setpoint->mode.roll = modeDisable;
   setpoint->mode.pitch = modeDisable;
   setpoint->mode.yaw = modeDisable;
+
+  gotFASetpoint = true;
 }
 
  /* ---===== 3 - packetDecoders array =====--- */
@@ -380,3 +385,7 @@ PARAM_ADD(PARAM_FLOAT, rateYaw, &s_CppmEmuYawMaxRateDps)
 PARAM_ADD(PARAM_FLOAT, angRoll, &s_CppmEmuRollMaxAngleDeg)
 PARAM_ADD(PARAM_FLOAT, angPitch, &s_CppmEmuPitchMaxAngleDeg)
 PARAM_GROUP_STOP(cmdrCPPM)
+
+LOG_GROUP_START(tilthexDebug)
+LOG_ADD(LOG_FLOAT, faset, &gotFASetpoint)
+LOG_GROUP_STOP(tilthexDebug)
