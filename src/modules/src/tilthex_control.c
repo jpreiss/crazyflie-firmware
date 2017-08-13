@@ -3,6 +3,7 @@
 #include "math3d.h"
 #include "tilthex_control.h"
 
+#include "log.h"
 #include "param.h"
 
 // control gains.
@@ -31,6 +32,9 @@ static float thrust_constant = 1.6e-6f;
 // however, reported values ranged from 0.005 to 0.1,
 // so this is quite approximate and might need tuning.
 static float drag_constant = 8.0e-8f;
+
+static float Jm2[3];
+static float Rdiag[3];
 
 void compute_f(struct tilthex_state s, struct tilthex_state des, float f[6])
 {
@@ -76,6 +80,11 @@ void tilthex_control(struct tilthex_state s, struct tilthex_state des, float x[6
 	set_block33_rowmaj(&J[0][0], 6, &J11);
 	set_block33_rowmaj(&J[0][3], 6, &J12);
 
+	for (int i = 0; i < 3; ++i) {
+		Jm2[i] = J[i][1];
+		Rdiag[i] = s.R.m[i][i];
+	}
+
 	// construct rhs and solve.
 	float fmv[6];
 	compute_f(s, des, fmv);
@@ -94,7 +103,7 @@ void tilthex_control(struct tilthex_state s, struct tilthex_state des, float x[6
 	// TODO warm start ???
 	set_defaults();
 	settings.verbose = 0;
-	//settings.max_iters = 10;
+	settings.max_iters = 3;
 	settings.eps = 0.1;
 	settings.resid_tol = 0.05;
 	setup_indexing();
@@ -107,6 +116,18 @@ void tilthex_control(struct tilthex_state s, struct tilthex_state des, float x[6
 		x[i] = fmax(fmin(omega, OMEGA_MAX), 0.0f);
 	}
 }
+
+LOG_GROUP_START(tilthexJm2)
+LOG_ADD(LOG_FLOAT, x, &Jm2[0])
+LOG_ADD(LOG_FLOAT, y, &Jm2[1])
+LOG_ADD(LOG_FLOAT, z, &Jm2[2])
+LOG_GROUP_STOP(tilthexJm2)
+
+LOG_GROUP_START(tilthexRdiag)
+LOG_ADD(LOG_FLOAT, x, &Rdiag[0])
+LOG_ADD(LOG_FLOAT, y, &Rdiag[1])
+LOG_ADD(LOG_FLOAT, z, &Rdiag[2])
+LOG_GROUP_STOP(tilthexRdiag)
 
 PARAM_GROUP_START(tilthex_pid)
 PARAM_ADD(PARAM_FLOAT, pos_kp, &kP_p)

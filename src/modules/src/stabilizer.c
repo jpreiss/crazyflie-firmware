@@ -58,6 +58,8 @@ static void stabilizerTask(void* param);
 
 void stabilizerInit(StateEstimatorType estimator)
 {
+  return;
+
   if(isInit)
     return;
 

@@ -46,6 +46,9 @@
 
 #include "tilthex_control.h"
 #include "pca9685.h"
+#include "usec_time.h"
+
+#define min(a,b) ((b)<(a)?(b):(a))
 
 static bool isInit = false;
 static bool emergencyStop = false;
@@ -57,11 +60,44 @@ static sensorData_t sensorData;
 static state_t state;
 static control_t control;
 static float thrusts[6];
+static uint16_t pwm_durations[6];
+static uint8_t viconFresh = false;
 
 static void tilthexStabilizerTask(void* param);
 
 static int const I2C_ADDR = 0x40;
 static int const ESC_PWM_FREQ = 385;
+
+static uint16_t usec_kalman;
+static uint16_t usec_control;
+static uint16_t usec_total;
+
+
+static uint16_t omegaToDuration(float omega)
+{
+  // experimentally determined with Afro 2-amp ESC
+  // values are in "pca9685 units" so depend on PWM_ESC_FREQ
+  // (set to 385Hz in the experiments, should be same here.)
+  uint16_t duration = 0.4f * (omega + 3683);
+  if (duration > 2400) duration = 2400;
+  if (duration < 1700) duration = 1700;
+  return duration;
+}
+
+static bool tilthexPowerDistribution(float const omega2[6])
+{
+  for (int i = 0; i < 6; ++i) {
+    float omega = sqrtf(omega2[i]);
+    pwm_durations[i] = omegaToDuration(omega);
+  }
+  return pca9685setDurationsAsync(I2C_ADDR, 0, 6, pwm_durations);
+}
+
+static void tilthexPowerStop()
+{
+  float x[6] = { 0.0f, };
+  tilthexPowerDistribution(x);
+}
 
 
 void tilthexStabilizerInit(StateEstimatorType estimator)
@@ -74,7 +110,6 @@ void tilthexStabilizerInit(StateEstimatorType estimator)
     return;
   }
 
-  /*
   sensorsInit();
   stateEstimatorInit(estimator);
   stateControllerInit();
@@ -82,11 +117,16 @@ void tilthexStabilizerInit(StateEstimatorType estimator)
 #if defined(SITAW_ENABLED)
   sitAwInit();
 #endif
-  */
+  initUsecTimer();
 
   if (!pca9685init(I2C_ADDR, ESC_PWM_FREQ)) {
     return;
   }
+  if (!pca9685startAsyncTask()) {
+    return;
+  }
+
+  tilthexPowerStop();
 
   xTaskCreate(tilthexStabilizerTask, TILTHEX_STABILIZER_TASK_NAME,
               TILTHEX_STABILIZER_TASK_STACKSIZE, NULL, TILTHEX_STABILIZER_TASK_PRI, NULL);
@@ -98,8 +138,8 @@ bool tilthexStabilizerTest(void)
 {
   bool pass = true;
 
-  //pass &= sensorsTest();
-  //pass &= stateEstimatorTest();
+  pass &= sensorsTest();
+  pass &= stateEstimatorTest();
   //pass &= stateControllerTest();
   //pass &= powerDistributionTest();
 
@@ -144,38 +184,11 @@ static struct vec attitude2math(struct attitude_s a)
   return vec;
 }
 
-static struct quat quat2math(struct quaternion_s q)
+static struct mat33 quat2mathrot(struct quaternion_s q)
 {
   struct quat quat = { .x = q.x, .y = q.y, .z = q.z, .w = q.w };
-  return quat;
-}
-
-
-static uint16_t omegaToDuration(float omega)
-{
-  // experimentally determined with Afro 2-amp ESC
-  // values are in "pca9685 units" so depend on PWM_ESC_FREQ
-  // (set to 385Hz in the experiments, should be same here.)
-  uint16_t duration = 0.4f * (omega + 3683);
-  if (duration > 2400) duration = 2400;
-  if (duration < 1700) duration = 1700;
-  return duration;
-}
-
-static bool tilthexPowerDistribution(float const omega2[6])
-{
-  uint16_t duration[6];
-  for (int i = 0; i < 6; ++i) {
-    float omega = sqrtf(omega2[i]);
-    duration[i] = omegaToDuration(omega);
-  }
-  return pca9685setDurationsAsync(I2C_ADDR, 0, 6, duration);
-}
-
-static void tilthexPowerStop()
-{
-  float x[6] = { 0.0f, };
-  tilthexPowerDistribution(x);
+  struct mat33 R = quat2rotmat(quat);
+  return R;
 }
 
 
@@ -247,46 +260,79 @@ static void tilthexStabilizerTask(void* param)
     vTaskDelayUntil(&lastWakeTime, F2T(RATE_MAIN_LOOP));
   }
 
-  if (!test9685()) {
-    return;
-  }
-
-  if (!pca9685startAsyncTask()) {
-    return;
-  }
-
   while(1) {
     vTaskDelayUntil(&lastWakeTime, F2T(RATE_MAIN_LOOP));
 
-    getExtPosition(&state);
-    stateEstimator(&state, &sensorData, &control, tick);
+    uint64_t tick_begin = usecTimestamp();
+
+    // tell EKF that we are flying
+    control.roll = 0;
+    control.pitch = 0;
+    control.yaw = 0;
+    control.thrust = 9.81;
+
+    if (getExtPosition(&state)) {
+      stateEstimator(&state, &sensorData, &control, tick);
+    }
+
+    uint64_t tick_kalman = usecTimestamp();
+    usec_kalman = min(tick_kalman - tick_begin, UINT16_MAX);
 
     commanderGetSetpoint(&setpoint, &state);
     //sitAwUpdateSetpoint(&setpoint, &sensorData, &state);
     //stateController(&control, &setpoint, &sensorData, &state, tick);
 
     struct tilthex_state s;
-    //s.pos = vec2math(state.position);
-    s.pos = vzero();
-    //s.vel = vec2math(state.velocity);
-    s.vel = vzero();
-    s.acc = vec2math(state.acc);
-    s.omega = attitude2math(state.attitudeRate);
-    s.R = quat2rotmat(quat2math(state.attitudeQuaternion));
-
     struct tilthex_state des;
+
+    // diagnostic / testing modes
+
+#define REAL_LIFE
+
+#if defined(HOLD_SETPOINT)
+    // pretend we're already at the setpoint, and hold it
     des.pos = vec2math(setpoint.position);
-    //des.pos = vzero();
     des.vel = vec2math(setpoint.velocity);
-    //des.vel = vzero();
     des.acc = vec2math(setpoint.acceleration);
-    //des.acc = vzero();
     des.omega = attitude2math(setpoint.attitudeRate);
-    //des.omega = vzero();
-    des.R = quat2rotmat(quat2math(setpoint.attitudeQuaternion));
-    //des.R = eye();
+    des.R = quat2mathrot(setpoint.attitudeQuaternion);
+    s = des;
+#elif defined(HOLD_ATTITUDE)
+    // pretend the setpoint is pos=0 with current attitude.
+    // for state, use real attitude but pretend pos, vel are 0.
+    s.pos = vzero();
+    s.vel = vzero();
+    s.acc = vzero();
+    s.omega = vzero();
+    s.R = quat2mathrot(state.attitudeQuaternion);
+    des = s;
+#elif defined(REAL_LIFE)
+    des.pos = vec2math(setpoint.position);
+    des.vel = vec2math(setpoint.velocity);
+    des.acc = vec2math(setpoint.acceleration);
+    des.omega = attitude2math(setpoint.attitudeRate);
+    des.R = quat2mathrot(setpoint.attitudeQuaternion);
+
+    // correct from Crazyflie's left handed coords into x fwd, y left, z up
+    s.pos = vec2math(state.position);
+    s.pos.y = -s.pos.y;
+    s.vel = vec2math(state.velocity);
+    s.vel.y = -s.vel.y;
+    s.acc = vec2math(state.acc);
+    s.acc.y = -s.acc.y;
+    s.omega = attitude2math(state.attitudeRate);
+    s.omega.y = -s.omega.y;
+    // no y correction needed for quat, I think
+    s.R = quat2mathrot(state.attitudeQuaternion);
+#else
+  #error "no tilthex control mode set."
+#endif
 
     tilthex_control(s, des, thrusts);
+
+    uint64_t tick_control = usecTimestamp();
+    usec_control = min(tick_control - tick_kalman, UINT16_MAX);
+
     tilthexPowerDistribution(thrusts);
 
     //checkEmergencyStopTimeout();
@@ -296,6 +342,8 @@ static void tilthexStabilizerTask(void* param)
     //} else {
       //tilthexPowerDistribution(thrusts);
     //}
+    uint64_t tick_end = usecTimestamp();
+    usec_total = min(tick_end - tick_begin, UINT16_MAX);
 
     tick++;
   }
@@ -385,12 +433,28 @@ LOG_GROUP_STOP(stateEstimate)
 */
 
 // TiltHex parts
-LOG_GROUP_START(tilthexThrusts)
-LOG_ADD(LOG_FLOAT, t0, &thrusts[0])
-LOG_ADD(LOG_FLOAT, t1, &thrusts[1])
-LOG_ADD(LOG_FLOAT, t2, &thrusts[2])
-LOG_ADD(LOG_FLOAT, t3, &thrusts[3])
-LOG_ADD(LOG_FLOAT, t4, &thrusts[4])
-LOG_ADD(LOG_FLOAT, t5, &thrusts[5])
-LOG_GROUP_STOP(tilthexThrusts)
+LOG_GROUP_START(setpointAcc)
+LOG_ADD(LOG_FLOAT, x, &setpoint.acceleration.x)
+LOG_ADD(LOG_FLOAT, y, &setpoint.acceleration.y)
+LOG_ADD(LOG_FLOAT, z, &setpoint.acceleration.z)
+LOG_GROUP_STOP(setpointAcc)
+
+LOG_GROUP_START(vicon)
+LOG_ADD(LOG_UINT8, fresh, &viconFresh)
+LOG_GROUP_STOP(vicon)
+
+LOG_GROUP_START(tilthexPWM)
+LOG_ADD(LOG_UINT16, p0, &pwm_durations[0])
+LOG_ADD(LOG_UINT16, p1, &pwm_durations[1])
+LOG_ADD(LOG_UINT16, p2, &pwm_durations[2])
+LOG_ADD(LOG_UINT16, p3, &pwm_durations[3])
+LOG_ADD(LOG_UINT16, p4, &pwm_durations[4])
+LOG_ADD(LOG_UINT16, p5, &pwm_durations[5])
+LOG_GROUP_STOP(tilthexPWM)
+
+LOG_GROUP_START(thProfile)
+LOG_ADD(LOG_UINT16, uskalman, &usec_kalman)
+LOG_ADD(LOG_UINT16, uscontrol, &usec_control)
+LOG_ADD(LOG_UINT16, ustotal, &usec_total)
+LOG_GROUP_STOP(thProfile)
 
