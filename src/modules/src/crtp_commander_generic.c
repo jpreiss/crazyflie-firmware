@@ -335,7 +335,7 @@ static void fullyActuatedDecoder(setpoint_t *setpoint, uint8_t type, const void 
   setpoint->attitudeRate.pitch = omega_fix16_to_float(values->omegay);
   setpoint->attitudeRate.yaw = omega_fix16_to_float(values->omegaz);
 
-  quatdecompress(values->quat, (float *)&setpoint->attitudeQuaternion);
+  quatdecompress(values->quat, (float *)&setpoint->attitudeQuaternion.q0);
   setpoint->mode.quat = modeAbs;
   setpoint->mode.roll = modeDisable;
   setpoint->mode.pitch = modeDisable;
