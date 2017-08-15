@@ -94,7 +94,7 @@ void tilthex_control(struct tilthex_state s, struct tilthex_state des, float x[6
 	// TODO warm start ???
 	set_defaults();
 	settings.verbose = 0;
-	//settings.max_iters = 10;
+	settings.max_iters = 3;
 	settings.eps = 0.1;
 	settings.resid_tol = 0.05;
 	setup_indexing();

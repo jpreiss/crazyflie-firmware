@@ -266,10 +266,8 @@ static void tilthexStabilizerTask(void* param)
     //stateController(&control, &setpoint, &sensorData, &state, tick);
 
     struct tilthex_state s;
-    //s.pos = vec2math(state.position);
-    s.pos = vzero();
-    //s.vel = vec2math(state.velocity);
-    s.vel = vzero();
+    s.pos = vec2math(state.position);
+    s.vel = vec2math(state.velocity);
     s.acc = vec2math(state.acc);
     s.omega = attitude2math(state.attitudeRate);
     s.R = quat2rotmat(quat2math(state.attitudeQuaternion));
