@@ -50,6 +50,7 @@ typedef enum
 {
   EXT_POSITION  = 0,
   GENERIC_TYPE  = 1,
+  EXT_POSE = 2,
 } locsrvChannels_t;
 
 typedef struct
@@ -61,6 +62,16 @@ typedef struct
     float range;
   } __attribute__((packed)) ranges[NBR_OF_RANGES_IN_PACKET];
 } __attribute__((packed)) rangePacket;
+
+/**
+ * CRTP external position data struct
+ */
+struct CrtpExtPosition
+{
+  float x; // in m
+  float y; // in m
+  float z; // in m
+} __attribute__((packed));
 
 /**
  * Position data cache
@@ -83,6 +94,34 @@ static bool isInit = false;
 static void locSrvCrtpCB(CRTPPacket* pk);
 static void extPositionHandler(CRTPPacket* pk);
 static void genericLocHandle(CRTPPacket* pk);
+static void extPoseHandler(CRTPPacket* pk);
+
+
+
+// full-state measurement
+struct CrtpExtPose
+{
+  float x; // in m
+  float y; // in m
+  float z; // in m
+  float qx;
+  float qy;
+  float qz;
+  float qw;
+} __attribute__((packed));
+
+struct
+{
+  struct CrtpExtPose targetVal[2];
+  bool activeSide;
+  uint32_t timestamp;
+} crtpExtPoseCache;
+
+// for logging
+quaternion_t extQuat;
+
+
+
 
 void locSrvInit()
 {
@@ -103,6 +142,10 @@ static void locSrvCrtpCB(CRTPPacket* pk)
       break;
     case GENERIC_TYPE:
       genericLocHandle(pk);
+      break;
+    case EXT_POSE:
+      extPoseHandler(pk);
+      break;
     default:
       break;
   }
@@ -113,6 +156,17 @@ static void extPositionHandler(CRTPPacket* pk)
   crtpExtPosCache.targetVal[!crtpExtPosCache.activeSide] = *((struct CrtpExtPosition*)pk->data);
   crtpExtPosCache.activeSide = !crtpExtPosCache.activeSide;
   crtpExtPosCache.timestamp = xTaskGetTickCount();
+}
+
+static void extPoseHandler(CRTPPacket* pk)
+{
+  crtpExtPoseCache.targetVal[!crtpExtPoseCache.activeSide] = *((struct CrtpExtPose*)pk->data);
+  crtpExtPoseCache.activeSide = !crtpExtPoseCache.activeSide;
+  crtpExtPoseCache.timestamp = xTaskGetTickCount();
+  extQuat.x = crtpExtPoseCache.targetVal[crtpExtPoseCache.activeSide].qx;
+  extQuat.y = crtpExtPoseCache.targetVal[crtpExtPoseCache.activeSide].qy;
+  extQuat.z = crtpExtPoseCache.targetVal[crtpExtPoseCache.activeSide].qz;
+  extQuat.w = crtpExtPoseCache.targetVal[crtpExtPoseCache.activeSide].qw;
 }
 
 static void genericLocHandle(CRTPPacket* pk)
@@ -150,6 +204,22 @@ bool getExtPosition(state_t *state)
     estimatorKalmanEnqueuePosition(&ext_pos);
 #endif
   
+    return true;
+  }
+  return false;
+}
+
+bool getExtPose(state_t *state)
+{
+  // Only use position information if it's valid and recent
+  if ((xTaskGetTickCount() - crtpExtPoseCache.timestamp) < M2T(5)) {
+    state->position.x = crtpExtPoseCache.targetVal[crtpExtPoseCache.activeSide].x;
+    state->position.y = crtpExtPoseCache.targetVal[crtpExtPoseCache.activeSide].y;
+    state->position.z = crtpExtPoseCache.targetVal[crtpExtPoseCache.activeSide].z;
+    state->attitudeQuaternion.x = crtpExtPoseCache.targetVal[crtpExtPoseCache.activeSide].qx;
+    state->attitudeQuaternion.y = crtpExtPoseCache.targetVal[crtpExtPoseCache.activeSide].qy;
+    state->attitudeQuaternion.z = crtpExtPoseCache.targetVal[crtpExtPoseCache.activeSide].qz;
+    state->attitudeQuaternion.w = crtpExtPoseCache.targetVal[crtpExtPoseCache.activeSide].qw;
     return true;
   }
   return false;
@@ -196,6 +266,13 @@ LOG_GROUP_START(ext_pos)
   LOG_ADD(LOG_FLOAT, Y, &ext_pos.y)
   LOG_ADD(LOG_FLOAT, Z, &ext_pos.z)
 LOG_GROUP_STOP(ext_pos)
+
+LOG_GROUP_START(ext_quat)
+  LOG_ADD(LOG_FLOAT, x, &extQuat.x)
+  LOG_ADD(LOG_FLOAT, y, &extQuat.y)
+  LOG_ADD(LOG_FLOAT, z, &extQuat.z)
+  LOG_ADD(LOG_FLOAT, w, &extQuat.w)
+LOG_GROUP_STOP(ext_quat)
 
 PARAM_GROUP_START(locSrv)
 PARAM_ADD(PARAM_UINT8, enRangeStreamFP32, &enableRangeStreamFloat)

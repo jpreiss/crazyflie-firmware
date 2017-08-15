@@ -28,16 +28,6 @@
 
 #include "stabilizer_types.h"
 
-/**
- * CRTP external position data struct
- */
-struct CrtpExtPosition
-{
-  float x; // in m
-  float y; // in m
-  float z; // in m
-} __attribute__((packed));
-
 typedef enum
 {
   RANGE_STREAM_FLOAT      = 0,
@@ -52,6 +42,9 @@ void locSrvInit(void);
 
 // Get the current position from the cache
 bool getExtPosition(state_t *state);
+
+// Get the current pose (position + attitude) from the cache
+bool getExtPose(state_t *state);
 
 // Send range in float. After 5 ranges it will send the packet.
 void locSrvSendRangeFloat(uint8_t id, float range);
