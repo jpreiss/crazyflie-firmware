@@ -129,6 +129,9 @@ void locSrvInit()
     return;
   }
 
+  crtpExtPoseCache.activeSide = 0;
+  crtpExtPoseCache.timestamp = 0;
+
   crtpRegisterPortCB(CRTP_PORT_LOCALIZATION, locSrvCrtpCB);
   isInit = true;
 }

@@ -44,8 +44,11 @@
 #include "estimator_kalman.h"
 #include "estimator.h"
 
+#include "ekf.h"
+#include "mathconstants.h"
 #include "tilthex_control.h"
 #include "pca9685.h"
+#include "usec_time.h"
 
 static bool isInit = false;
 static bool emergencyStop = false;
@@ -62,6 +65,21 @@ static void tilthexStabilizerTask(void* param);
 
 static int const I2C_ADDR = 0x40;
 static int const ESC_PWM_FREQ = 385;
+
+// EKF implementation uses double-buffered approach
+static struct ekf ekfa;
+static struct ekf ekfb;
+static struct ekf *ekf_front = &ekfa;
+static struct ekf *ekf_back = &ekfb;
+static void ekf_flip()
+{
+  struct ekf *ekf_temp = ekf_front;
+  ekf_front = ekf_back;
+  ekf_back = ekf_temp;
+}
+static bool first_vicon = false;
+static struct vec ekf_pos;
+static float ekf_usec = 0;
 
 
 void tilthexStabilizerInit(StateEstimatorType estimator)
@@ -87,6 +105,10 @@ void tilthexStabilizerInit(StateEstimatorType estimator)
   if (!pca9685init(I2C_ADDR, ESC_PWM_FREQ)) {
     return;
   }
+
+  // Initialize to 0 so gyro integration still works without Vicon
+  float init[] = {0, 0, 0, 1};
+  ekf_init(ekf_back, init, init, init);
 
   xTaskCreate(tilthexStabilizerTask, TILTHEX_STABILIZER_TASK_NAME,
               TILTHEX_STABILIZER_TASK_STACKSIZE, NULL, TILTHEX_STABILIZER_TASK_PRI, NULL);
@@ -258,19 +280,49 @@ static void tilthexStabilizerTask(void* param)
   while(1) {
     vTaskDelayUntil(&lastWakeTime, F2T(RATE_MAIN_LOOP));
 
-    getExtPosition(&state);
-    stateEstimator(&state, &sensorData, &control, tick);
+    bool gotPose = getExtPose(&state);
+    //stateEstimator(&state, &sensorData, &control, tick);
 
     commanderGetSetpoint(&setpoint, &state);
     //sitAwUpdateSetpoint(&setpoint, &sensorData, &state);
     //stateController(&control, &setpoint, &sensorData, &state, tick);
 
+    uint64_t const ekf_tic = usecTimestamp();
+
+    // lazy initialization
+    if (!first_vicon && gotPose) {
+      float const vel[3] = {0, 0, 0};
+      ekf_init(ekf_back,
+        (float const *)&state.position.x,
+        vel,
+        (float const *)&state.attitudeQuaternion.x);
+      first_vicon = true;
+    }
+
+    if (first_vicon && sensorsReadAcc(&sensorData.acc) && sensorsReadGyro(&sensorData.gyro)) {
+      float acc[3] = {sensorData.acc.x * GRAV, sensorData.acc.y * GRAV, sensorData.acc.z * GRAV};
+      float gyro[3] = {radians(sensorData.gyro.x), radians(sensorData.gyro.y), radians(sensorData.gyro.z)};
+      ekf_imu(ekf_back, ekf_front, acc, gyro, 1.0f/250.0f); // TODO not hard-code!!!!
+      ekf_flip();
+    }
+
+    if (gotPose) {
+      float pos_vicon[3] = {sensorData.position.x, sensorData.position.y, sensorData.position.z};
+      ekf_vicon(ekf_back, ekf_front, pos_vicon, &state.attitudeQuaternion.x);
+      ekf_flip();
+    }
+
+    uint64_t const ekf_toc = usecTimestamp();
+    ekf_usec = ekf_toc - ekf_tic;
+
+    ekf_pos = ekf_back->pos;
+
     struct tilthex_state s;
-    s.pos = vec2math(state.position);
-    s.vel = vec2math(state.velocity);
-    s.acc = vec2math(state.acc);
-    s.omega = attitude2math(state.attitudeRate);
-    s.R = quat2rotmat(quat2math(state.attitudeQuaternion));
+    s.pos = ekf_back->pos;
+    s.vel = ekf_back->vel;
+    s.acc = ekf_back->acc;
+    s.omega = ekf_back->omega;
+    s.R = quat2rotmat(ekf_back->quat);
 
     struct tilthex_state des;
     des.pos = vec2math(setpoint.position);
@@ -391,4 +443,11 @@ LOG_ADD(LOG_FLOAT, t3, &thrusts[3])
 LOG_ADD(LOG_FLOAT, t4, &thrusts[4])
 LOG_ADD(LOG_FLOAT, t5, &thrusts[5])
 LOG_GROUP_STOP(tilthexThrusts)
+
+LOG_GROUP_START(ekf_pos)
+LOG_ADD(LOG_FLOAT, x, &ekf_pos.x)
+LOG_ADD(LOG_FLOAT, y, &ekf_pos.y)
+LOG_ADD(LOG_FLOAT, z, &ekf_pos.z)
+LOG_ADD(LOG_FLOAT, usec, &ekf_usec)
+LOG_GROUP_STOP(ekf_pos)
 
