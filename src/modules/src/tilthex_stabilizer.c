@@ -47,6 +47,7 @@
 #include "ekf.h"
 #include "mathconstants.h"
 #include "tilthex_control.h"
+#include "tilthex_song.h"
 #include "pca9685.h"
 #include "usec_time.h"
 
@@ -180,7 +181,7 @@ static uint16_t omegaToDuration(float omega)
   // (set to 385Hz in the experiments, should be same here.)
   uint16_t duration = 0.4f * (omega + 3683);
   if (duration > 2400) duration = 2400;
-  if (duration < 1700) duration = 1700;
+  if (duration < 1500) duration = 1500;
   return duration;
 }
 
@@ -215,7 +216,7 @@ static bool test9685()
   int const N_DUTIES = 10;
   float duties[N_DUTIES];
   for (int i = 0; i < N_DUTIES; ++i) {
-    duties[i] = 0.4;
+    duties[i] = 0.3;
   }
 
   bool val =
@@ -269,13 +270,17 @@ static void tilthexStabilizerTask(void* param)
     vTaskDelayUntil(&lastWakeTime, F2T(RATE_MAIN_LOOP));
   }
 
-  if (!test9685()) {
-    return;
-  }
-
   if (!pca9685startAsyncTask()) {
     return;
   }
+
+  sleepsec(0.1);
+
+  // the "0 thrust" signal is still nonzero pulsewidth.
+  // this arms the Afro ESCs.
+  tilthexPowerStop();
+
+  songBegin(I2C_ADDR);
 
   while(1) {
     vTaskDelayUntil(&lastWakeTime, F2T(RATE_MAIN_LOOP));
@@ -286,6 +291,8 @@ static void tilthexStabilizerTask(void* param)
     commanderGetSetpoint(&setpoint, &state);
     //sitAwUpdateSetpoint(&setpoint, &sensorData, &state);
     //stateController(&control, &setpoint, &sensorData, &state, tick);
+
+    songStep(tick);
 
     uint64_t const ekf_tic = usecTimestamp();
 
@@ -337,7 +344,11 @@ static void tilthexStabilizerTask(void* param)
     //des.R = eye();
 
     tilthex_control(s, des, thrusts);
-    tilthexPowerDistribution(thrusts);
+
+    if (songIsDone()) {
+      //tilthexPowerDistribution(thrusts);
+      tilthexPowerStop();
+    }
 
     //checkEmergencyStopTimeout();
 

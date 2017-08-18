@@ -176,7 +176,7 @@ PROJ_OBJ += estimator.o estimator_complementary.o
 PROJ_OBJ += controller_$(CONTROLLER).o
 PROJ_OBJ += power_distribution_$(POWER_DISTRIBUTION).o
 PROJ_OBJ_CF2 += estimator_kalman.o
-PROJ_OBJ_CF2 += tilthex_control.o tilthex_stabilizer.o ldl.o solver.o matrix_support.o util.o
+PROJ_OBJ_CF2 += tilthex_control.o tilthex_stabilizer.o tilthex_song.o ldl.o solver.o matrix_support.o util.o
 PROJ_OBJ_CF2 += ekf.o
 
 

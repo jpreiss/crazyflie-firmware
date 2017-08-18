@@ -24,6 +24,9 @@
  * pca9685.h: 12-bit, 16-channel PWM servo (, LED, ESC, ...) driver
  */
 
+#include <stdbool.h>
+#include <stdint.h>
+
 
 // start the device. All channels will be initialized to 0% duty.
 // returns true if successful.
