@@ -13,8 +13,6 @@
 #define r 0
 
 // `r` is a rest - the propeller will stop.
-// `h` is a hold - no motor command will be sent.
-// note that e.g. {D, h} and {D, D} are equivalent.
 
 static int songCursor;
 static int motorCursor;
@@ -75,7 +73,7 @@ void songStep(int tick)
 		}
 
 		++songCursor;
-		noteStartTick = tick;
+		noteStartTick += noteTicks;
 		noteTicks = 100;
 	}
 }
