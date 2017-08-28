@@ -138,6 +138,14 @@ static inline struct vec vmin(struct vec a, struct vec b) {
 static inline struct vec vmax(struct vec a, struct vec b) {
 	return mkvec(fmaxf(a.x, b.x), fmaxf(a.y, b.y), fmaxf(a.z, b.z));
 }
+// element-wise product of vectors.
+static inline struct vec veltmult(struct vec a, struct vec b) {
+	return mkvec(a.x * b.x, a.y * b.y, a.z * b.z);
+}
+// element-wise reciprocal.
+static inline struct vec veltrecip(struct vec a) {
+	return mkvec(1.0f / a.x, 1.0f / a.y, 1.0f / a.z);
+}
 static inline float vminkowski(struct vec v) {
 	return fabs(v.x) + fabs(v.y) + fabs(v.z);
 }

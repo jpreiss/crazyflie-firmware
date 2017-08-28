@@ -52,6 +52,14 @@ void compute_f(struct tilthex_state s, struct tilthex_state des, float f[6])
 	
 	struct vec v_R = vadd(vscl(-kR_p, e_R), vscl(-kR_d, e_omega));
 
+	struct vec inertia_diag = mkvec(inertia1, inertia2, inertia3);
+	struct vec inertia_inv_diag = veltrecip(inertia_diag);
+	struct vec dw_inertia = vneg(veltmult(
+		inertia_inv_diag,
+		vcross(s.omega, veltmult(inertia_diag, s.omega))));
+
+	v_R = vsub(v_R, dw_inertia);
+
 	vstoref(v_p, &f[0]);
 	vstoref(v_R, &f[3]);
 
@@ -62,6 +70,7 @@ struct Vars_t vars;
 struct Params_t params;
 struct Workspace_t work;
 struct Settings_t settings;
+
 
 void tilthex_control(struct tilthex_state s, struct tilthex_state des, float x[6])
 {
@@ -94,7 +103,7 @@ void tilthex_control(struct tilthex_state s, struct tilthex_state des, float x[6
 	// TODO warm start ???
 	set_defaults();
 	settings.verbose = 0;
-	settings.max_iters = 3;
+	settings.max_iters = 10;
 	settings.eps = 0.1;
 	settings.resid_tol = 0.05;
 	setup_indexing();
