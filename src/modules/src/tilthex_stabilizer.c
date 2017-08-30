@@ -296,6 +296,9 @@ static void tilthexStabilizerTask(void* param)
 
     uint64_t const ekf_tic = usecTimestamp();
 
+    // TEMP DEBUG allow free IMU integration without vicon
+    first_vicon = true;
+
     // lazy initialization
     if (!first_vicon && gotPose) {
       float const vel[3] = {0, 0, 0};
@@ -322,32 +325,44 @@ static void tilthexStabilizerTask(void* param)
     uint64_t const ekf_toc = usecTimestamp();
     ekf_usec = ekf_toc - ekf_tic;
 
+    // logging
     ekf_pos = ekf_back->pos;
 
     struct tilthex_state s;
+    struct tilthex_state des;
+
+#define HOLD_ATTITUDE
+
+#if defined(HOLD_ATTITUDE)
+    s.pos = vzero();
+    s.vel = vzero();
+    s.acc = vzero();
+    s.omega = vzero();
+    s.R = quat2rotmat(ekf_back->quat);
+
+    des = s;
+
+#elif defined(TRACK_SETPOINT)
     s.pos = ekf_back->pos;
     s.vel = ekf_back->vel;
     s.acc = ekf_back->acc;
     s.omega = ekf_back->omega;
     s.R = quat2rotmat(ekf_back->quat);
 
-    struct tilthex_state des;
     des.pos = vec2math(setpoint.position);
-    //des.pos = vzero();
     des.vel = vec2math(setpoint.velocity);
-    //des.vel = vzero();
     des.acc = vec2math(setpoint.acceleration);
-    //des.acc = vzero();
     des.omega = attitude2math(setpoint.attitudeRate);
-    //des.omega = vzero();
     des.R = quat2rotmat(quat2math(setpoint.attitudeQuaternion));
-    //des.R = eye();
+#else
+    #error "tilthex_stabilizer - no control mode specified!"
+#endif
 
     tilthex_control(s, des, thrusts);
 
     if (songIsDone()) {
-      //tilthexPowerDistribution(thrusts);
-      tilthexPowerStop();
+      tilthexPowerDistribution(thrusts);
+      //tilthexPowerStop();
     }
 
     //checkEmergencyStopTimeout();

@@ -73,7 +73,8 @@ void songStep(int tick)
 		}
 
 		++songCursor;
-		noteStartTick += noteTicks;
+		//noteStartTick += noteTicks;
+		noteStartTick = tick;
 		noteTicks = 100;
 	}
 }

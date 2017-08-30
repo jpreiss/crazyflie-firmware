@@ -18,10 +18,10 @@ static float kR_d = 5;
 // system identification parameters.
 static float mass = 0.7; // kg
 static float prop_rpm_max = 22000; // approx.
-// TODO: real inertia parameters
-static float inertia1 = 0.01f;
-static float inertia2 = 0.01f;
-static float inertia3 = 0.02f;
+// inerita matrix computed from CAD model
+static float inertia1 = 0.0119f;
+static float inertia2 = 0.0121f;
+static float inertia3 = 0.0234f;
 // measured using tachometer + scale
 static float thrust_constant = 1.6e-6f;
 // the drag constant is harder to measure than thrust.
