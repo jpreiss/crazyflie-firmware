@@ -53,7 +53,7 @@
 
 static bool isInit = false;
 static bool emergencyStop = false;
-static int emergencyStopTimeout = EMERGENCY_STOP_TIMEOUT_DISABLED;
+static int emergencyStopTimeout = 0;
 
 // State variables for the stabilizer
 static setpoint_t setpoint;
@@ -79,8 +79,16 @@ static void ekf_flip()
   ekf_back = ekf_temp;
 }
 static bool first_vicon = false;
+
+// logging
 static struct vec ekf_pos;
+static struct vec ekf_rpy;
 static float ekf_usec = 0;
+
+static float logHaveSetpoint = 0;
+static float logHaveVicon = 0;
+static float logEmergencyStop = 0;
+static float x_frac = -1.0f;
 
 
 void tilthexStabilizerInit(StateEstimatorType estimator)
@@ -93,8 +101,8 @@ void tilthexStabilizerInit(StateEstimatorType estimator)
     return;
   }
 
-  /*
   sensorsInit();
+  /*
   stateEstimatorInit(estimator);
   stateControllerInit();
   powerDistributionInit();
@@ -121,7 +129,7 @@ bool tilthexStabilizerTest(void)
 {
   bool pass = true;
 
-  //pass &= sensorsTest();
+  pass &= sensorsTest();
   //pass &= stateEstimatorTest();
   //pass &= stateControllerTest();
   //pass &= powerDistributionTest();
@@ -179,8 +187,8 @@ static uint16_t omegaToDuration(float omega)
   // experimentally determined with Afro 2-amp ESC
   // values are in "pca9685 units" so depend on PWM_ESC_FREQ
   // (set to 385Hz in the experiments, should be same here.)
-  uint16_t duration = 0.4f * (omega + 3683);
-  if (duration > 2400) duration = 2400;
+  uint16_t duration = 0.959f * omega + 1126.1f;
+  if (duration > 3200) duration = 3200;
   if (duration < 1500) duration = 1500;
   return duration;
 }
@@ -193,6 +201,15 @@ static bool tilthexPowerDistribution(float const omega2[6])
     duration[i] = omegaToDuration(omega);
   }
   return pca9685setDurationsAsync(I2C_ADDR, 0, 6, duration);
+}
+
+static bool tilthexDurationTest(uint16_t duration)
+{
+  uint16_t durations[6];
+  for (int i = 0; i < 6; ++i) {
+  	durations[i] = duration;
+  }
+  return pca9685setDurationsAsync(I2C_ADDR, 0, 6, durations);
 }
 
 static void tilthexPowerStop()
@@ -256,6 +273,8 @@ static bool test9685()
   return val;
 }
 
+static int const TIMEOUT_TICKS = 100; // 0.2 sec
+
 static void tilthexStabilizerTask(void* param)
 {
   uint32_t tick = 1;
@@ -280,10 +299,11 @@ static void tilthexStabilizerTask(void* param)
   // this arms the Afro ESCs.
   tilthexPowerStop();
 
-  songBegin(I2C_ADDR);
+  //songBegin(I2C_ADDR);
 
   while(1) {
     vTaskDelayUntil(&lastWakeTime, F2T(RATE_MAIN_LOOP));
+
 
     bool gotPose = getExtPose(&state);
     //stateEstimator(&state, &sensorData, &control, tick);
@@ -292,12 +312,9 @@ static void tilthexStabilizerTask(void* param)
     //sitAwUpdateSetpoint(&setpoint, &sensorData, &state);
     //stateController(&control, &setpoint, &sensorData, &state, tick);
 
-    songStep(tick);
+    //songStep(tick);
 
     uint64_t const ekf_tic = usecTimestamp();
-
-    // TEMP DEBUG allow free IMU integration without vicon
-    first_vicon = true;
 
     // lazy initialization
     if (!first_vicon && gotPose) {
@@ -312,26 +329,37 @@ static void tilthexStabilizerTask(void* param)
     if (first_vicon && sensorsReadAcc(&sensorData.acc) && sensorsReadGyro(&sensorData.gyro)) {
       float acc[3] = {sensorData.acc.x * GRAV, sensorData.acc.y * GRAV, sensorData.acc.z * GRAV};
       float gyro[3] = {radians(sensorData.gyro.x), radians(sensorData.gyro.y), radians(sensorData.gyro.z)};
-      ekf_imu(ekf_back, ekf_front, acc, gyro, 1.0f/250.0f); // TODO not hard-code!!!!
+      ekf_imu(ekf_back, ekf_front, acc, gyro, 1.0f/500.0f); // TODO not hard-code!!!!
       ekf_flip();
     }
 
+	// logging
+	ekf_rpy = quat2rpy(ekf_back->quat);
+    ekf_pos = ekf_back->pos;
+
     if (gotPose) {
-      float pos_vicon[3] = {sensorData.position.x, sensorData.position.y, sensorData.position.z};
+      float pos_vicon[3] = {state.position.x, state.position.y, state.position.z};
       ekf_vicon(ekf_back, ekf_front, pos_vicon, &state.attitudeQuaternion.x);
       ekf_flip();
+      emergencyStop = false;
+      emergencyStopTimeout = TIMEOUT_TICKS;
+    }
+
+    if (emergencyStopTimeout >= 0) {
+      emergencyStopTimeout -= 1;
+
+      if (emergencyStopTimeout == 0) {
+        emergencyStop = true;
+      }
     }
 
     uint64_t const ekf_toc = usecTimestamp();
     ekf_usec = ekf_toc - ekf_tic;
 
-    // logging
-    ekf_pos = ekf_back->pos;
-
     struct tilthex_state s;
     struct tilthex_state des;
 
-#define HOLD_ATTITUDE
+#define TRACK_SETPOINT
 
 #if defined(HOLD_ATTITUDE)
     s.pos = vzero();
@@ -349,6 +377,7 @@ static void tilthexStabilizerTask(void* param)
     s.omega = ekf_back->omega;
     s.R = quat2rotmat(ekf_back->quat);
 
+    //des = s;
     des.pos = vec2math(setpoint.position);
     des.vel = vec2math(setpoint.velocity);
     des.acc = vec2math(setpoint.acceleration);
@@ -360,18 +389,35 @@ static void tilthexStabilizerTask(void* param)
 
     tilthex_control(s, des, thrusts);
 
-    if (songIsDone()) {
-      tilthexPowerDistribution(thrusts);
-      //tilthexPowerStop();
+    bool haveSetpoint = commanderGetInactivityTime() < 100;
+
+	logHaveSetpoint = haveSetpoint;
+	logHaveVicon = first_vicon;
+	logEmergencyStop = emergencyStop;
+
+	if (true) {
+    //if (songIsDone()) {
+      if (first_vicon && !emergencyStop && haveSetpoint) {
+	  	// DEBUG HACK for rpm calib
+	  	/*
+		x_frac = setpoint.position.x;
+		if (x_frac >= 0 && x_frac <= 1) {
+			float omega = x_frac * 2300;
+			for (int i = 0; i < 6; ++i) {
+				thrusts[i] = omega * omega;
+			}
+			tilthexPowerDistribution(thrusts);
+		}
+		//uint16_t duration = setpoint.position.x * 1000.0f;
+		//tilthexDurationTest(duration);
+		*/
+
+		tilthexPowerDistribution(thrusts);
+      }
+      else {
+        tilthexPowerStop();
+      }
     }
-
-    //checkEmergencyStopTimeout();
-
-    //if (emergencyStop) {
-      //tilthexPowerStop();
-    //} else {
-      //tilthexPowerDistribution(thrusts);
-    //}
 
     tick++;
   }
@@ -387,13 +433,13 @@ void tilthexStabilizerResetEmergencyStop()
 {
   emergencyStop = false;
 }
-*/
 
 void tilthexStabilizerSetEmergencyStopTimeout(int timeout)
 {
   emergencyStop = false;
   emergencyStopTimeout = timeout;
 }
+*/
 
 /*
 LOG_GROUP_START(ctrltarget)
@@ -470,10 +516,35 @@ LOG_ADD(LOG_FLOAT, t4, &thrusts[4])
 LOG_ADD(LOG_FLOAT, t5, &thrusts[5])
 LOG_GROUP_STOP(tilthexThrusts)
 
+LOG_GROUP_START(tiltDbg)
+LOG_ADD(LOG_FLOAT, vicon, &logHaveVicon)
+LOG_ADD(LOG_FLOAT, setpt, &logHaveSetpoint)
+LOG_ADD(LOG_FLOAT, emerg, &logEmergencyStop)
+LOG_ADD(LOG_FLOAT, x_frac, &x_frac)
+LOG_GROUP_STOP(tiltDbg)
+
+
+LOG_GROUP_START(tiltPosCtrl)
+LOG_ADD(LOG_FLOAT, setx, &setpoint.position.x)
+LOG_ADD(LOG_FLOAT, sety, &setpoint.position.y)
+LOG_ADD(LOG_FLOAT, setz, &setpoint.position.z)
+LOG_ADD(LOG_FLOAT, setvx, &setpoint.velocity.x)
+LOG_ADD(LOG_FLOAT, setvy, &setpoint.velocity.y)
+LOG_ADD(LOG_FLOAT, setvz, &setpoint.velocity.z)
+LOG_GROUP_STOP(tiltPosCtrl)
+
 LOG_GROUP_START(ekf_pos)
 LOG_ADD(LOG_FLOAT, x, &ekf_pos.x)
 LOG_ADD(LOG_FLOAT, y, &ekf_pos.y)
 LOG_ADD(LOG_FLOAT, z, &ekf_pos.z)
 LOG_ADD(LOG_FLOAT, usec, &ekf_usec)
+LOG_ADD(LOG_FLOAT, vicon_x, &state.position.x)
+LOG_ADD(LOG_FLOAT, vicon_y, &state.position.y)
+LOG_ADD(LOG_FLOAT, vicon_z, &state.position.z)
 LOG_GROUP_STOP(ekf_pos)
 
+LOG_GROUP_START(ekf_rpy)
+LOG_ADD(LOG_FLOAT, x, &ekf_rpy.x)
+LOG_ADD(LOG_FLOAT, y, &ekf_rpy.y)
+LOG_ADD(LOG_FLOAT, z, &ekf_rpy.z)
+LOG_GROUP_STOP(ekf_rpy)

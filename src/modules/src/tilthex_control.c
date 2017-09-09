@@ -16,7 +16,7 @@ static float kR_p = 10;
 static float kR_d = 5;
 
 // system identification parameters.
-static float mass = 0.7; // kg
+static float mass = 1.096; // kg
 static float prop_rpm_max = 22000; // approx.
 // inerita matrix computed from CAD model
 static float inertia1 = 0.0119f;
@@ -89,12 +89,12 @@ void tilthex_control(struct tilthex_state s, struct tilthex_state des, float x[6
 	float fmv[6];
 	compute_f(s, des, fmv);
 
-	float const OMEGA_MAX = 4.3865e6; // 20,000 RPM
+	float const omega2_max = fsqr((2.0f * M_PI_F / 60.0f) * prop_rpm_max);
 
 	// solve box constrained linear least squares thrust mixing with CVXGEN
 	for (int i = 0; i < 6; ++i) {
 		for (int j = 0; j < 6; ++j) {
-			params.A[i+6*j] = OMEGA_MAX * J[i][j];
+			params.A[i+6*j] = omega2_max * J[i][j];
 		}
 		params.b[i] = fmv[i];
 	}
@@ -112,8 +112,8 @@ void tilthex_control(struct tilthex_state s, struct tilthex_state des, float x[6
 	// cvxgen thrust mixing set to loose tolerance, 
 	// so may not produce exactly valid omegas. clipping still needed.
 	for (int i = 0; i < 6; ++i) {
-		float omega = OMEGA_MAX * vars.x[i];
-		x[i] = fmax(fmin(omega, OMEGA_MAX), 0.0f);
+		float omega2 = omega2_max * vars.x[i];
+		x[i] = fmax(fmin(omega2, omega2_max), 0.0f);
 	}
 }
 
