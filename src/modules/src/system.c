@@ -49,7 +49,7 @@
 #include "uart1.h"
 #include "uart2.h"
 #include "comm.h"
-#include "stabilizer.h"
+//#include "stabilizer.h"
 #include "tilthex_stabilizer.h"
 #include "commander.h"
 #include "console.h"
@@ -177,7 +177,7 @@ void systemTask(void *arg)
   deckInit();
   estimator = deckGetRequiredEstimator();
 #endif
-  stabilizerInit(estimator);
+  //stabilizerInit(estimator);
   tilthexStabilizerInit(estimator);
   soundInit();
   memInit();
@@ -191,7 +191,7 @@ void systemTask(void *arg)
   pass &= configblockTest();
   pass &= commTest();
   pass &= commanderTest();
-  pass &= stabilizerTest();
+  //pass &= stabilizerTest();
   pass &= tilthexStabilizerTest();
 #ifdef PLATFORM_CF2
   pass &= deckTest();

@@ -35,7 +35,7 @@
 #include "param.h"
 
 #include "stabilizer_types.h"
-#include "stabilizer.h"
+//#include "stabilizer.h"
 
 #ifndef PLATFORM_CF1
 #include "locodeck.h"
@@ -187,9 +187,9 @@ static void genericLocHandle(CRTPPacket* pk)
     pk->data[2] = success?1:0;
     crtpSendPacket(pk);
   } else if (type == EMERGENCY_STOP) {
-    stabilizerSetEmergencyStop();
+    //stabilizerSetEmergencyStop();
   } else if (type == EMERGENCY_STOP_WATCHDOG) {
-    stabilizerSetEmergencyStopTimeout(DEFAULT_EMERGENCY_STOP_TIMEOUT);
+    //stabilizerSetEmergencyStopTimeout(DEFAULT_EMERGENCY_STOP_TIMEOUT);
   }
 #endif
 }
