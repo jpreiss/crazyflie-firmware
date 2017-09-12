@@ -59,4 +59,3 @@ void solve6x6(float a[N][N], float b[N], float x[N])
 }
 
 #undef N
-#undef mat_elem

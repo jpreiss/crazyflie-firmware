@@ -1,6 +1,6 @@
-//#include "solve6x6.h"
 #include "cvxgen/solver.h"
 #include "math3d.h"
+#include "solve6x6.h"
 #include "tilthex_control.h"
 
 #include "param.h"
@@ -34,6 +34,9 @@ static float thrust_constant = 1.6e-6f;
 // however, reported values ranged from 0.005 to 0.1,
 // so this is quite approximate and might need tuning.
 static float drag_constant = 8.0e-8f;
+
+// it should be a bool but something is weird w/ 8-bit log/param!
+static uint16_t use_cvxgen = 0;
 
 static struct vec update_integral(struct vec integral, struct vec err_pos, float dt)
 {
@@ -99,31 +102,47 @@ void tilthex_control(struct tilthex_state *s, struct tilthex_state const des, fl
 	float fmv[6];
 	compute_f(s, des, dt, fmv);
 
+	// scale the Jacobian for better conditioning.
 	float const omega2_max = fsqr((2.0f * M_PI_F / 60.0f) * prop_rpm_max);
-
-	// solve box constrained linear least squares thrust mixing with CVXGEN
 	for (int i = 0; i < 6; ++i) {
 		for (int j = 0; j < 6; ++j) {
-			params.A[i+6*j] = omega2_max * J[i][j];
+			J[i][j] = omega2_max * J[i][j];
 		}
-		params.b[i] = fmv[i];
 	}
 
-	// TODO move some setup stuff to init
-	// TODO warm start ???
-	set_defaults();
-	settings.verbose = 0;
-	settings.max_iters = 10;
-	settings.eps = 0.1;
-	settings.resid_tol = 0.05;
-	setup_indexing();
-	solve();
+	if (use_cvxgen) {
+		// solve box constrained linear least squares thrust mixing with CVXGEN
+		for (int i = 0; i < 6; ++i) {
+			for (int j = 0; j < 6; ++j) {
+				params.A[i+6*j] = J[i][j];
+			}
+			params.b[i] = fmv[i];
+		}
 
-	// cvxgen thrust mixing set to loose tolerance, 
-	// so may not produce exactly valid omegas. clipping still needed.
+		// TODO move some setup stuff to init
+		// TODO warm start ???
+		set_defaults();
+		settings.verbose = 0;
+		settings.max_iters = 10;
+		settings.eps = 0.1;
+		settings.resid_tol = 0.05;
+		setup_indexing();
+		solve();
+
+		// cvxgen thrust mixing set to loose tolerance, 
+		// so may not produce exactly valid omegas. clipping still needed,
+		// see below.
+		for (int i = 0; i < 6; ++i) {
+			x[i] = vars.x[i];
+		}
+	}
+	else {
+		solve6x6(J, fmv, x);
+	}
+
+	// clipping and scaling back up to omega^2 units.
 	for (int i = 0; i < 6; ++i) {
-		float omega2 = omega2_max * vars.x[i];
-		x[i] = fmax(fmin(omega2, omega2_max), 0.0f);
+		x[i] = omega2_max * fmax(fmin(x[i], 1.0f), 0.0f);
 	}
 }
 
@@ -134,6 +153,8 @@ PARAM_ADD(PARAM_FLOAT, pos_kd, &kP_d)
 PARAM_ADD(PARAM_FLOAT, pos_satp, &satP_i)
 PARAM_ADD(PARAM_FLOAT, att_kp, &kR_p)
 PARAM_ADD(PARAM_FLOAT, att_kd, &kR_d)
+PARAM_ADD(PARAM_FLOAT, att_kd, &kR_d)
+PARAM_ADD(PARAM_UINT16, use_cvxgen, &use_cvxgen)
 PARAM_GROUP_STOP(tilthex_pid)
 
 PARAM_GROUP_START(tilthex_dynamics)
