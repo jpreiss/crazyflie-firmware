@@ -83,6 +83,7 @@ static bool first_vicon = false;
 // logging
 static struct vec ekf_pos;
 static struct vec ekf_rpy;
+static struct vec setpoint_rpy;
 static float ekf_usec = 0;
 
 static float logHaveSetpoint = 0;
@@ -207,7 +208,7 @@ static bool tilthexDurationTest(uint16_t duration)
 {
   uint16_t durations[6];
   for (int i = 0; i < 6; ++i) {
-  	durations[i] = duration;
+    durations[i] = duration;
   }
   return pca9685setDurationsAsync(I2C_ADDR, 0, 6, durations);
 }
@@ -333,8 +334,8 @@ static void tilthexStabilizerTask(void* param)
       ekf_flip();
     }
 
-	// logging
-	ekf_rpy = quat2rpy(ekf_back->quat);
+    // logging
+    ekf_rpy = quat2rpy(ekf_back->quat);
     ekf_pos = ekf_back->pos;
 
     if (gotPose) {
@@ -382,37 +383,39 @@ static void tilthexStabilizerTask(void* param)
     des.vel = vec2math(setpoint.velocity);
     des.acc = vec2math(setpoint.acceleration);
     des.omega = attitude2math(setpoint.attitudeRate);
-    des.R = quat2rotmat(quat2math(setpoint.attitudeQuaternion));
+    struct quat setpoint_quat = quat2math(setpoint.attitudeQuaternion);
+    des.R = quat2rotmat(setpoint_quat);
 #else
     #error "tilthex_stabilizer - no control mode specified!"
 #endif
+
+    setpoint_rpy = quat2rpy(setpoint_quat);
 
     tilthex_control(s, des, thrusts);
 
     bool haveSetpoint = commanderGetInactivityTime() < 100;
 
-	logHaveSetpoint = haveSetpoint;
-	logHaveVicon = first_vicon;
-	logEmergencyStop = emergencyStop;
+    logHaveSetpoint = haveSetpoint;
+    logHaveVicon = first_vicon;
+    logEmergencyStop = emergencyStop;
 
-	if (true) {
+    if (true) {
     //if (songIsDone()) {
       if (first_vicon && !emergencyStop && haveSetpoint) {
-	  	// DEBUG HACK for rpm calib
-	  	/*
-		x_frac = setpoint.position.x;
-		if (x_frac >= 0 && x_frac <= 1) {
-			float omega = x_frac * 2300;
-			for (int i = 0; i < 6; ++i) {
-				thrusts[i] = omega * omega;
-			}
-			tilthexPowerDistribution(thrusts);
-		}
-		//uint16_t duration = setpoint.position.x * 1000.0f;
-		//tilthexDurationTest(duration);
-		*/
-
-		tilthexPowerDistribution(thrusts);
+        // DEBUG HACK for rpm calib
+        /*
+        x_frac = setpoint.position.x;
+        if (x_frac >= 0 && x_frac <= 1) {
+          float omega = x_frac * 2300;
+          for (int i = 0; i < 6; ++i) {
+            thrusts[i] = omega * omega;
+          }
+          tilthexPowerDistribution(thrusts);
+        }
+        //uint16_t duration = setpoint.position.x * 1000.0f;
+        //tilthexDurationTest(duration);
+        */
+        tilthexPowerDistribution(thrusts);
       }
       else {
         tilthexPowerStop();
@@ -531,6 +534,9 @@ LOG_ADD(LOG_FLOAT, setz, &setpoint.position.z)
 LOG_ADD(LOG_FLOAT, setvx, &setpoint.velocity.x)
 LOG_ADD(LOG_FLOAT, setvy, &setpoint.velocity.y)
 LOG_ADD(LOG_FLOAT, setvz, &setpoint.velocity.z)
+LOG_ADD(LOG_FLOAT, roll, &setpoint_rpy.x)
+LOG_ADD(LOG_FLOAT, pitch, &setpoint_rpy.y)
+LOG_ADD(LOG_FLOAT, yaw, &setpoint_rpy.z)
 LOG_GROUP_STOP(tiltPosCtrl)
 
 LOG_GROUP_START(ekf_pos)
