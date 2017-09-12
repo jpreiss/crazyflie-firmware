@@ -62,6 +62,8 @@ static state_t state;
 static control_t control;
 static float thrusts[6];
 
+static struct tilthex_state control_state;
+
 static void tilthexStabilizerTask(void* param);
 
 static int const I2C_ADDR = 0x40;
@@ -119,6 +121,9 @@ void tilthexStabilizerInit(StateEstimatorType estimator)
   // Initialize to 0 so gyro integration still works without Vicon
   float init[] = {0, 0, 0, 1};
   ekf_init(ekf_back, init, init, init);
+
+  // Initialize controller state
+  control_state.pos_err_integral = vzero();
 
   xTaskCreate(tilthexStabilizerTask, TILTHEX_STABILIZER_TASK_NAME,
               TILTHEX_STABILIZER_TASK_STACKSIZE, NULL, TILTHEX_STABILIZER_TASK_PRI, NULL);
@@ -265,6 +270,7 @@ static bool test9685()
   pca9685setPwmFreq(I2C_ADDR, 500) &&
   sleepsec(2*sleeptime) &&
 
+
   pca9685setPwmFreq(I2C_ADDR, 1000) &&
   sleepsec(2*sleeptime) &&
   */
@@ -357,28 +363,26 @@ static void tilthexStabilizerTask(void* param)
     uint64_t const ekf_toc = usecTimestamp();
     ekf_usec = ekf_toc - ekf_tic;
 
-    struct tilthex_state s;
     struct tilthex_state des;
 
 #define TRACK_SETPOINT
 
 #if defined(HOLD_ATTITUDE)
-    s.pos = vzero();
-    s.vel = vzero();
-    s.acc = vzero();
-    s.omega = vzero();
-    s.R = quat2rotmat(ekf_back->quat);
+    control_state.pos = vzero();
+    control_state.vel = vzero();
+    control_state.acc = vzero();
+    control_state.omega = vzero();
+    control_state.R = quat2rotmat(ekf_back->quat);
 
     des = s;
 
 #elif defined(TRACK_SETPOINT)
-    s.pos = ekf_back->pos;
-    s.vel = ekf_back->vel;
-    s.acc = ekf_back->acc;
-    s.omega = ekf_back->omega;
-    s.R = quat2rotmat(ekf_back->quat);
+    control_state.pos = ekf_back->pos;
+    control_state.vel = ekf_back->vel;
+    control_state.acc = ekf_back->acc;
+    control_state.omega = ekf_back->omega;
+    control_state.R = quat2rotmat(ekf_back->quat);
 
-    //des = s;
     des.pos = vec2math(setpoint.position);
     des.vel = vec2math(setpoint.velocity);
     des.acc = vec2math(setpoint.acceleration);
@@ -391,7 +395,7 @@ static void tilthexStabilizerTask(void* param)
 
     setpoint_rpy = quat2rpy(setpoint_quat);
 
-    tilthex_control(s, des, thrusts);
+    tilthex_control(&control_state, des, 1.0f/500.0f, thrusts); // TODO not hard-code!
 
     bool haveSetpoint = commanderGetInactivityTime() < 100;
 

@@ -40,6 +40,7 @@ SOFTWARE.
 static inline float fsqr(float x) { return x * x; }
 static inline float radians(float degrees) { return ((float)M_PI / 180.0f) * degrees; }
 static inline float degrees(float radians) { return (180.0f / (float)M_PI) * radians; }
+static inline float clamp(float x, float min, float max) { return fmin(fmax(x, min), max); }
 
 
 // ---------------------------- 3d vectors ------------------------------
@@ -132,21 +133,25 @@ static inline struct vec vorthunit(struct vec a, struct vec b_unit) {
 static inline struct vec vabs(struct vec v) {
 	return mkvec(fabs(v.x), fabs(v.y), fabs(v.z));
 }
-// element-wise minimum of vector.
+// element-wise minimum of two vectors.
 static inline struct vec vmin(struct vec a, struct vec b) {
 	return mkvec(fminf(a.x, b.x), fminf(a.y, b.y), fminf(a.z, b.z));
 }
-// element-wise maximum of vector.
+// element-wise maximum of two vectors.
 static inline struct vec vmax(struct vec a, struct vec b) {
 	return mkvec(fmaxf(a.x, b.x), fmaxf(a.y, b.y), fmaxf(a.z, b.z));
 }
-// element-wise product of vectors.
+// element-wise product of two vectors.
 static inline struct vec veltmult(struct vec a, struct vec b) {
 	return mkvec(a.x * b.x, a.y * b.y, a.z * b.z);
 }
 // element-wise reciprocal.
 static inline struct vec veltrecip(struct vec a) {
 	return mkvec(1.0f / a.x, 1.0f / a.y, 1.0f / a.z);
+}
+// limit each element of a vector to the given range
+static inline struct vec vclamp(struct vec a, float min, float max) {
+	return mkvec(clamp(a.x, min, max), clamp(a.y, min, max), clamp(a.z, min, max));
 }
 static inline float vminkowski(struct vec v) {
 	return fabs(v.x) + fabs(v.y) + fabs(v.z);
@@ -164,19 +169,17 @@ static inline bool veq(struct vec a, struct vec b) {
 static inline bool vneq(struct vec a, struct vec b) {
 	return !veq(a, b);
 }
-// element-wise less-than
+// partial ordering comparisons:
+// only true if relation holds for each of x, y, z
 static inline bool vless(struct vec a, struct vec b) {
 	return (a.x < b.x) && (a.y < b.y) && (a.z < b.z);
 }
-// element-wise less-than-or-equal
 static inline bool vleq(struct vec a, struct vec b) {
 	return (a.x <= b.x) && (a.y <= b.y) && (a.z <= b.z);
 }
-// element-wise greater-than
 static inline bool vgreater(struct vec a, struct vec b) {
 	return (a.x > b.x) && (a.y > b.y) && (a.z > b.z);
 }
-// element-wise greater-than-or-equal
 static inline bool vgeq(struct vec a, struct vec b) {
 	return (a.x >= b.x) && (a.y >= b.y) && (a.z >= b.z);
 }
@@ -192,6 +195,10 @@ static inline bool visnan(struct vec v) {
 // add 3 vectors.
 static inline struct vec vadd3(struct vec a, struct vec b, struct vec c) {
 	return vadd(vadd(a, b), c);
+}
+// add 4 vectors.
+static inline struct vec vadd4(struct vec a, struct vec b, struct vec c, struct vec d) {
+	return vadd(vadd(vadd(a, b), c), d);
 }
 // subtract b and c from a.
 static inline struct vec vsub2(struct vec a, struct vec b, struct vec c) {
