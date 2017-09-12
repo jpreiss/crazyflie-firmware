@@ -10,7 +10,10 @@
 
 // position
 static float kP_p = 10;
+static float kP_i = 5;
 static float kP_d = 5;
+static float satP_i = 0.1; // saturation - meters * seconds
+
 // rotational
 static float kR_p = 10;
 static float kR_d = 5;
@@ -32,23 +35,30 @@ static float thrust_constant = 1.6e-6f;
 // so this is quite approximate and might need tuning.
 static float drag_constant = 8.0e-8f;
 
-void compute_f(struct tilthex_state s, struct tilthex_state des, float f[6])
+static struct vec update_integral(struct vec integral, struct vec err_pos, float dt)
 {
-	struct vec err_pos = vsub(s.pos, des.pos);
-	struct vec err_vel = vsub(s.vel, des.vel);
-	struct vec v_p = vadd3(
+	return vclamp(vadd(integral, vscl(dt, err_pos)), -satP_i, satP_i);
+}
+
+void compute_f(struct tilthex_state *s, struct tilthex_state des, float dt, float f[6])
+{
+	struct vec err_pos = vsub(s->pos, des.pos);
+	struct vec err_vel = vsub(s->vel, des.vel);
+	s->pos_err_integral = update_integral(s->pos_err_integral, err_pos, dt);
+	struct vec v_p = vadd4(
 		des.acc,
 		vscl(-kP_p, err_pos),
-		vscl(-kP_d, err_vel)
+		vscl(-kP_d, err_vel),
+		vscl(-kP_i, s->pos_err_integral)
 	);
 
 	struct vec e_R = vscl(0.5, mvee(
 		msub(
-			mmult(mtranspose(des.R), s.R),
-			mmult(mtranspose(s.R), des.R))
+			mmult(mtranspose(des.R), s->R),
+			mmult(mtranspose(s->R), des.R))
 	));
-	struct vec e_omega = vsub(s.omega,
-		mvmult(mmult(mtranspose(s.R), des.R), des.omega));
+	struct vec e_omega = vsub(s->omega,
+		mvmult(mmult(mtranspose(s->R), des.R), des.omega));
 	
 	struct vec v_R = vadd(vscl(-kR_p, e_R), vscl(-kR_d, e_omega));
 
@@ -56,7 +66,7 @@ void compute_f(struct tilthex_state s, struct tilthex_state des, float f[6])
 	struct vec inertia_inv_diag = veltrecip(inertia_diag);
 	struct vec dw_inertia = vneg(veltmult(
 		inertia_inv_diag,
-		vcross(s.omega, veltmult(inertia_diag, s.omega))));
+		vcross(s->omega, veltmult(inertia_diag, s->omega))));
 
 	v_R = vsub(v_R, dw_inertia);
 
@@ -72,7 +82,7 @@ struct Workspace_t work;
 struct Settings_t settings;
 
 
-void tilthex_control(struct tilthex_state s, struct tilthex_state des, float x[6])
+void tilthex_control(struct tilthex_state *s, struct tilthex_state const des, float dt, float x[6])
 {
 	// construct the Jacobian using generated code from Matlab
 	float J[6][6] = {{0}};
@@ -80,14 +90,14 @@ void tilthex_control(struct tilthex_state s, struct tilthex_state des, float x[6
 	struct mat33 F1_right = mzero();
 	#include "jacobian_fill_generated.c"
 
-	struct mat33 J11 = mmult(s.R, F1_left);
-	struct mat33 J12 = mmult(s.R, F1_right);
+	struct mat33 J11 = mmult(s->R, F1_left);
+	struct mat33 J12 = mmult(s->R, F1_right);
 	set_block33_rowmaj(&J[0][0], 6, &J11);
 	set_block33_rowmaj(&J[0][3], 6, &J12);
 
 	// construct rhs and solve.
 	float fmv[6];
-	compute_f(s, des, fmv);
+	compute_f(s, des, dt, fmv);
 
 	float const omega2_max = fsqr((2.0f * M_PI_F / 60.0f) * prop_rpm_max);
 
@@ -119,7 +129,9 @@ void tilthex_control(struct tilthex_state s, struct tilthex_state des, float x[6
 
 PARAM_GROUP_START(tilthex_pid)
 PARAM_ADD(PARAM_FLOAT, pos_kp, &kP_p)
+PARAM_ADD(PARAM_FLOAT, pos_ki, &kP_i)
 PARAM_ADD(PARAM_FLOAT, pos_kd, &kP_d)
+PARAM_ADD(PARAM_FLOAT, pos_satp, &satP_i)
 PARAM_ADD(PARAM_FLOAT, att_kp, &kR_p)
 PARAM_ADD(PARAM_FLOAT, att_kd, &kR_d)
 PARAM_GROUP_STOP(tilthex_pid)
