@@ -114,3 +114,22 @@ const MotorPerifDef** platformConfigGetMotorMapping() {
   return active_config->motorMap;
 }
 
+float platformGetMass() {
+  return active_config->mass;
+}
+
+float platformGetInertiaXY() {
+  return active_config->inertiaXY;
+}
+
+float platformGetInertiaZ() {
+  return active_config->inertiaZ;
+}
+
+float platformGetArmLength() {
+  return active_config->armLength;
+}
+
+float platformGetTorqueThrustRatio() {
+  return active_config->propTorqueThrustRatio;
+}

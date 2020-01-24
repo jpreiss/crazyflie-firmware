@@ -66,6 +66,7 @@ static setpoint_t setpoint;
 static sensorData_t sensorData;
 static state_t state;
 static control_t control;
+static control_si_t control_si;
 
 static StateEstimatorType estimatorType;
 static ControllerType controllerType;
@@ -279,14 +280,28 @@ static void stabilizerTask(void* param)
 
       sitAwUpdateSetpoint(&setpoint, &sensorData, &state);
 
-      controller(&control, &setpoint, &sensorData, &state, tick);
+      // TODO(japreiss): Reduce code repetition. Use vtable?
+      if (controllerUseSIUnits()) {
+        controllerSI(&control_si, &setpoint, &sensorData, &state, tick);
 
-      checkEmergencyStopTimeout();
+        checkEmergencyStopTimeout();
 
-      if (emergencyStop) {
-        powerStop();
-      } else {
-        powerDistribution(&control);
+        if (emergencyStop) {
+          powerStop();
+        } else {
+          powerDistributionSI(&control_si);
+        }
+      }
+      else {
+        controller(&control, &setpoint, &sensorData, &state, tick);
+
+        checkEmergencyStopTimeout();
+
+        if (emergencyStop) {
+          powerStop();
+        } else {
+          powerDistribution(&control);
+        }
       }
 
       // Log data to uSD card if configured

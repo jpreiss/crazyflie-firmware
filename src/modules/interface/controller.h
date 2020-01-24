@@ -42,7 +42,14 @@ void controller(control_t *control, setpoint_t *setpoint,
                                          const sensorData_t *sensors,
                                          const state_t *state,
                                          const uint32_t tick);
+void controllerSI(control_si_t *control, setpoint_t *setpoint,
+                                         const sensorData_t *sensors,
+                                         const state_t *state,
+                                         const uint32_t tick);
 ControllerType getControllerType(void);
 const char* controllerGetName();
+// If true, controller uses the SI units controller/power distribution interface,
+// and expects to have controllerSI() called instead of controller().
+bool controllerUseSIUnits();
 
 #endif //__CONTROLLER_H__

@@ -230,7 +230,8 @@ void motorsDeInit(const MotorPerifDef** motorMapSelect);
 bool motorsTest(void);
 
 /**
- * Set the PWM ratio of the motor 'id'
+ * Set the PWM ratio of the motor 'id'.
+ * With the standard CF2 brushed motors, units are (0.015 / 65536) Newtons.
  */
 void motorsSetRatio(uint32_t id, uint16_t ratio);
 

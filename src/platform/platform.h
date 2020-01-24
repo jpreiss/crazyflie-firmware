@@ -58,6 +58,11 @@ typedef struct {
   SensorImplementation_t sensorImplementation;
   bool physicalLayoutAntennasAreClose;
   const MotorPerifDef** motorMap;
+  float mass;       // Total mass of system with battery. kg.
+  float inertiaXY; // Moment of inertia about roll and pitch axes. kg*m^2.
+  float inertiaZ;  // Moment of inertia about yaw axis. kg*m^2.
+  float armLength; // Distance from center of mass to motor. m.
+  float propTorqueThrustRatio; // Ratio between torque produced by one propeller and thrust (torque/thrust, << 1).
 } platformConfig_t;
 
 /**
@@ -83,5 +88,10 @@ const char* platformConfigGetDeviceTypeName();
 SensorImplementation_t platformConfigGetSensorImplementation();
 bool platformConfigPhysicalLayoutAntennasAreClose();
 const MotorPerifDef** platformConfigGetMotorMapping();
+float platformGetMass();
+float platformGetInertiaXY();
+float platformGetInertiaZ();
+float platformGetArmLength();
+float platformGetTorqueThrustRatio();
 
 #endif /* PLATFORM_H_ */

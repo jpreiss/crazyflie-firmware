@@ -40,6 +40,14 @@ static platformConfig_t configs[] = {
     .sensorImplementation = SensorImplementation_mpu9250_lps25h,
     .physicalLayoutAntennasAreClose = true,
     .motorMap = motorMapDefaultBrushed,
+    .mass = 0.032f,        // kg
+    .armLength = 0.046f,   // m
+    .inertiaXY = 1.68e-5f, // kg * m^2
+    .inertiaZ = 2.98e-5f,  // kg * m^2
+    .propTorqueThrustRatio = 5.96e-3f, // m
+    // Inertia and torque/thrust from:
+    // Förster, Julian. System Identification of the Crazyflie 2.0 Nano Quadrocopter.
+    // Bachelor Thesis. ETH Zürich. 2015.
   },
   {
     .deviceType = "CF21",

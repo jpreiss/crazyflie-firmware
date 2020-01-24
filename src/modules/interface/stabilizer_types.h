@@ -161,6 +161,15 @@ typedef struct control_s {
   float thrust;
 } control_t;
 
+typedef struct control_si_s {
+  float roll_acc;           // Desired angular acceleration about roll axis. rad/s^2.
+  float pitch_acc;          // Desired angular acceleration about pitch axis. rad/s^2.
+  float yaw_acc;            // Desired angular acceleration about yaw axis. rad/s^2.
+  float normalized_thrust;  // Desired thrust in body z-axis direction divided by mass. m/s^2.
+                            // Same units as acceleration, but not desired accelration,
+                            // since it includes gravity compensation.
+} control_si_t;
+
 typedef enum mode_e {
   modeDisable = 0,
   modeAbs,
