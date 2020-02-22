@@ -38,6 +38,7 @@
 
 static bool isInit;
 const static setpoint_t nullSetpoint;
+static setpoint_t tempSetpoint;
 const static int priorityDisable = COMMANDER_PRIORITY_DISABLE;
 
 static uint32_t lastUpdate;
@@ -79,6 +80,16 @@ void commanderSetSetpoint(setpoint_t *setpoint, int priority)
     xQueueOverwrite(setpointQueue, setpoint);
     xQueueOverwrite(priorityQueue, &priority);
   }
+}
+
+void commanderNotifySetpointsStop()
+{
+  // The current setpoint will remain valid for 100 milliseconds.
+  // This gives the PC time to send a high-level command before timeout occurs.
+  uint32_t currentTime = xTaskGetTickCount();
+  xQueuePeek(setpointQueue, &tempSetpoint, 0);
+  tempSetpoint.timestamp = currentTime - COMMANDER_WDT_TIMEOUT_SHUTDOWN + M2T(100);
+  xQueueOverwrite(setpointQueue, &tempSetpoint);
 }
 
 void commanderGetSetpoint(setpoint_t *setpoint, const state_t *state)

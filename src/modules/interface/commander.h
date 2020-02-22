@@ -46,6 +46,9 @@ uint32_t commanderGetInactivityTime(void);
 void commanderSetSetpoint(setpoint_t *setpoint, int priority);
 int commanderGetActivePriority(void);
 
+// Inform the commander that streaming setpoints are about to stop.
+void commanderNotifySetpointsStop();
+
 void commanderGetSetpoint(setpoint_t *setpoint, const state_t *state);
 
 #endif /* COMMANDER_H_ */
