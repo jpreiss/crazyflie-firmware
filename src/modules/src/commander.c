@@ -33,6 +33,7 @@
 #include "crtp_commander.h"
 #include "crtp_commander_high_level.h"
 
+#include "cf_math.h"
 #include "param.h"
 #include "static_mem.h"
 
@@ -82,13 +83,15 @@ void commanderSetSetpoint(setpoint_t *setpoint, int priority)
   }
 }
 
-void commanderNotifySetpointsStop()
+void commanderNotifySetpointsStop(int remainValidMillisecs)
 {
-  // The current setpoint will remain valid for 100 milliseconds.
-  // This gives the PC time to send a high-level command before timeout occurs.
   uint32_t currentTime = xTaskGetTickCount();
+  int timeSetback = MIN(
+    COMMANDER_WDT_TIMEOUT_SHUTDOWN - M2T(remainValidMillisecs),
+    currentTime
+  );
   xQueuePeek(setpointQueue, &tempSetpoint, 0);
-  tempSetpoint.timestamp = currentTime - COMMANDER_WDT_TIMEOUT_SHUTDOWN + M2T(100);
+  tempSetpoint.timestamp = currentTime - timeSetback;
   xQueueOverwrite(setpointQueue, &tempSetpoint);
 }
 

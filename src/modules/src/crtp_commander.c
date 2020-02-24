@@ -27,6 +27,7 @@
 
 #include "crtp_commander.h"
 
+#include "cfassert.h"
 #include "commander.h"
 #include "crtp.h"
 
@@ -47,6 +48,49 @@ void crtpCommanderInit(void)
   isInit = true;
 }
 
+/* Channel 1 of the generic commander port is used for "meta-commands"
+ * that alter the behavior of the commander itself, e.g. mode switching.
+ * Although we use the generic commander port due to increasing pressure on the
+ * 4-bit space of ports numbers, meta-commands that are unrelated to
+ * streaming generic setpoint control modes are permitted.
+ *
+ * The packet format for meta-commands is:
+ * +------+==========================+
+ * | TYPE |     DATA                 |
+ * +------+==========================+
+ *
+ * TYPE is an 8-bit value. The remainder of the data depends on the command.
+ * The maximum data size is 29 bytes.
+ */
+
+
+enum metaCommand {
+  metaNotifySetpointsStop = 0,
+  nMetaCommands,
+};
+
+
+typedef void (*metaCommandDecoder_t)(const void *data, size_t datalen);
+
+
+struct notifySetpointsStopPacket {
+  // See commander.h for description of behavior.
+  uint32_t remainValidMillisecs;
+} __attribute__((packed));
+
+
+void notifySetpointsStopDecoder(const void *data, size_t datalen)
+{
+  ASSERT(datalen == sizeof(struct notifySetpointsStopPacket));
+  const struct notifySetpointsStopPacket *values = data;
+  commanderNotifySetpointsStop(values->remainValidMillisecs);
+}
+
+
+const static metaCommandDecoder_t metaCommandDecoders[] = {
+  [metaNotifySetpointsStop] = notifySetpointsStopDecoder,
+};
+
 
 static void commanderCrtpCB(CRTPPacket* pk)
 {
@@ -56,11 +100,17 @@ static void commanderCrtpCB(CRTPPacket* pk)
     crtpCommanderRpytDecodeSetpoint(&setpoint, pk);
     commanderSetSetpoint(&setpoint, COMMANDER_PRIORITY_CRTP);
   } else if (pk->port == CRTP_PORT_SETPOINT_GENERIC) {
-    if (pk->channel == 0) {
+    switch (pk->channel) {
+    case 0:
       crtpCommanderGenericDecodeSetpoint(&setpoint, pk);
       commanderSetSetpoint(&setpoint, COMMANDER_PRIORITY_CRTP);
-    } else if (pk->channel == 1) {
-      commanderNotifySetpointsStop();
+      break;
+    case 1:
+      uint8_t metaCmd = pk->data[0];
+      if (metaCmd < nMetaCommands && (metaCommandDecoders[metaCmd] != NULL)) {
+        metaCommandDecoders[metaCmd](pk->data + 1, pk->size - 1);
+      }
+      break;
     }
   }
 }
