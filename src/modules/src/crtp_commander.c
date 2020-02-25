@@ -105,10 +105,11 @@ static void commanderCrtpCB(CRTPPacket* pk)
       crtpCommanderGenericDecodeSetpoint(&setpoint, pk);
       commanderSetSetpoint(&setpoint, COMMANDER_PRIORITY_CRTP);
       break;
-    case 1:
-      uint8_t metaCmd = pk->data[0];
-      if (metaCmd < nMetaCommands && (metaCommandDecoders[metaCmd] != NULL)) {
-        metaCommandDecoders[metaCmd](pk->data + 1, pk->size - 1);
+    case 1: {
+        uint8_t metaCmd = pk->data[0];
+        if (metaCmd < nMetaCommands && (metaCommandDecoders[metaCmd] != NULL)) {
+          metaCommandDecoders[metaCmd](pk->data + 1, pk->size - 1);
+        }
       }
       break;
     }

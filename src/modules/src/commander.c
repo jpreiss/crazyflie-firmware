@@ -80,6 +80,9 @@ void commanderSetSetpoint(setpoint_t *setpoint, int priority)
     // This is a potential race but without effect on functionality
     xQueueOverwrite(setpointQueue, setpoint);
     xQueueOverwrite(priorityQueue, &priority);
+    // Send the high-level planner to idle so it will forget its current state
+    // and start over if we switch from low-level to high-level in the future.
+    crtpCommanderHighLevelStop();
   }
 }
 
@@ -93,6 +96,7 @@ void commanderNotifySetpointsStop(int remainValidMillisecs)
   xQueuePeek(setpointQueue, &tempSetpoint, 0);
   tempSetpoint.timestamp = currentTime - timeSetback;
   xQueueOverwrite(setpointQueue, &tempSetpoint);
+  crtpCommanderHighLevelTellLastSetpoint(&tempSetpoint);
 }
 
 void commanderGetSetpoint(setpoint_t *setpoint, const state_t *state)

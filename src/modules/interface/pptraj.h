@@ -124,6 +124,9 @@ struct traj_eval
 	float yaw;
 };
 
+// traj_eval with zero for all values.
+struct traj_eval traj_eval_zero(void);
+
 // a special value of traj_eval that indicates an invalid result.
 struct traj_eval traj_eval_invalid(void);
 
