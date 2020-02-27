@@ -126,6 +126,9 @@ void commanderGetSetpoint(setpoint_t *setpoint, const state_t *state)
     setpoint->attitudeRate.yaw = 0;
     // Keep Z as it is
   }
+  // This copying is not strictly necessary because stabilizer.c already keeps
+  // a static state_t containing the most recent state estimate. However, it is
+  // not accessible by the public interface.
   lastState = *state;
 }
 

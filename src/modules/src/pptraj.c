@@ -265,18 +265,6 @@ float poly4d_max_accel_approx(struct poly4d const *p)
 	return amax;
 }
 
-struct traj_eval traj_eval_zero(void)
-{
-	struct traj_eval ev = {
-		.pos = vzero(),
-		.vel = vzero(),
-		.acc = vzero(),
-		.omega = vzero(),
-		.yaw = 0.0f,
-	};
-	return ev;
-}
-
 struct traj_eval traj_eval_invalid()
 {
 	struct traj_eval ev;
