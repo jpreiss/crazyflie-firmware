@@ -62,7 +62,7 @@ void crtpCommanderHighLevelGetSetpoint(setpoint_t* setpoint, const state_t *stat
 
 // When switching from low-level streaming setpoints to high-level planning,
 // tell the planner what the most recent low-level setpoint was.
-void crtpCommanderHighLevelTellLastSetpoint(const setpoint_t *setpoint);
+void crtpCommanderHighLevelTellState(const state_t *state);
 
 // Tell the trajectory planner that it should cut power.
 // Should be used if an emergency is detected.

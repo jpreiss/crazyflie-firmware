@@ -31,6 +31,9 @@
 #include "commander.h"
 #include "crtp.h"
 
+#define DEBUG_MODULE "CMD_CRTP"
+#include "debug.h"
+
 
 static bool isInit;
 
@@ -84,6 +87,7 @@ void notifySetpointsStopDecoder(const void *data, size_t datalen)
   ASSERT(datalen == sizeof(struct notifySetpointsStopPacket));
   const struct notifySetpointsStopPacket *values = data;
   commanderNotifySetpointsStop(values->remainValidMillisecs);
+  DEBUG_PRINT("Notify Setpoints Stop: %lu ms\n", values->remainValidMillisecs);
 }
 
 

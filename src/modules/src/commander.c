@@ -40,6 +40,7 @@
 static bool isInit;
 const static setpoint_t nullSetpoint;
 static setpoint_t tempSetpoint;
+static state_t lastState;
 const static int priorityDisable = COMMANDER_PRIORITY_DISABLE;
 
 static uint32_t lastUpdate;
@@ -96,7 +97,7 @@ void commanderNotifySetpointsStop(int remainValidMillisecs)
   xQueuePeek(setpointQueue, &tempSetpoint, 0);
   tempSetpoint.timestamp = currentTime - timeSetback;
   xQueueOverwrite(setpointQueue, &tempSetpoint);
-  crtpCommanderHighLevelTellLastSetpoint(&tempSetpoint);
+  crtpCommanderHighLevelTellState(&lastState);
 }
 
 void commanderGetSetpoint(setpoint_t *setpoint, const state_t *state)
@@ -125,6 +126,7 @@ void commanderGetSetpoint(setpoint_t *setpoint, const state_t *state)
     setpoint->attitudeRate.yaw = 0;
     // Keep Z as it is
   }
+  lastState = *state;
 }
 
 bool commanderTest(void)

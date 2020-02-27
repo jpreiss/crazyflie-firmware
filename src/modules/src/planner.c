@@ -148,8 +148,7 @@ int plan_takeoff(struct planner *p, struct vec curr_pos, float curr_yaw, float h
 
 int plan_land(struct planner *p, struct vec curr_pos, float curr_yaw, float hover_height, float hover_yaw, float duration, float t)
 {
-	if (   p->state == TRAJECTORY_STATE_IDLE
-		|| p->state == TRAJECTORY_STATE_LANDING) {
+	if (p->state == TRAJECTORY_STATE_LANDING) {
 		return 1;
 	}
 
