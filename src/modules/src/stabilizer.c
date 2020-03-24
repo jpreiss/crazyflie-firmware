@@ -45,6 +45,7 @@
 #include "sitaw.h"
 #include "controller.h"
 #include "power_distribution.h"
+#include "collision_avoidance.h"
 
 #include "estimator.h"
 #include "usddeck.h"
@@ -189,6 +190,7 @@ void stabilizerInit(StateEstimatorType estimator)
   controllerInit(ControllerTypeAny);
   powerDistributionInit();
   sitAwInit();
+  collisionAvoidanceInit();
   estimatorType = getStateEstimator();
   controllerType = getControllerType();
 
@@ -205,6 +207,7 @@ bool stabilizerTest(void)
   pass &= stateEstimatorTest();
   pass &= controllerTest();
   pass &= powerDistributionTest();
+  pass &= collisionAvoidanceTest();
 
   return pass;
 }
@@ -278,6 +281,7 @@ static void stabilizerTask(void* param)
       compressSetpoint();
 
       sitAwUpdateSetpoint(&setpoint, &sensorData, &state);
+      collisionAvoidanceUpdateSetpoint(&setpoint, &sensorData, &state);
 
       controller(&control, &setpoint, &sensorData, &state, tick);
 
