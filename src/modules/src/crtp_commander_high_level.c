@@ -48,6 +48,7 @@ such as: take-off, landing, polynomial trajectories.
 #include "semphr.h"
 
 // Crazyswarm includes
+#include "commander.h" // Circular dependency - only so we can tell it when a high level command was rec'vd on the radio.
 #include "crtp.h"
 #include "crtp_commander_high_level.h"
 #include "planner.h"
@@ -412,6 +413,9 @@ int takeoff(const struct data_takeoff* data)
     float t = usecTimestamp() / 1e6;
     result = plan_takeoff(&planner, pos, yaw, data->height, 0.0f, data->duration, t);
     xSemaphoreGive(lockTraj);
+    if (result == 0) {
+      commanderTellHighLevelCmdRecvd();
+    }
   }
   return result;
 }
@@ -430,6 +434,9 @@ int takeoff2(const struct data_takeoff_2* data)
 
     result = plan_takeoff(&planner, pos, yaw, data->height, hover_yaw, data->duration, t);
     xSemaphoreGive(lockTraj);
+    if (result == 0) {
+      commanderTellHighLevelCmdRecvd();
+    }
   }
   return result;
 }
@@ -455,6 +462,9 @@ int takeoff_with_velocity(const struct data_takeoff_with_velocity* data)
     float duration = fabsf(height - pos.z) / velocity;
     result = plan_takeoff(&planner, pos, yaw, height, hover_yaw, duration, t);
     xSemaphoreGive(lockTraj);
+    if (result == 0) {
+      commanderTellHighLevelCmdRecvd();
+    }
   }
   return result;
 }
@@ -467,6 +477,9 @@ int land(const struct data_land* data)
     float t = usecTimestamp() / 1e6;
     result = plan_land(&planner, pos, yaw, data->height, 0.0f, data->duration, t);
     xSemaphoreGive(lockTraj);
+    if (result == 0) {
+      commanderTellHighLevelCmdRecvd();
+    }
   }
   return result;
 }
@@ -485,6 +498,9 @@ int land2(const struct data_land_2* data)
 
     result = plan_land(&planner, pos, yaw, data->height, hover_yaw, data->duration, t);
     xSemaphoreGive(lockTraj);
+    if (result == 0) {
+      commanderTellHighLevelCmdRecvd();
+    }
   }
   return result;
 }
@@ -510,6 +526,9 @@ int land_with_velocity(const struct data_land_with_velocity* data)
     float duration = fabsf(height - pos.z) / velocity;
     result = plan_land(&planner, pos, yaw, height, hover_yaw, duration, t);
     xSemaphoreGive(lockTraj);
+    if (result == 0) {
+      commanderTellHighLevelCmdRecvd();
+    }
   }
   return result;
 }
@@ -521,6 +540,11 @@ int stop(const struct data_stop* data)
     xSemaphoreTake(lockTraj, portMAX_DELAY);
     plan_stop(&planner);
     xSemaphoreGive(lockTraj);
+    // TODO: Should this have any effect on the top-level commander state
+    // machine? It would be more correct to move all "emergency stop"
+    // functionality there. Since the top-level commander queries
+    // commanderHighLevelIsStopped() every stabilizer loop when in high-level
+    // mode, it seems that nothing needs to be done.
   }
   return result;
 }
@@ -548,6 +572,9 @@ int go_to(const struct data_go_to* data)
       result = plan_go_to(&planner, data->relative, hover_pos, data->yaw, data->duration, t);
     }
     xSemaphoreGive(lockTraj);
+    if (result == 0) {
+      commanderTellHighLevelCmdRecvd();
+    }
   }
   return result;
 }
@@ -609,6 +636,9 @@ int start_trajectory(const struct data_start_trajectory* data)
         }
 
       }
+    }
+    if (result == 0) {
+      commanderTellHighLevelCmdRecvd();
     }
   }
   return result;
