@@ -21,14 +21,15 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v2
 
-    - name: Conda
-      uses: conda-incubator/setup-miniconda@v2.0.0
+    - name: Install Python
+      uses: actions/setup-python@v2
       with:
-        channels: conda-forge,defaults
-        mamba-version: "*"
         python-version: ${{ matrix.python.python-version }}
-        environment-file: test/bindings/environment.yml
-        activate-environment: cfbindings
+
+    - name: Install Python Packages
+      shell: bash -l {0}
+      run: |
+        ${{ matrix.python.python-cmd }} -m pip install numpy pyyaml pytest scipy
 
     - name: Build
       shell: bash -l {0}
