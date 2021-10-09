@@ -136,7 +136,7 @@ void commanderNotifySetpointsStop(int remainValidMillisecs)
     .tag = EVENT_NOTIFY_SETPOINTS_STOP,
     .notifySetpointsStopMillis = remainValidMillisecs,
   };
-  xQueueSendToBack(eventQueue, &event, EVENT_QUEUE_BLOCK_TICKS);
+  xQueueSend(eventQueue, &event, EVENT_QUEUE_BLOCK_TICKS);
   // TODO: Handle queue full condition other than dropping command?
 }
 
@@ -162,7 +162,7 @@ void commanderGetSetpoint(setpoint_t *setpoint, const state_t *state)
       break;
     }
   }
-  if (xQueuePeek(setpointQueue, &tempSetpoint, 0) == pdTRUE) {
+  if (xQueueReceive(setpointQueue, &tempSetpoint, 0) == pdTRUE) {
     libCommanderLowSetpoint(&commander, ticks, &tempSetpoint);
     lastUpdate = ticks;
   }
@@ -175,7 +175,7 @@ void commanderTellHighLevelCmdRecvd()
   commander_event_t event = {
     .tag = EVENT_HIGH_LEVEL_RECVD,
   };
-  xQueueSendToBack(eventQueue, &event, EVENT_QUEUE_BLOCK_TICKS);
+  xQueueSend(eventQueue, &event, EVENT_QUEUE_BLOCK_TICKS);
   // TODO: Handle queue full condition other than dropping command?
 }
 
