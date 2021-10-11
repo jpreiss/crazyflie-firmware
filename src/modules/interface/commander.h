@@ -43,8 +43,14 @@ void commanderInit(void);
 bool commanderTest(void);
 uint32_t commanderGetInactivityTime(void);
 
+// Tell the commander that a high level command was recieved, so it should
+// change into high-level mode and start getting setpoints from the high-level
+// commander if the current state allows it.
+void commanderTellHighLevelCmdRecvd(void);
+
 void commanderSetSetpoint(setpoint_t *setpoint, int priority);
-int commanderGetActivePriority(void);
+
+bool commanderIsIdle(void);
 
 /* Inform the commander that streaming setpoints are about to stop.
  * Parameter controls the amount of time the last setpoint will remain valid.

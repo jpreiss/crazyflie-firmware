@@ -121,7 +121,9 @@ void crtpCommanderRpytDecodeSetpoint(setpoint_t *setpoint, CRTPPacket *pk)
 {
   struct CommanderCrtpLegacyValues *values = (struct CommanderCrtpLegacyValues*)pk->data;
 
-  if (commanderGetActivePriority() == COMMANDER_PRIORITY_DISABLE) {
+  // If the commander is idle (motors off but ready to fly), the RPY controller
+  // must send a packet with zero thrust to unlock the motors.
+  if (commanderIsIdle()) {
     thrustLocked = true;
   }
   if (values->thrust == 0) {
