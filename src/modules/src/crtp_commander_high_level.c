@@ -92,9 +92,6 @@ static struct trajectoryDescription trajectory_descriptions[NUM_TRAJECTORY_DEFIN
 static bool isInit = false;
 static struct planner planner;
 static uint8_t group_mask;
-static struct vec pos; // last known setpoint (position [m])
-static struct vec vel; // last known setpoint (velocity [m/s])
-static float yaw; // last known setpoint yaw (yaw [rad])
 static struct piecewise_traj trajectory;
 static struct piecewise_traj_compressed  compressed_trajectory;
 
@@ -266,10 +263,6 @@ void crtpCommanderHighLevelInit(void)
 
   lockTraj = xSemaphoreCreateMutexStatic(&lockTrajBuffer);
 
-  pos = vzero();
-  vel = vzero();
-  yaw = 0;
-
   isInit = true;
 }
 
@@ -281,9 +274,12 @@ bool crtpCommanderHighLevelIsStopped()
 void crtpCommanderHighLevelTellState(const state_t *state)
 {
   xSemaphoreTake(lockTraj, portMAX_DELAY);
-  pos = state2vec(state->position);
-  vel = state2vec(state->velocity);
-  yaw = radians(state->attitude.yaw);
+  plan_tell_last_known_state( 
+    &planner,
+    state2vec(state->position),
+    state2vec(state->velocity),
+    radians(state->attitude.yaw)
+  );
   xSemaphoreGive(lockTraj);
 }
 
@@ -300,9 +296,12 @@ void crtpCommanderHighLevelGetSetpoint(setpoint_t* setpoint, const state_t *stat
 
   // if we are on the ground, update the last setpoint with the current state estimate
   if (plan_is_stopped(&planner)) {
-    pos = state2vec(state->position);
-    vel = state2vec(state->velocity);
-    yaw = radians(state->attitude.yaw);
+    plan_tell_last_known_state( 
+      &planner,
+      state2vec(state->position),
+      state2vec(state->velocity),
+      radians(state->attitude.yaw)
+    );
   }
 
   if (is_traj_eval_valid(&ev)) {
@@ -328,9 +327,7 @@ void crtpCommanderHighLevelGetSetpoint(setpoint_t* setpoint, const state_t *stat
     setpoint->acceleration.z = ev.acc.z;
 
     // store the last setpoint
-    pos = ev.pos;
-    vel = ev.vel;
-    yaw = ev.yaw;
+    plan_tell_last_known_state(&planner, ev.pos, ev.vel, ev.yaw);
   }
 }
 
@@ -411,7 +408,7 @@ int takeoff(const struct data_takeoff* data)
   if (isInGroup(data->groupMask)) {
     xSemaphoreTake(lockTraj, portMAX_DELAY);
     float t = usecTimestamp() / 1e6;
-    result = plan_takeoff(&planner, pos, yaw, data->height, 0.0f, data->duration, t);
+    result = plan_takeoff(&planner, data->height, 0.0f, data->duration, t);
     xSemaphoreGive(lockTraj);
     if (result == 0) {
       commanderTellHighLevelCmdRecvd();
@@ -429,10 +426,10 @@ int takeoff2(const struct data_takeoff_2* data)
 
     float hover_yaw = data->yaw;
     if (data->useCurrentYaw) {
-      hover_yaw = yaw;
+      hover_yaw = planner.last_known.yaw;
     }
 
-    result = plan_takeoff(&planner, pos, yaw, data->height, hover_yaw, data->duration, t);
+    result = plan_takeoff(&planner, data->height, hover_yaw, data->duration, t);
     xSemaphoreGive(lockTraj);
     if (result == 0) {
       commanderTellHighLevelCmdRecvd();
@@ -450,17 +447,17 @@ int takeoff_with_velocity(const struct data_takeoff_with_velocity* data)
 
     float hover_yaw = data->yaw;
     if (data->useCurrentYaw) {
-      hover_yaw = yaw;
+      hover_yaw = planner.last_known.yaw;
     }
 
     float height = data->height;
     if (data->heightIsRelative) {
-      height += pos.z;
+      height += planner.last_known.pos.z;
     }
 
     float velocity = data->velocity > 0 ? data->velocity : defaultTakeoffVelocity;
-    float duration = fabsf(height - pos.z) / velocity;
-    result = plan_takeoff(&planner, pos, yaw, height, hover_yaw, duration, t);
+    float duration = fabsf(height - planner.last_known.pos.z) / velocity;
+    result = plan_takeoff(&planner, height, hover_yaw, duration, t);
     xSemaphoreGive(lockTraj);
     if (result == 0) {
       commanderTellHighLevelCmdRecvd();
@@ -475,7 +472,7 @@ int land(const struct data_land* data)
   if (isInGroup(data->groupMask)) {
     xSemaphoreTake(lockTraj, portMAX_DELAY);
     float t = usecTimestamp() / 1e6;
-    result = plan_land(&planner, pos, yaw, data->height, 0.0f, data->duration, t);
+    result = plan_land(&planner, data->height, 0.0f, data->duration, t);
     xSemaphoreGive(lockTraj);
     if (result == 0) {
       commanderTellHighLevelCmdRecvd();
@@ -493,10 +490,10 @@ int land2(const struct data_land_2* data)
 
     float hover_yaw = data->yaw;
     if (data->useCurrentYaw) {
-      hover_yaw = yaw;
+      hover_yaw = planner.last_known.yaw;
     }
 
-    result = plan_land(&planner, pos, yaw, data->height, hover_yaw, data->duration, t);
+    result = plan_land(&planner, data->height, hover_yaw, data->duration, t);
     xSemaphoreGive(lockTraj);
     if (result == 0) {
       commanderTellHighLevelCmdRecvd();
@@ -514,17 +511,17 @@ int land_with_velocity(const struct data_land_with_velocity* data)
 
     float hover_yaw = data->yaw;
     if (data->useCurrentYaw) {
-      hover_yaw = yaw;
+      hover_yaw = planner.last_known.yaw;
     }
 
     float height = data->height;
     if (data->heightIsRelative) {
-      height = pos.z - height;
+      height = planner.last_known.pos.z - height;
     }
 
     float velocity = data->velocity > 0 ? data->velocity : defaultLandingVelocity;
-    float duration = fabsf(height - pos.z) / velocity;
-    result = plan_land(&planner, pos, yaw, height, hover_yaw, duration, t);
+    float duration = fabsf(height - planner.last_known.pos.z) / velocity;
+    result = plan_land(&planner, height, hover_yaw, duration, t);
     xSemaphoreGive(lockTraj);
     if (result == 0) {
       commanderTellHighLevelCmdRecvd();
@@ -551,26 +548,12 @@ int stop(const struct data_stop* data)
 
 int go_to(const struct data_go_to* data)
 {
-  static struct traj_eval ev = {
-    // pos, vel, yaw will be filled before using
-    .acc = {0.0f, 0.0f, 0.0f},
-    .omega = {0.0f, 0.0f, 0.0f},
-  };
-
   int result = 0;
   if (isInGroup(data->groupMask)) {
     struct vec hover_pos = mkvec(data->x, data->y, data->z);
     xSemaphoreTake(lockTraj, portMAX_DELAY);
     float t = usecTimestamp() / 1e6;
-    if (plan_is_stopped(&planner)) {
-      ev.pos = pos;
-      ev.vel = vel;
-      ev.yaw = yaw;
-      result = plan_go_to_from(&planner, &ev, data->relative, hover_pos, data->yaw, data->duration, t);
-    }
-    else {
-      result = plan_go_to(&planner, data->relative, hover_pos, data->yaw, data->duration, t);
-    }
+    result = plan_go_to(&planner, data->relative, hover_pos, data->yaw, data->duration, t);
     xSemaphoreGive(lockTraj);
     if (result == 0) {
       commanderTellHighLevelCmdRecvd();
@@ -593,7 +576,7 @@ int start_trajectory(const struct data_start_trajectory* data)
         trajectory.timescale = data->timescale;
         trajectory.n_pieces = trajDesc->trajectoryIdentifier.mem.n_pieces;
         trajectory.pieces = (struct poly4d*)&trajectories_memory[trajDesc->trajectoryIdentifier.mem.offset];
-        result = plan_start_trajectory(&planner, &trajectory, data->reversed, data->relative, pos);
+        result = plan_start_trajectory(&planner, &trajectory, data->reversed, data->relative);
         xSemaphoreGive(lockTraj);
       } else if (trajDesc->trajectoryLocation == TRAJECTORY_LOCATION_MEM
           && trajDesc->trajectoryType == CRTP_CHL_TRAJECTORY_TYPE_POLY4D_COMPRESSED) {
@@ -608,7 +591,7 @@ int start_trajectory(const struct data_start_trajectory* data)
             &trajectories_memory[trajDesc->trajectoryIdentifier.mem.offset]
           );
           compressed_trajectory.t_begin = t;
-          result = plan_start_compressed_trajectory(&planner, &compressed_trajectory, data->relative, pos);
+          result = plan_start_compressed_trajectory(&planner, &compressed_trajectory, data->relative);
           xSemaphoreGive(lockTraj);
         }
 
