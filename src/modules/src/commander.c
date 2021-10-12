@@ -7,7 +7,7 @@
  *
  * Crazyflie Firmware
  *
- * Copyright (C) 2011-2012 Bitcraze AB
+ * Copyright (C) 2011-2021 Bitcraze AB
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,6 +22,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  *
  *
+ * commander.c - the FreeRTOS wrapper around libcommander.
  */
 #include <string.h>
 
@@ -38,37 +39,24 @@
 #include "param.h"
 #include "static_mem.h"
 
-/* commander.c - top level commander that handles high/low-level switching,
- * preemption, emergencies, etc. Core state machine functionality comes from
- * libcommander.c. This file adds input queues (because the radio tasks are
- * asynchronous w.r.t. the stabilizer) and all other direct interfacing with
- * FreeRTOS.
- */
-
-// Standard value for how long non-stabilizer threads (e.g. radio) should wait
-// to insert an event in the queue before giving up and dropping the command.
-#define EVENT_QUEUE_BLOCK_TICKS (M2T(500))
 
 /* Static state. */
 static bool isInit;  // For CF init system.
 static commander_t commander;  // Main state.
+
+// Mutex is only used for high-level commands. Concurrency w/ radio task for
+// low-level setpoints is handled exclusively through the queues.
 static xSemaphoreHandle lockCmd;
 static StaticSemaphore_t lockCmdBuffer;
 
-// Time of last setpoint-generating input. Not used in this module - only used
-// so we can provide commanderGetInactivityTime() to power management system.
-static uint32_t lastUpdate;
-
-// Setpoint and event queues.
-// From the perspective of libcommander a low-level setpoint is just another
-// event, but we don't put it in the same queue as other events. We use a
-// one-item queue for setpoints because there is no reason to care about old
-// setpoints once a newer one has arrived. In contrast, high-level commands
-// must not be discarded.
 static QueueHandle_t setpointQueue;
 STATIC_MEM_QUEUE_ALLOC(setpointQueue, 1, sizeof(setpoint_t));
 static QueueHandle_t priorityQueue;
 STATIC_MEM_QUEUE_ALLOC(priorityQueue, 1, sizeof(int));
+
+// Time of last setpoint-generating input. Not used in this module - only used
+// so we can provide commanderGetInactivityTime() to power management system.
+static uint32_t lastUpdate;
 
 
 /* Public functions */
@@ -88,6 +76,7 @@ void commanderInit(void)
     COMMANDER_WDT_TIMEOUT_SHUTDOWN
   );
   lockCmd = xSemaphoreCreateMutexStatic(&lockCmdBuffer);
+  ASSERT(lockCmd);
 
   crtpCommanderInit();
   crtpCommanderHighLevelInit();
