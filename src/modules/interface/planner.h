@@ -42,12 +42,6 @@ Header file for planning state machine
 #include "pptraj.h"
 #include "pptraj_compressed.h"
 
-enum trajectory_state
-{
-	TRAJECTORY_STATE_IDLE            = 0,
-	TRAJECTORY_STATE_FLYING          = 1,
-	TRAJECTORY_STATE_LANDING         = 3,
-};
 
 enum trajectory_type
 {
@@ -57,7 +51,6 @@ enum trajectory_type
 
 struct planner
 {
-	enum trajectory_state state; // current state
 	enum trajectory_type type; // current type
 	bool reversed; // true, if trajectory should be evaluated in reverse
 	struct traj_eval last_known; // last known state

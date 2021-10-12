@@ -29,9 +29,17 @@ enum cmdMode {
   // to allow for manual takeover from a failing automated system.
   MODE_LOW_AWAITING_HIGH,
 
-  // Following the high-level commander. Potential transition to
-  // MODE_OFF_IDLE if the last high-level command was a "land" command.
+  // Following planner; hover (stay in MODE_HIGH) when trajectory ends.
   MODE_HIGH,
+
+  // Following planner; stop (switch to MODE_OFF_IDLE) when trajectory ends.
+  MODE_HIGH_LANDING,
+};
+
+enum trajectory_type
+{
+  TRAJECTORY_TYPE_PIECEWISE            = 0,
+  TRAJECTORY_TYPE_PIECEWISE_COMPRESSED = 1
 };
 
 
@@ -44,6 +52,7 @@ typedef struct commander_s
   // TODO: Collect all commander state, including high-level commander, into a
   // struct with no ARM dependency so we can build, python-bind, and test it.
   uint32_t awaitHighLevelTimeout;
+  struct planner planner;
 
   // CONSTANTS / PARAMS
   uint32_t levelingTimeout;
@@ -55,16 +64,16 @@ void libCommanderInit(commander_t *cmd, uint32_t levelingTimeout, uint32_t emerg
 
 // Informs the commander that streaming setpoints are about to stop.
 // See commander.h comment for more information.
-void libCommanderNotifySetpointsStop(commander_t *cmd, uint32_t ticks, uint32_t awaitMillis);
+void libCommanderNotifySetpointsStop(commander_t *cmd, uint32_t millis, uint32_t awaitMillis);
 
 // Informs the commander that a high-level command was just received, so if the
 // current mode allows, we should switch to high-level mode and start
 // delegating setpoint requests to the high-level commander.
-void libCommanderHighLevelRecvd(commander_t *cmd, uint32_t ticks);
+void libCommanderHighLevelRecvd(commander_t *cmd, uint32_t millis, bool landing);
 
 // Processes a low-level setpoint. Preempts high-level mode!
-void libCommanderLowSetpoint(commander_t *cmd, uint32_t ticks, setpoint_t const *setpoint);
+void libCommanderLowSetpoint(commander_t *cmd, uint32_t millis, setpoint_t const *setpoint);
 
 // Applies any state change required by the passage of time, then fills the
 // output setpoint.
-void libCommanderStep(commander_t *cmd, uint32_t ticks, state_t const *state, setpoint_t *setpointOut);
+void libCommanderStep(commander_t *cmd, uint32_t millis, state_t const *state, setpoint_t *setpointOut);
