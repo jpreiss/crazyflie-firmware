@@ -43,8 +43,6 @@ typedef struct commander_s
   enum cmdMode mode;
   setpoint_t lowSetpoint;
   state_t lastState;
-  // TODO: Collect all commander state, including high-level commander, into a
-  // struct with no ARM dependency so we can build, python-bind, and test it.
   uint32_t awaitHighLevelTimeout;
   struct planner planner;
   struct traj_eval highStartFrom;
@@ -57,21 +55,16 @@ typedef struct commander_s
 // Initializes commander state (to MODE_OFF_IDLE).
 void libCommanderInit(commander_t *cmd, uint32_t levelingTimeout, uint32_t emergencyTimeout);
 
-// Informs the commander that streaming setpoints are about to stop.
-// See commander.h comment for more information.
-void libCommanderNotifySetpointsStop(commander_t *cmd, uint32_t millis, uint32_t awaitMillis);
-
-// Informs the commander that a high-level command was just received, so if the
-// current mode allows, we should switch to high-level mode and start
-// delegating setpoint requests to the high-level commander.
-void libCommanderHighLevelRecvd(commander_t *cmd, uint32_t millis, bool landing);
+// Applies any state change required by the passage of time, then fills the
+// output setpoint.
+void libCommanderStep(commander_t *cmd, uint32_t millis, state_t const *state, setpoint_t *setpointOut);
 
 // Processes a low-level setpoint. Preempts high-level mode!
 void libCommanderLowSetpoint(commander_t *cmd, uint32_t millis, setpoint_t const *setpoint);
 
-// Applies any state change required by the passage of time, then fills the
-// output setpoint.
-void libCommanderStep(commander_t *cmd, uint32_t millis, state_t const *state, setpoint_t *setpointOut);
+// Informs the commander that streaming setpoints are about to stop.
+// See commander.h comment for more information.
+void libCommanderNotifySetpointsStop(commander_t *cmd, uint32_t millis, uint32_t awaitMillis);
 
 // start a takeoff trajectory.
 int libCommanderTakeoff(commander_t *p, uint32_t millis, float hover_height, float hover_yaw, float duration);
