@@ -47,6 +47,7 @@ typedef struct commander_s
   // struct with no ARM dependency so we can build, python-bind, and test it.
   uint32_t awaitHighLevelTimeout;
   struct planner planner;
+  struct traj_eval highStartFrom;
 
   // CONSTANTS / PARAMS
   uint32_t levelingTimeout;

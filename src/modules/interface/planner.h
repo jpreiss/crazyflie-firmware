@@ -51,9 +51,8 @@ enum trajectory_type
 
 struct planner
 {
-	enum trajectory_type type; // current type
-	bool reversed; // true, if trajectory should be evaluated in reverse
-	struct traj_eval last_known; // last known state
+	enum trajectory_type type;      // current type
+	bool reversed;					// true, if trajectory should be evaluated in reverse
 
 	union {
 		const struct piecewise_traj* trajectory; // pointer to trajectory
@@ -67,9 +66,6 @@ struct planner
 // initialize the planner
 void plan_init(struct planner *p);
 
-// get the planner's current goal.
-struct traj_eval plan_eval(struct planner *p, float t);
-
 // tell the planner to stop.
 // subsequently, plan_is_stopped(p) will return true,
 // and it is no longer valid to call plan_current_goal(p).
@@ -80,22 +76,23 @@ void plan_stop(struct planner *p);
 // and also after an emergency stop.
 bool plan_is_stopped(struct planner *p);
 
-void plan_tell_last_known_state(struct planner *p, struct vec pos, struct vec vel, float yaw);
+// get the planner's current goal.
+struct traj_eval plan_eval(struct planner *p, float t);
 
 // start a takeoff trajectory.
-int plan_takeoff(struct planner *p, float hover_height, float hover_yaw, float duration, float t);
+int plan_takeoff(struct planner *p, struct vec curr_pos, float curr_yaw, float hover_height, float hover_yaw, float duration, float t);
 
 // start a landing trajectory.
-int plan_land(struct planner *p, float hover_height, float hover_yaw, float duration, float t);
+int plan_land(struct planner *p, struct vec curr_pos, float curr_yaw, float hover_height, float hover_yaw, float duration, float t);
 
 // move to a given position, then hover there.
-int plan_go_to(struct planner *p, bool relative, struct vec hover_pos, float hover_yaw, float duration, float t);
+int plan_go_to_from(struct planner *p, const struct traj_eval *curr_eval, bool relative, struct vec hover_pos, float hover_yaw, float duration, float t);
 
 // start trajectory. start_from param is ignored if relative == false.
-int plan_start_trajectory(struct planner *p, struct piecewise_traj* trajectory, bool reversed, bool relative);
+int plan_start_trajectory(struct planner *p, struct piecewise_traj* trajectory, bool reversed, bool relative, struct vec start_from);
 
 // start compressed trajectory. start_from param is ignored if relative == false.
-int plan_start_compressed_trajectory(struct planner *p, struct piecewise_traj_compressed* trajectory, bool relative);
+int plan_start_compressed_trajectory(struct planner *p, struct piecewise_traj_compressed* trajectory, bool relative, struct vec start_from);
 
-// query if the trajectory is finished.
+// Query if the trajectory is finished
 bool plan_is_finished(struct planner *p, float t);

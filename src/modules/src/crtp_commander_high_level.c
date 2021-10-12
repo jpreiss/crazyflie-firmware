@@ -344,7 +344,7 @@ int takeoff2(const struct data_takeoff_2* data)
     xSemaphoreTake(getCmdLock(), portMAX_DELAY);
     float hover_yaw = data->yaw;
     if (data->useCurrentYaw) {
-      hover_yaw = getCmd()->planner.last_known.yaw;
+      hover_yaw = getCmd()->highStartFrom.yaw;
     }
 
     result = libCommanderTakeoff(getCmd(), millis, data->height, hover_yaw, data->duration);
@@ -361,16 +361,16 @@ int takeoff_with_velocity(const struct data_takeoff_with_velocity* data)
     xSemaphoreTake(getCmdLock(), portMAX_DELAY);
     float hover_yaw = data->yaw;
     if (data->useCurrentYaw) {
-      hover_yaw = getCmd()->planner.last_known.yaw;
+      hover_yaw = getCmd()->highStartFrom.yaw;
     }
 
     float height = data->height;
     if (data->heightIsRelative) {
-      height += getCmd()->planner.last_known.pos.z;
+      height += getCmd()->highStartFrom.pos.z;
     }
 
     float velocity = data->velocity > 0 ? data->velocity : defaultTakeoffVelocity;
-    float duration = fabsf(height - getCmd()->planner.last_known.pos.z) / velocity;
+    float duration = fabsf(height - getCmd()->highStartFrom.pos.z) / velocity;
     result = libCommanderTakeoff(getCmd(), millis, height, hover_yaw, duration);
     xSemaphoreGive(getCmdLock());
   }
@@ -397,7 +397,7 @@ int land2(const struct data_land_2* data)
     xSemaphoreTake(getCmdLock(), portMAX_DELAY);
     float hover_yaw = data->yaw;
     if (data->useCurrentYaw) {
-      hover_yaw = getCmd()->planner.last_known.yaw;
+      hover_yaw = getCmd()->highStartFrom.yaw;
     }
 
     result = libCommanderLand(getCmd(), millis, data->height, hover_yaw, data->duration);
@@ -414,16 +414,16 @@ int land_with_velocity(const struct data_land_with_velocity* data)
     xSemaphoreTake(getCmdLock(), portMAX_DELAY);
     float hover_yaw = data->yaw;
     if (data->useCurrentYaw) {
-      hover_yaw = getCmd()->planner.last_known.yaw;
+      hover_yaw = getCmd()->highStartFrom.yaw;
     }
 
     float height = data->height;
     if (data->heightIsRelative) {
-      height = getCmd()->planner.last_known.pos.z - height;
+      height = getCmd()->highStartFrom.pos.z - height;
     }
 
     float velocity = data->velocity > 0 ? data->velocity : defaultLandingVelocity;
-    float duration = fabsf(height - getCmd()->planner.last_known.pos.z) / velocity;
+    float duration = fabsf(height - getCmd()->highStartFrom.pos.z) / velocity;
     result = libCommanderLand(getCmd(), millis, height, hover_yaw, duration);
     xSemaphoreGive(getCmdLock());
   }

@@ -67,12 +67,9 @@ void libCommanderNotifySetpointsStop(commander_t *cmd, uint32_t millis, uint32_t
     cmd->mode = MODE_LOW_AWAITING_HIGH;
     // TODO: Should we be doing this constantly in every loop of low modes
     // instead of just once?
-    plan_tell_last_known_state(
-      &cmd->planner,
-      state2vec(cmd->lastState.position),
-      state2vec(cmd->lastState.velocity),
-      radians(cmd->lastState.attitude.yaw)
-    );
+    cmd->highStartFrom.pos = state2vec(cmd->lastState.position);
+    cmd->highStartFrom.vel = state2vec(cmd->lastState.velocity);
+    cmd->highStartFrom.yaw = cmd->lastState.attitude.yaw;
     break;
   case MODE_LOW_LEVELING:
     // TODO: What should happen?
@@ -150,12 +147,9 @@ void libCommanderStep(commander_t *cmd, uint32_t millis, state_t const *state, s
     // If we are on the ground, update the setpoint with the current state so
     // we can take off correctly. TODO: Is it OK to do this in emergency? Or
     // should be idle only?
-    plan_tell_last_known_state(
-      &cmd->planner,
-      state2vec(state->position),
-      state2vec(state->velocity),
-      radians(state->attitude.yaw)
-    );
+    cmd->highStartFrom.pos = state2vec(cmd->lastState.position);
+    cmd->highStartFrom.vel = state2vec(cmd->lastState.velocity);
+    cmd->highStartFrom.yaw = cmd->lastState.attitude.yaw;
     break;
   case MODE_LOW:
   case MODE_LOW_AWAITING_HIGH:
@@ -195,10 +189,7 @@ void libCommanderStep(commander_t *cmd, uint32_t millis, state_t const *state, s
     setpointOut->acceleration.y = trajEval.acc.y;
     setpointOut->acceleration.z = trajEval.acc.z;
 
-    // Store *setpoint*, not state, in planner. This is important when
-    // executing a sequence of relative goTos that return to the starting
-    // position in the end. We should not accumulate error.
-    plan_tell_last_known_state(&cmd->planner, trajEval.pos, trajEval.vel, trajEval.yaw);
+    cmd->highStartFrom = trajEval;
     break;
   }
 
@@ -213,7 +204,7 @@ int libCommanderTakeoff(commander_t *cmd, uint32_t millis, float hover_height, f
   switch (cmd->mode) {
   case MODE_OFF_IDLE:
   case MODE_HIGH:
-    result = plan_takeoff(&cmd->planner, hover_height, hover_yaw, duration, t);
+    result = plan_takeoff(&cmd->planner, cmd->highStartFrom.pos, cmd->highStartFrom.yaw, hover_height, hover_yaw, duration, t);
     if (result == 0) {
       cmd->mode = MODE_HIGH;
     }
@@ -232,7 +223,7 @@ int libCommanderLand(commander_t *cmd, uint32_t millis, float hover_height, floa
   switch (cmd->mode) {
   case MODE_HIGH:
   case MODE_LOW_AWAITING_HIGH:
-    result = plan_land(&cmd->planner, hover_height, hover_yaw, duration, t);
+    result = plan_land(&cmd->planner, cmd->highStartFrom.pos, cmd->highStartFrom.yaw, hover_height, hover_yaw, duration, t);
     if (result == 0) {
       cmd->mode = MODE_HIGH_LANDING;
     }
@@ -252,7 +243,7 @@ int libCommanderGoTo(commander_t *cmd, uint32_t millis, bool relative, struct ve
   case MODE_OFF_IDLE:
   case MODE_HIGH:
   case MODE_LOW_AWAITING_HIGH:
-    result = plan_go_to(&cmd->planner, relative, hover_pos, hover_yaw, duration, t);
+    result = plan_go_to_from(&cmd->planner, &cmd->highStartFrom, relative, hover_pos, hover_yaw, duration, t);
     if (result == 0) {
       cmd->mode = MODE_HIGH;
     }
@@ -273,7 +264,7 @@ int libCommanderStartTraj(commander_t *cmd, uint32_t millis, struct piecewise_tr
   case MODE_HIGH:
   case MODE_LOW_AWAITING_HIGH:
     trajectory->t_begin = t;
-    result = plan_start_trajectory(&cmd->planner, trajectory, reversed, relative);
+    result = plan_start_trajectory(&cmd->planner, trajectory, reversed, relative, cmd->highStartFrom.pos);
     if (result == 0) {
       cmd->mode = MODE_HIGH;
     }
@@ -294,7 +285,7 @@ int libCommanderStartCompressedTraj(commander_t *cmd, uint32_t millis, struct pi
   case MODE_HIGH:
   case MODE_LOW_AWAITING_HIGH:
     trajectory->t_begin = t;
-    result = plan_start_compressed_trajectory(&cmd->planner, trajectory, relative);
+    result = plan_start_compressed_trajectory(&cmd->planner, trajectory, relative, cmd->highStartFrom.pos);
     if (result == 0) {
       cmd->mode = MODE_HIGH;
     }
