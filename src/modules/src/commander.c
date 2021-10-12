@@ -43,6 +43,10 @@
 /* Static state. */
 static bool isInit;  // For CF init system.
 static commander_t commander;  // Main state.
+// Only used if commanderGetSetpoint is called while another task holds
+// lockCmd. In this case it's better to give the controller a stale setpoint
+// than to block the stabilizer task.
+static setpoint_t lastSetpoint;
 
 // Mutex is only used for high-level commands. Concurrency w/ radio task for
 // low-level setpoints is handled exclusively through the queues.
@@ -116,11 +120,20 @@ void commanderGetSetpoint(setpoint_t *setpoint, const state_t *state)
   uint32_t millis = T2M(xTaskGetTickCount());
 
   if (xQueueReceive(setpointQueue, &tempSetpoint, 0) == pdTRUE) {
+    xSemaphoreTake(lockCmd, portMAX_DELAY);
     libCommanderLowSetpoint(&commander, millis, &tempSetpoint);
+    xSemaphoreGive(lockCmd);
     lastUpdate = millis;
   }
 
-  libCommanderStep(&commander, millis, state, setpoint);
+  if (xSemaphoreTake(lockCmd, (TickType_t) 0) == pdTRUE) {
+    libCommanderStep(&commander, millis, state, setpoint);
+    xSemaphoreGive(lockCmd);
+    lastSetpoint = *setpoint;
+  }
+  else {
+    *setpoint = lastSetpoint;
+  }
 }
 
 bool commanderTest(void)
