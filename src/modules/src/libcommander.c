@@ -1,9 +1,5 @@
 #include "libcommander.h"
 
-// TODO: Move high-level commander functionality into library-like architecture
-// too, so the full commander framework can be compiled for x86.
-#include "crtp_commander_high_level.h"
-
 /* libcommander.c - Top-level state machine for Crazyflie.
  *
  * Intended to be compilable on x86 in the future. Currently it is not because
@@ -20,6 +16,11 @@
 // modeDisable for all stab_mode_t members and zero for all physical values.
 // In other words, the controller should cut power upon recieving it.
 const static setpoint_t nullSetpoint;
+
+static struct vec state2vec(struct vec3_s v)
+{
+  return mkvec(v.x, v.y, v.z);
+}
 
 
 void libCommanderInit(commander_t *cmd, uint32_t levelingTimeout, uint32_t emergencyTimeout)
@@ -46,6 +47,9 @@ void libCommanderLowSetpoint(commander_t *cmd, uint32_t millis, setpoint_t const
   case MODE_LOW_AWAITING_HIGH:
     // TODO: What should happen?
     break;
+  case MODE_HIGH_LANDING:
+    // TODO: What should happen?
+    break;
   }
 }
 
@@ -55,6 +59,7 @@ void libCommanderNotifySetpointsStop(commander_t *cmd, uint32_t millis, uint32_t
   case MODE_OFF_IDLE:
   case MODE_OFF_EMERGENCY:
   case MODE_HIGH:
+  case MODE_HIGH_LANDING:
     // Command does not make sense or is redundant.
     break;
   case MODE_LOW:
@@ -74,21 +79,6 @@ void libCommanderNotifySetpointsStop(commander_t *cmd, uint32_t millis, uint32_t
     break;
   case MODE_LOW_AWAITING_HIGH:
     // TODO: How to reconcile old and new await timers?
-    break;
-  }
-}
-
-void libCommanderHighLevelRecvd(commander_t *cmd, uint32_t millis, bool landing)
-{
-  switch (cmd->mode) {
-  case MODE_OFF_IDLE:
-  case MODE_LOW_AWAITING_HIGH:
-  case MODE_HIGH:
-    cmd->mode = landing ? MODE_HIGH_LANDING : MODE_HIGH;
-  case MODE_OFF_EMERGENCY:
-  case MODE_LOW:
-  case MODE_LOW_LEVELING:
-    // Do nothing - overridden!
     break;
   }
 }
@@ -123,18 +113,16 @@ void libCommanderStep(commander_t *cmd, uint32_t millis, state_t const *state, s
     }
     break;
   case MODE_HIGH_LANDING:
-    if (plan_is_finished(&cmd->planner)) {
+    if (plan_is_finished(&cmd->planner, millis / 1e3)) {
       cmd->mode = MODE_OFF_IDLE;
     }
     break;
   }
 
   struct traj_eval trajEval;
-  // TODO: It's ugly that the high-level planner uses its own timestamp.
-  float const t = usecTimestamp() / 1e6;
 
   // Second pass: Computation, with possible state change due to errors.
-  switch (state->mode) {
+  switch (cmd->mode) {
   case MODE_OFF_IDLE:
   case MODE_OFF_EMERGENCY:
   case MODE_LOW:
@@ -143,7 +131,7 @@ void libCommanderStep(commander_t *cmd, uint32_t millis, state_t const *state, s
     break;
   case MODE_HIGH:
   case MODE_HIGH_LANDING:
-    trajEval = plan_current_goal(&cmd->planner, t);
+    trajEval = plan_eval(&cmd->planner, millis / 1e3);
     if (!is_traj_eval_valid(&trajEval)) {
       // Programming error!
       cmd->mode = MODE_OFF_EMERGENCY;
@@ -186,33 +174,152 @@ void libCommanderStep(commander_t *cmd, uint32_t millis, state_t const *state, s
     break;
   case MODE_HIGH:
   case MODE_HIGH_LANDING:
-    setpoint->position.x = ev.pos.x;
-    setpoint->position.y = ev.pos.y;
-    setpoint->position.z = ev.pos.z;
-    setpoint->velocity.x = ev.vel.x;
-    setpoint->velocity.y = ev.vel.y;
-    setpoint->velocity.z = ev.vel.z;
-    setpoint->attitude.yaw = degrees(ev.yaw);
-    setpoint->attitudeRate.roll = degrees(ev.omega.x);
-    setpoint->attitudeRate.pitch = degrees(ev.omega.y);
-    setpoint->attitudeRate.yaw = degrees(ev.omega.z);
-    setpoint->mode.x = modeAbs;
-    setpoint->mode.y = modeAbs;
-    setpoint->mode.z = modeAbs;
-    setpoint->mode.roll = modeDisable;
-    setpoint->mode.pitch = modeDisable;
-    setpoint->mode.yaw = modeAbs;
-    setpoint->mode.quat = modeDisable;
-    setpoint->acceleration.x = ev.acc.x;
-    setpoint->acceleration.y = ev.acc.y;
-    setpoint->acceleration.z = ev.acc.z;
+    setpointOut->position.x = trajEval.pos.x;
+    setpointOut->position.y = trajEval.pos.y;
+    setpointOut->position.z = trajEval.pos.z;
+    setpointOut->velocity.x = trajEval.vel.x;
+    setpointOut->velocity.y = trajEval.vel.y;
+    setpointOut->velocity.z = trajEval.vel.z;
+    setpointOut->attitude.yaw = degrees(trajEval.yaw);
+    setpointOut->attitudeRate.roll = degrees(trajEval.omega.x);
+    setpointOut->attitudeRate.pitch = degrees(trajEval.omega.y);
+    setpointOut->attitudeRate.yaw = degrees(trajEval.omega.z);
+    setpointOut->mode.x = modeAbs;
+    setpointOut->mode.y = modeAbs;
+    setpointOut->mode.z = modeAbs;
+    setpointOut->mode.roll = modeDisable;
+    setpointOut->mode.pitch = modeDisable;
+    setpointOut->mode.yaw = modeAbs;
+    setpointOut->mode.quat = modeDisable;
+    setpointOut->acceleration.x = trajEval.acc.x;
+    setpointOut->acceleration.y = trajEval.acc.y;
+    setpointOut->acceleration.z = trajEval.acc.z;
 
     // Store *setpoint*, not state, in planner. This is important when
     // executing a sequence of relative goTos that return to the starting
     // position in the end. We should not accumulate error.
-    plan_tell_last_known_state(&planner, trajEval.pos, trajEval.vel, trajEval.yaw);
+    plan_tell_last_known_state(&cmd->planner, trajEval.pos, trajEval.vel, trajEval.yaw);
     break;
   }
 
   cmd->lastState = *state;
+}
+
+// start a takeoff trajectory.
+int libCommanderTakeoff(commander_t *cmd, uint32_t millis, float hover_height, float hover_yaw, float duration)
+{
+  float t = millis / 1000;
+  int result = 0;
+  switch (cmd->mode) {
+  case MODE_OFF_IDLE:
+  case MODE_HIGH:
+    result = plan_takeoff(&cmd->planner, hover_height, hover_yaw, duration, t);
+    if (result == 0) {
+      cmd->mode = MODE_HIGH;
+    }
+    return result;
+  default:
+    // TODO: Signal error?
+    return 0;
+  }
+}
+
+// start a landing trajectory.
+int libCommanderLand(commander_t *cmd, uint32_t millis, float hover_height, float hover_yaw, float duration)
+{
+  float t = millis / 1000;
+  int result = 0;
+  switch (cmd->mode) {
+  case MODE_HIGH:
+  case MODE_LOW_AWAITING_HIGH:
+    result = plan_land(&cmd->planner, hover_height, hover_yaw, duration, t);
+    if (result == 0) {
+      cmd->mode = MODE_HIGH_LANDING;
+    }
+    return result;
+  default:
+    // TODO: Signal error?
+    return 0;
+  }
+}
+
+// move to a given position, then hover there.
+int libCommanderGoTo(commander_t *cmd, uint32_t millis, bool relative, struct vec hover_pos, float hover_yaw, float duration)
+{
+  float t = millis / 1000;
+  int result = 0;
+  switch (cmd->mode) {
+  case MODE_OFF_IDLE:
+  case MODE_HIGH:
+  case MODE_LOW_AWAITING_HIGH:
+    result = plan_go_to(&cmd->planner, relative, hover_pos, hover_yaw, duration, t);
+    if (result == 0) {
+      cmd->mode = MODE_HIGH;
+    }
+    return result;
+  default:
+    // TODO: Signal error?
+    return 0;
+  }
+}
+
+// start trajectory. start_from param is ignored if relative == false.
+int libCommanderStartTraj(commander_t *cmd, uint32_t millis, struct piecewise_traj* trajectory, bool reversed, bool relative)
+{
+  float t = millis / 1000;
+  int result = 0;
+  switch (cmd->mode) {
+  case MODE_OFF_IDLE:
+  case MODE_HIGH:
+  case MODE_LOW_AWAITING_HIGH:
+    trajectory->t_begin = t;
+    result = plan_start_trajectory(&cmd->planner, trajectory, reversed, relative);
+    if (result == 0) {
+      cmd->mode = MODE_HIGH;
+    }
+    return result;
+  default:
+    // TODO: Signal error?
+    return 0;
+  }
+}
+
+// start compressed trajectory. start_from param is ignored if relative == false.
+int libCommanderStartCompressedTraj(commander_t *cmd, uint32_t millis, struct piecewise_traj_compressed* trajectory, bool relative)
+{
+  float t = millis / 1000;
+  int result = 0;
+  switch (cmd->mode) {
+  case MODE_OFF_IDLE:
+  case MODE_HIGH:
+  case MODE_LOW_AWAITING_HIGH:
+    trajectory->t_begin = t;
+    result = plan_start_compressed_trajectory(&cmd->planner, trajectory, relative);
+    if (result == 0) {
+      cmd->mode = MODE_HIGH;
+    }
+    return result;
+  default:
+    // TODO: Signal error?
+    return 0;
+  }
+}
+
+// query if the trajectory is finished.
+bool libCommanderTrajIsFinished(commander_t *cmd, uint32_t millis)
+{
+  float t = millis / 1000;
+  switch (cmd->mode) {
+  case MODE_HIGH:
+  case MODE_HIGH_LANDING:
+    return plan_is_finished(&cmd->planner, t);
+  default:
+    // TODO: Signal error?
+    return 0;
+  }
+}
+
+void libCommanderEmergencyStop(commander_t *cmd)
+{
+  cmd->mode = MODE_OFF_EMERGENCY;
 }

@@ -98,7 +98,10 @@ void notifySetpointsStopDecoder(const void *data, size_t datalen)
 {
   ASSERT(datalen == sizeof(struct notifySetpointsStopPacket));
   const struct notifySetpointsStopPacket *values = data;
-  commanderNotifySetpointsStop(values->remainValidMillisecs);
+  uint32_t millis = T2M(xTaskGetTickCount());
+  xSemaphoreTake(getCmdLock(), portMAX_DELAY);
+  libCommanderNotifySetpointsStop(getCmd(), millis, values->remainValidMillisecs);
+  xSemaphoreGive(getCmdLock());
 }
 
  /* ---===== packetDecoders array =====--- */

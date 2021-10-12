@@ -38,8 +38,6 @@ implementation of planning state machine
 #include <stddef.h>
 #include "planner.h"
 
-static struct traj_eval plan_eval(struct planner *p, float t);
-
 static void plan_takeoff_or_landing(struct planner *p, float hover_height, float hover_yaw, float duration)
 {
 	struct vec hover_pos = p->last_known.pos;

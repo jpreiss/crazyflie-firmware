@@ -1,5 +1,6 @@
 #pragma once
 
+#include "planner.h"
 #include "stabilizer_types.h"
 
 // This enum has no fixed numerical values on purpose. The values should never
@@ -36,13 +37,6 @@ enum cmdMode {
   MODE_HIGH_LANDING,
 };
 
-enum trajectory_type
-{
-  TRAJECTORY_TYPE_PIECEWISE            = 0,
-  TRAJECTORY_TYPE_PIECEWISE_COMPRESSED = 1
-};
-
-
 typedef struct commander_s
 {
   // STATE
@@ -77,3 +71,23 @@ void libCommanderLowSetpoint(commander_t *cmd, uint32_t millis, setpoint_t const
 // Applies any state change required by the passage of time, then fills the
 // output setpoint.
 void libCommanderStep(commander_t *cmd, uint32_t millis, state_t const *state, setpoint_t *setpointOut);
+
+// start a takeoff trajectory.
+int libCommanderTakeoff(commander_t *p, uint32_t millis, float hover_height, float hover_yaw, float duration);
+
+// start a landing trajectory.
+int libCommanderLand(commander_t *p, uint32_t millis, float hover_height, float hover_yaw, float duration);
+
+// move to a given position, then hover there.
+int libCommanderGoTo(commander_t *p, uint32_t millis, bool relative, struct vec hover_pos, float hover_yaw, float duration);
+
+// start trajectory. start_from param is ignored if relative == false.
+int libCommanderStartTraj(commander_t *p, uint32_t millis, struct piecewise_traj* trajectory, bool reversed, bool relative);
+
+// start compressed trajectory. start_from param is ignored if relative == false.
+int libCommanderStartCompressedTraj(commander_t *p, uint32_t millis, struct piecewise_traj_compressed* trajectory, bool relative);
+
+// query if the trajectory is finished.
+bool libCommanderTrajIsFinished(commander_t *p, uint32_t millis);
+
+void libCommanderEmergencyStop(commander_t *p);

@@ -90,14 +90,9 @@ uint8_t trajectories_memory[TRAJECTORY_MEMORY_SIZE];
 static struct trajectoryDescription trajectory_descriptions[NUM_TRAJECTORY_DEFINITIONS];
 
 static bool isInit = false;
-static struct planner planner;
 static uint8_t group_mask;
 static struct piecewise_traj trajectory;
 static struct piecewise_traj_compressed  compressed_trajectory;
-
-// makes sure that we don't evaluate the trajectory while it is being changed
-static xSemaphoreHandle lockTraj;
-static StaticSemaphore_t lockTrajBuffer;
 
 // safe default settings for takeoff and landing velocity
 static float defaultTakeoffVelocity = 0.5f;
@@ -240,11 +235,6 @@ static int start_trajectory(const struct data_start_trajectory* data);
 static int define_trajectory(const struct data_define_trajectory* data);
 
 // Helper functions
-static struct vec state2vec(struct vec3_s v)
-{
-  return mkvec(v.x, v.y, v.z);
-}
-
 bool isInGroup(uint8_t g) {
   return g == ALL_GROUPS || (g & group_mask) != 0;
 }
@@ -256,79 +246,11 @@ void crtpCommanderHighLevelInit(void)
   }
 
   memoryRegisterHandler(&memDef);
-  plan_init(&planner);
 
   //Start the trajectory task
   STATIC_MEM_TASK_CREATE(crtpCommanderHighLevelTask, crtpCommanderHighLevelTask, CMD_HIGH_LEVEL_TASK_NAME, NULL, CMD_HIGH_LEVEL_TASK_PRI);
 
-  lockTraj = xSemaphoreCreateMutexStatic(&lockTrajBuffer);
-
   isInit = true;
-}
-
-bool crtpCommanderHighLevelIsStopped()
-{
-  return plan_is_stopped(&planner);
-}
-
-void crtpCommanderHighLevelTellState(const state_t *state)
-{
-  xSemaphoreTake(lockTraj, portMAX_DELAY);
-  plan_tell_last_known_state( 
-    &planner,
-    state2vec(state->position),
-    state2vec(state->velocity),
-    radians(state->attitude.yaw)
-  );
-  xSemaphoreGive(lockTraj);
-}
-
-void crtpCommanderHighLevelGetSetpoint(setpoint_t* setpoint, const state_t *state)
-{
-  xSemaphoreTake(lockTraj, portMAX_DELAY);
-  float t = usecTimestamp() / 1e6;
-  struct traj_eval ev = plan_current_goal(&planner, t);
-  if (!is_traj_eval_valid(&ev)) {
-    // programming error
-    plan_stop(&planner);
-  }
-  xSemaphoreGive(lockTraj);
-
-  // if we are on the ground, update the last setpoint with the current state estimate
-  if (plan_is_stopped(&planner)) {
-    plan_tell_last_known_state( 
-      &planner,
-      state2vec(state->position),
-      state2vec(state->velocity),
-      radians(state->attitude.yaw)
-    );
-  }
-
-  if (is_traj_eval_valid(&ev)) {
-    setpoint->position.x = ev.pos.x;
-    setpoint->position.y = ev.pos.y;
-    setpoint->position.z = ev.pos.z;
-    setpoint->velocity.x = ev.vel.x;
-    setpoint->velocity.y = ev.vel.y;
-    setpoint->velocity.z = ev.vel.z;
-    setpoint->attitude.yaw = degrees(ev.yaw);
-    setpoint->attitudeRate.roll = degrees(ev.omega.x);
-    setpoint->attitudeRate.pitch = degrees(ev.omega.y);
-    setpoint->attitudeRate.yaw = degrees(ev.omega.z);
-    setpoint->mode.x = modeAbs;
-    setpoint->mode.y = modeAbs;
-    setpoint->mode.z = modeAbs;
-    setpoint->mode.roll = modeDisable;
-    setpoint->mode.pitch = modeDisable;
-    setpoint->mode.yaw = modeAbs;
-    setpoint->mode.quat = modeDisable;
-    setpoint->acceleration.x = ev.acc.x;
-    setpoint->acceleration.y = ev.acc.y;
-    setpoint->acceleration.z = ev.acc.z;
-
-    // store the last setpoint
-    plan_tell_last_known_state(&planner, ev.pos, ev.vel, ev.yaw);
-  }
 }
 
 static int handleCommand(const enum TrajectoryCommand_e command, const uint8_t* data)
@@ -405,14 +327,11 @@ int set_group_mask(const struct data_set_group_mask* data)
 int takeoff(const struct data_takeoff* data)
 {
   int result = 0;
+  uint32_t millis = T2M(xTaskGetTickCount());
   if (isInGroup(data->groupMask)) {
-    xSemaphoreTake(lockTraj, portMAX_DELAY);
-    float t = usecTimestamp() / 1e6;
-    result = plan_takeoff(&planner, data->height, 0.0f, data->duration, t);
-    xSemaphoreGive(lockTraj);
-    if (result == 0) {
-      commanderTellHighLevelCmdRecvd();
-    }
+    xSemaphoreTake(getCmdLock(), portMAX_DELAY);
+    result = libCommanderTakeoff(getCmd(), millis, data->height, 0.0f, data->duration);
+    xSemaphoreGive(getCmdLock());
   }
   return result;
 }
@@ -420,20 +339,16 @@ int takeoff(const struct data_takeoff* data)
 int takeoff2(const struct data_takeoff_2* data)
 {
   int result = 0;
+  uint32_t millis = T2M(xTaskGetTickCount());
   if (isInGroup(data->groupMask)) {
-    xSemaphoreTake(lockTraj, portMAX_DELAY);
-    float t = usecTimestamp() / 1e6;
-
+    xSemaphoreTake(getCmdLock(), portMAX_DELAY);
     float hover_yaw = data->yaw;
     if (data->useCurrentYaw) {
-      hover_yaw = planner.last_known.yaw;
+      hover_yaw = getCmd()->planner.last_known.yaw;
     }
 
-    result = plan_takeoff(&planner, data->height, hover_yaw, data->duration, t);
-    xSemaphoreGive(lockTraj);
-    if (result == 0) {
-      commanderTellHighLevelCmdRecvd();
-    }
+    result = libCommanderTakeoff(getCmd(), millis, data->height, hover_yaw, data->duration);
+    xSemaphoreGive(getCmdLock());
   }
   return result;
 }
@@ -441,27 +356,23 @@ int takeoff2(const struct data_takeoff_2* data)
 int takeoff_with_velocity(const struct data_takeoff_with_velocity* data)
 {
   int result = 0;
+  uint32_t millis = T2M(xTaskGetTickCount());
   if (isInGroup(data->groupMask)) {
-    xSemaphoreTake(lockTraj, portMAX_DELAY);
-    float t = usecTimestamp() / 1e6;
-
+    xSemaphoreTake(getCmdLock(), portMAX_DELAY);
     float hover_yaw = data->yaw;
     if (data->useCurrentYaw) {
-      hover_yaw = planner.last_known.yaw;
+      hover_yaw = getCmd()->planner.last_known.yaw;
     }
 
     float height = data->height;
     if (data->heightIsRelative) {
-      height += planner.last_known.pos.z;
+      height += getCmd()->planner.last_known.pos.z;
     }
 
     float velocity = data->velocity > 0 ? data->velocity : defaultTakeoffVelocity;
-    float duration = fabsf(height - planner.last_known.pos.z) / velocity;
-    result = plan_takeoff(&planner, height, hover_yaw, duration, t);
-    xSemaphoreGive(lockTraj);
-    if (result == 0) {
-      commanderTellHighLevelCmdRecvd();
-    }
+    float duration = fabsf(height - getCmd()->planner.last_known.pos.z) / velocity;
+    result = libCommanderTakeoff(getCmd(), millis, height, hover_yaw, duration);
+    xSemaphoreGive(getCmdLock());
   }
   return result;
 }
@@ -469,14 +380,11 @@ int takeoff_with_velocity(const struct data_takeoff_with_velocity* data)
 int land(const struct data_land* data)
 {
   int result = 0;
+  uint32_t millis = T2M(xTaskGetTickCount());
   if (isInGroup(data->groupMask)) {
-    xSemaphoreTake(lockTraj, portMAX_DELAY);
-    float t = usecTimestamp() / 1e6;
-    result = plan_land(&planner, data->height, 0.0f, data->duration, t);
-    xSemaphoreGive(lockTraj);
-    if (result == 0) {
-      commanderTellHighLevelCmdRecvd();
-    }
+    xSemaphoreTake(getCmdLock(), portMAX_DELAY);
+    result = libCommanderLand(getCmd(), millis, data->height, 0.0f, data->duration);
+    xSemaphoreGive(getCmdLock());
   }
   return result;
 }
@@ -484,20 +392,16 @@ int land(const struct data_land* data)
 int land2(const struct data_land_2* data)
 {
   int result = 0;
+  uint32_t millis = T2M(xTaskGetTickCount());
   if (isInGroup(data->groupMask)) {
-    xSemaphoreTake(lockTraj, portMAX_DELAY);
-    float t = usecTimestamp() / 1e6;
-
+    xSemaphoreTake(getCmdLock(), portMAX_DELAY);
     float hover_yaw = data->yaw;
     if (data->useCurrentYaw) {
-      hover_yaw = planner.last_known.yaw;
+      hover_yaw = getCmd()->planner.last_known.yaw;
     }
 
-    result = plan_land(&planner, data->height, hover_yaw, data->duration, t);
-    xSemaphoreGive(lockTraj);
-    if (result == 0) {
-      commanderTellHighLevelCmdRecvd();
-    }
+    result = libCommanderLand(getCmd(), millis, data->height, hover_yaw, data->duration);
+    xSemaphoreGive(getCmdLock());
   }
   return result;
 }
@@ -505,59 +409,46 @@ int land2(const struct data_land_2* data)
 int land_with_velocity(const struct data_land_with_velocity* data)
 {
   int result = 0;
+  uint32_t millis = T2M(xTaskGetTickCount());
   if (isInGroup(data->groupMask)) {
-    xSemaphoreTake(lockTraj, portMAX_DELAY);
-    float t = usecTimestamp() / 1e6;
-
+    xSemaphoreTake(getCmdLock(), portMAX_DELAY);
     float hover_yaw = data->yaw;
     if (data->useCurrentYaw) {
-      hover_yaw = planner.last_known.yaw;
+      hover_yaw = getCmd()->planner.last_known.yaw;
     }
 
     float height = data->height;
     if (data->heightIsRelative) {
-      height = planner.last_known.pos.z - height;
+      height = getCmd()->planner.last_known.pos.z - height;
     }
 
     float velocity = data->velocity > 0 ? data->velocity : defaultLandingVelocity;
-    float duration = fabsf(height - planner.last_known.pos.z) / velocity;
-    result = plan_land(&planner, height, hover_yaw, duration, t);
-    xSemaphoreGive(lockTraj);
-    if (result == 0) {
-      commanderTellHighLevelCmdRecvd();
-    }
+    float duration = fabsf(height - getCmd()->planner.last_known.pos.z) / velocity;
+    result = libCommanderLand(getCmd(), millis, height, hover_yaw, duration);
+    xSemaphoreGive(getCmdLock());
   }
   return result;
 }
 
 int stop(const struct data_stop* data)
 {
-  int result = 0;
   if (isInGroup(data->groupMask)) {
-    xSemaphoreTake(lockTraj, portMAX_DELAY);
-    plan_stop(&planner);
-    xSemaphoreGive(lockTraj);
-    // TODO: Should this have any effect on the top-level commander state
-    // machine? It would be more correct to move all "emergency stop"
-    // functionality there. Since the top-level commander queries
-    // commanderHighLevelIsStopped() every stabilizer loop when in high-level
-    // mode, it seems that nothing needs to be done.
+    xSemaphoreTake(getCmdLock(), portMAX_DELAY);
+    libCommanderEmergencyStop(getCmd());
+    xSemaphoreGive(getCmdLock());
   }
-  return result;
+  return 0;
 }
 
 int go_to(const struct data_go_to* data)
 {
   int result = 0;
+  uint32_t millis = T2M(xTaskGetTickCount());
   if (isInGroup(data->groupMask)) {
     struct vec hover_pos = mkvec(data->x, data->y, data->z);
-    xSemaphoreTake(lockTraj, portMAX_DELAY);
-    float t = usecTimestamp() / 1e6;
-    result = plan_go_to(&planner, data->relative, hover_pos, data->yaw, data->duration, t);
-    xSemaphoreGive(lockTraj);
-    if (result == 0) {
-      commanderTellHighLevelCmdRecvd();
-    }
+    xSemaphoreTake(getCmdLock(), portMAX_DELAY);
+    result = libCommanderGoTo(getCmd(), millis, data->relative, hover_pos, data->yaw, data->duration);
+    xSemaphoreGive(getCmdLock());
   }
   return result;
 }
@@ -565,40 +456,34 @@ int go_to(const struct data_go_to* data)
 int start_trajectory(const struct data_start_trajectory* data)
 {
   int result = 0;
+  uint32_t millis = T2M(xTaskGetTickCount());
   if (isInGroup(data->groupMask)) {
     if (data->trajectoryId < NUM_TRAJECTORY_DEFINITIONS) {
       struct trajectoryDescription* trajDesc = &trajectory_descriptions[data->trajectoryId];
       if (   trajDesc->trajectoryLocation == TRAJECTORY_LOCATION_MEM
           && trajDesc->trajectoryType == CRTP_CHL_TRAJECTORY_TYPE_POLY4D) {
-        xSemaphoreTake(lockTraj, portMAX_DELAY);
-        float t = usecTimestamp() / 1e6;
-        trajectory.t_begin = t;
+        xSemaphoreTake(getCmdLock(), portMAX_DELAY);
         trajectory.timescale = data->timescale;
         trajectory.n_pieces = trajDesc->trajectoryIdentifier.mem.n_pieces;
         trajectory.pieces = (struct poly4d*)&trajectories_memory[trajDesc->trajectoryIdentifier.mem.offset];
-        result = plan_start_trajectory(&planner, &trajectory, data->reversed, data->relative);
-        xSemaphoreGive(lockTraj);
+        result = libCommanderStartTraj(getCmd(), millis, &trajectory, data->reversed, data->relative);
+        xSemaphoreGive(getCmdLock());
       } else if (trajDesc->trajectoryLocation == TRAJECTORY_LOCATION_MEM
           && trajDesc->trajectoryType == CRTP_CHL_TRAJECTORY_TYPE_POLY4D_COMPRESSED) {
 
         if (data->timescale != 1 || data->reversed) {
           result = ENOEXEC;
         } else {
-          xSemaphoreTake(lockTraj, portMAX_DELAY);
-          float t = usecTimestamp() / 1e6;
+          xSemaphoreTake(getCmdLock(), portMAX_DELAY);
           piecewise_compressed_load(
             &compressed_trajectory,
             &trajectories_memory[trajDesc->trajectoryIdentifier.mem.offset]
           );
-          compressed_trajectory.t_begin = t;
-          result = plan_start_compressed_trajectory(&planner, &compressed_trajectory, data->relative);
-          xSemaphoreGive(lockTraj);
+          result = libCommanderStartCompressedTraj(getCmd(), millis, &compressed_trajectory, data->relative);
+          xSemaphoreGive(getCmdLock());
         }
 
       }
-    }
-    if (result == 0) {
-      commanderTellHighLevelCmdRecvd();
     }
   }
   return result;
@@ -609,6 +494,7 @@ int define_trajectory(const struct data_define_trajectory* data)
   if (data->trajectoryId >= NUM_TRAJECTORY_DEFINITIONS) {
     return ENOEXEC;
   }
+  // No locking - overwriting an in-use trajectory is user error!
   trajectory_descriptions[data->trajectoryId] = data->description;
   return 0;
 }
@@ -801,8 +687,11 @@ bool crtpCommanderHighLevelReadTrajectory(const uint32_t offset, const uint32_t 
 }
 
 bool crtpCommanderHighLevelIsTrajectoryFinished() {
-  float t = usecTimestamp() / 1e6;
-  return plan_is_finished(&planner, t);
+  uint32_t millis = T2M(xTaskGetTickCount());
+  xSemaphoreTake(getCmdLock(), portMAX_DELAY);
+  bool result = libCommanderTrajIsFinished(getCmd(), millis);
+  xSemaphoreGive(getCmdLock());
+  return result;
 }
 
 /**

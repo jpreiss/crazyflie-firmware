@@ -67,6 +67,9 @@ struct planner
 // initialize the planner
 void plan_init(struct planner *p);
 
+// get the planner's current goal.
+struct traj_eval plan_eval(struct planner *p, float t);
+
 // tell the planner to stop.
 // subsequently, plan_is_stopped(p) will return true,
 // and it is no longer valid to call plan_current_goal(p).
@@ -78,9 +81,6 @@ void plan_stop(struct planner *p);
 bool plan_is_stopped(struct planner *p);
 
 void plan_tell_last_known_state(struct planner *p, struct vec pos, struct vec vel, float yaw);
-
-// get the planner's current goal.
-struct traj_eval plan_current_goal(struct planner *p, float t);
 
 // start a takeoff trajectory.
 int plan_takeoff(struct planner *p, float hover_height, float hover_yaw, float duration, float t);
@@ -97,5 +97,5 @@ int plan_start_trajectory(struct planner *p, struct piecewise_traj* trajectory, 
 // start compressed trajectory. start_from param is ignored if relative == false.
 int plan_start_compressed_trajectory(struct planner *p, struct piecewise_traj_compressed* trajectory, bool relative);
 
-// Query if the trjectory is finished
+// query if the trajectory is finished.
 bool plan_is_finished(struct planner *p, float t);

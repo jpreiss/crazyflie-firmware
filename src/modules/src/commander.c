@@ -49,26 +49,11 @@
 // to insert an event in the queue before giving up and dropping the command.
 #define EVENT_QUEUE_BLOCK_TICKS (M2T(500))
 
-/* Definitions. */
-// Event queue tagged union.
-enum cmdEvent
-{
-  EVENT_HIGH_LEVEL_RECVD,
-  EVENT_NOTIFY_SETPOINTS_STOP,
-};
-
-typedef struct commander_event_s
-{
-  enum cmdEvent tag;
-  union {
-    uint32_t notifySetpointsStopMillis;
-  };
-} commander_event_t;
-
-
 /* Static state. */
 static bool isInit;  // For CF init system.
 static commander_t commander;  // Main state.
+static xSemaphoreHandle lockCmd;
+static StaticSemaphore_t lockCmdBuffer;
 
 // Time of last setpoint-generating input. Not used in this module - only used
 // so we can provide commanderGetInactivityTime() to power management system.
@@ -84,9 +69,6 @@ static QueueHandle_t setpointQueue;
 STATIC_MEM_QUEUE_ALLOC(setpointQueue, 1, sizeof(setpoint_t));
 static QueueHandle_t priorityQueue;
 STATIC_MEM_QUEUE_ALLOC(priorityQueue, 1, sizeof(int));
-// TODO: In a perfect world this queue would be unbounded - is 4 enough?
-static QueueHandle_t eventQueue;
-STATIC_MEM_QUEUE_ALLOC(eventQueue, 4, sizeof(commander_event_t));
 
 
 /* Public functions */
@@ -100,19 +82,27 @@ void commanderInit(void)
   const int priorityDisable = COMMANDER_PRIORITY_DISABLE;
   xQueueSend(priorityQueue, &priorityDisable, 0);
 
-  eventQueue = STATIC_MEM_QUEUE_CREATE(eventQueue);
-  ASSERT(eventQueue);
-
-  crtpCommanderInit();
-  crtpCommanderHighLevelInit();
-  lastUpdate = xTaskGetTickCount();
   libCommanderInit(
     &commander,
     COMMANDER_WDT_TIMEOUT_STABILIZE,
     COMMANDER_WDT_TIMEOUT_SHUTDOWN
   );
+  lockCmd = xSemaphoreCreateMutexStatic(&lockCmdBuffer);
 
+  crtpCommanderInit();
+  crtpCommanderHighLevelInit();
+  lastUpdate = xTaskGetTickCount();
   isInit = true;
+}
+
+xSemaphoreHandle getCmdLock()
+{
+  return lockCmd;
+}
+
+commander_t *getCmd()
+{
+  return &commander;
 }
 
 void commanderSetSetpoint(setpoint_t *setpoint, int priority)
@@ -130,53 +120,18 @@ void commanderSetSetpoint(setpoint_t *setpoint, int priority)
   }
 }
 
-void commanderNotifySetpointsStop(int remainValidMillisecs)
-{
-  commander_event_t event = {
-    .tag = EVENT_NOTIFY_SETPOINTS_STOP,
-    .notifySetpointsStopMillis = remainValidMillisecs,
-  };
-  xQueueSend(eventQueue, &event, EVENT_QUEUE_BLOCK_TICKS);
-  // TODO: Handle queue full condition other than dropping command?
-}
-
 void commanderGetSetpoint(setpoint_t *setpoint, const state_t *state)
 {
-  static commander_event_t tempEvent;
   static setpoint_t tempSetpoint;
 
-  uint32_t ticks = xTaskGetTickCount();
+  uint32_t millis = T2M(xTaskGetTickCount());
 
-  // Process all events that were enqueued since the last stabilizer loop.
-  while (xQueueReceive(eventQueue, &tempEvent, 0) == pdTRUE) {
-    switch (tempEvent.tag) {
-    case EVENT_NOTIFY_SETPOINTS_STOP:
-      libCommanderNotifySetpointsStop(&commander, ticks, tempEvent.notifySetpointsStopMillis);
-      break;
-    case EVENT_HIGH_LEVEL_RECVD:
-      libCommanderHighLevelRecvd(&commander, ticks);
-      lastUpdate = ticks;
-      break;
-    default:
-      // TODO: error!
-      break;
-    }
-  }
   if (xQueueReceive(setpointQueue, &tempSetpoint, 0) == pdTRUE) {
-    libCommanderLowSetpoint(&commander, ticks, &tempSetpoint);
-    lastUpdate = ticks;
+    libCommanderLowSetpoint(&commander, millis, &tempSetpoint);
+    lastUpdate = millis;
   }
 
-  libCommanderStep(&commander, ticks, state, setpoint);
-}
-
-void commanderTellHighLevelCmdRecvd()
-{
-  commander_event_t event = {
-    .tag = EVENT_HIGH_LEVEL_RECVD,
-  };
-  xQueueSend(eventQueue, &event, EVENT_QUEUE_BLOCK_TICKS);
-  // TODO: Handle queue full condition other than dropping command?
+  libCommanderStep(&commander, millis, state, setpoint);
 }
 
 bool commanderTest(void)

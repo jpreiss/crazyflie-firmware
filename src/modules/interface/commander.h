@@ -28,7 +28,11 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include "config.h"
+#include "libcommander.h"
 #include "stabilizer_types.h"
+
+#include "FreeRTOS.h"
+#include "semphr.h"
 
 #define DEFAULT_YAW_MODE  XMODE
 
@@ -43,21 +47,12 @@ void commanderInit(void);
 bool commanderTest(void);
 uint32_t commanderGetInactivityTime(void);
 
-// Tell the commander that a high level command was recieved, so it should
-// change into high-level mode and start getting setpoints from the high-level
-// commander if the current state allows it.
-void commanderTellHighLevelCmdRecvd(void);
+xSemaphoreHandle getCmdLock();
+commander_t *getCmd();
 
 void commanderSetSetpoint(setpoint_t *setpoint, int priority);
 
 bool commanderIsIdle(void);
-
-/* Inform the commander that streaming setpoints are about to stop.
- * Parameter controls the amount of time the last setpoint will remain valid.
- * This gives the PC time to send the next command, e.g. with the high-level
- * commander, before we enter timeout mode.
- */
-void commanderNotifySetpointsStop(int remainValidMillisecs);
 
 void commanderGetSetpoint(setpoint_t *setpoint, const state_t *state);
 
