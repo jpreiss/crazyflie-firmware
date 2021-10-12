@@ -1,3 +1,5 @@
+#include <errno.h>
+
 #include "libcommander.h"
 
 /* libcommander.c - Top-level state machine for Crazyflie.

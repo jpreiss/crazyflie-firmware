@@ -177,5 +177,5 @@ struct traj_eval piecewise_eval_reversed(
 
 static inline bool piecewise_is_finished(struct piecewise_traj const *traj, float t)
 {
-	return (t - traj->t_begin) >= piecewise_duration(traj);
+	return (t - traj->t_begin) > piecewise_duration(traj);
 }

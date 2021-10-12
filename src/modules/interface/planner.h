@@ -66,16 +66,6 @@ struct planner
 // initialize the planner
 void plan_init(struct planner *p);
 
-// tell the planner to stop.
-// subsequently, plan_is_stopped(p) will return true,
-// and it is no longer valid to call plan_current_goal(p).
-void plan_stop(struct planner *p);
-
-// query if the planner is stopped.
-// currently this is true at startup before we take off,
-// and also after an emergency stop.
-bool plan_is_stopped(struct planner *p);
-
 // get the planner's current goal.
 struct traj_eval plan_eval(struct planner *p, float t);
 
