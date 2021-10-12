@@ -3,9 +3,7 @@
 #include "planner.h"
 #include "stabilizer_types.h"
 
-// This enum has no fixed numerical values on purpose. The values should never
-// be relied upon. We want to make sure we can keep the values grouped
-// logically in the declaration, instead of in the order they were added.
+// This enum intentionally has no fixed numerical values.
 enum cmdMode {
 
   // Motors off, in a rest state, sitting on ground/platform.
@@ -30,10 +28,11 @@ enum cmdMode {
   // to allow for manual takeover from a failing automated system.
   MODE_LOW_AWAITING_HIGH,
 
-  // Following planner; hover (stay in MODE_HIGH) when trajectory ends.
+  // Following planner. When trajectory ends, stay in MODE_HIGH to hover.
   MODE_HIGH,
 
-  // Following planner; stop (switch to MODE_OFF_IDLE) when trajectory ends.
+  // Following planner. When trajectory ends, switch to MODE_OFF_IDLE to cut
+  // motors.
   MODE_HIGH_LANDING,
 };
 
@@ -60,28 +59,33 @@ void libCommanderInit(commander_t *cmd, uint32_t levelingTimeout, uint32_t emerg
 void libCommanderStep(commander_t *cmd, uint32_t millis, state_t const *state, setpoint_t *setpointOut);
 
 // Processes a low-level setpoint. Preempts high-level mode!
-void libCommanderLowSetpoint(commander_t *cmd, uint32_t millis, setpoint_t const *setpoint);
+int libCommanderLowSetpoint(commander_t *cmd, uint32_t millis, setpoint_t const *setpoint);
 
-// Informs the commander that streaming setpoints are about to stop.
-// See commander.h comment for more information.
-void libCommanderNotifySetpointsStop(commander_t *cmd, uint32_t millis, uint32_t awaitMillis);
+// Inform the commander that low-level setpoints are about to stop. The
+// commander will hold the last low-level setpoint for awaitMillis. If a
+// high-level command has still not arrived after awaitMillis, declare an
+// emergency.
+int libCommanderNotifySetpointsStop(commander_t *cmd, uint32_t millis, uint32_t awaitMillis);
 
-// start a takeoff trajectory.
+// Start a takeoff trajectory.
 int libCommanderTakeoff(commander_t *p, uint32_t millis, float hover_height, float hover_yaw, float duration);
 
-// start a landing trajectory.
+// Start a landing trajectory. Motor power will be cut afterwards.
 int libCommanderLand(commander_t *p, uint32_t millis, float hover_height, float hover_yaw, float duration);
 
-// move to a given position, then hover there.
+// Move to a given position, then hover there.
 int libCommanderGoTo(commander_t *p, uint32_t millis, bool relative, struct vec hover_pos, float hover_yaw, float duration);
 
-// start trajectory. start_from param is ignored if relative == false.
+// Start a trajectory. The start_from argument is ignored if
+// relative == false.
 int libCommanderStartTraj(commander_t *p, uint32_t millis, struct piecewise_traj* trajectory, bool reversed, bool relative);
 
-// start compressed trajectory. start_from param is ignored if relative == false.
+// Start a compressed trajectory. The start_from argument is ignored if
+// relative == false.
 int libCommanderStartCompressedTraj(commander_t *p, uint32_t millis, struct piecewise_traj_compressed* trajectory, bool relative);
 
-// query if the trajectory is finished.
-bool libCommanderTrajIsFinished(commander_t *p, uint32_t millis);
+// Query if the trajectory is finished.
+int libCommanderTrajIsFinished(commander_t *p, uint32_t millis, bool *output);
 
+// Cut motor power. This command cannot fail.
 void libCommanderEmergencyStop(commander_t *p);

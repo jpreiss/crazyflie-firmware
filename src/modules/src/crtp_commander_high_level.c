@@ -472,7 +472,7 @@ int start_trajectory(const struct data_start_trajectory* data)
           && trajDesc->trajectoryType == CRTP_CHL_TRAJECTORY_TYPE_POLY4D_COMPRESSED) {
 
         if (data->timescale != 1 || data->reversed) {
-          result = ENOEXEC;
+          result = EDOM;
         } else {
           xSemaphoreTake(getCmdLock(), portMAX_DELAY);
           piecewise_compressed_load(
@@ -482,8 +482,11 @@ int start_trajectory(const struct data_start_trajectory* data)
           result = libCommanderStartCompressedTraj(getCmd(), millis, &compressed_trajectory, data->relative);
           xSemaphoreGive(getCmdLock());
         }
-
       }
+    }
+    else {
+      // trajectory ID too large
+      result = EFAULT;
     }
   }
   return result;
@@ -492,7 +495,7 @@ int start_trajectory(const struct data_start_trajectory* data)
 int define_trajectory(const struct data_define_trajectory* data)
 {
   if (data->trajectoryId >= NUM_TRAJECTORY_DEFINITIONS) {
-    return ENOEXEC;
+    return EFAULT;
   }
   // No locking - overwriting an in-use trajectory is user error!
   trajectory_descriptions[data->trajectoryId] = data->description;
@@ -689,9 +692,11 @@ bool crtpCommanderHighLevelReadTrajectory(const uint32_t offset, const uint32_t 
 bool crtpCommanderHighLevelIsTrajectoryFinished() {
   uint32_t millis = T2M(xTaskGetTickCount());
   xSemaphoreTake(getCmdLock(), portMAX_DELAY);
-  bool result = libCommanderTrajIsFinished(getCmd(), millis);
+  bool isFinished;
+  int result = libCommanderTrajIsFinished(getCmd(), millis, &isFinished);
   xSemaphoreGive(getCmdLock());
-  return result;
+  // TODO: Should we return true on errors instead?
+  return (result == 0) && isFinished;
 }
 
 /**

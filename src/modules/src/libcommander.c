@@ -31,7 +31,7 @@ void libCommanderInit(commander_t *cmd, uint32_t levelingTimeout, uint32_t emerg
   plan_init(&cmd->planner);
 }
 
-void libCommanderLowSetpoint(commander_t *cmd, uint32_t millis, setpoint_t const *setpoint)
+int libCommanderLowSetpoint(commander_t *cmd, uint32_t millis, setpoint_t const *setpoint)
 {
   switch (cmd->mode) {
   case MODE_OFF_IDLE:
@@ -40,7 +40,7 @@ void libCommanderLowSetpoint(commander_t *cmd, uint32_t millis, setpoint_t const
   case MODE_HIGH:
     cmd->lowSetpoint = *setpoint;
     cmd->mode = MODE_LOW;
-    break;
+    return 0;
   case MODE_OFF_EMERGENCY:
     // TODO: What should happen?
     break;
@@ -51,17 +51,17 @@ void libCommanderLowSetpoint(commander_t *cmd, uint32_t millis, setpoint_t const
     // TODO: What should happen?
     break;
   }
+  return EPERM;
 }
 
-void libCommanderNotifySetpointsStop(commander_t *cmd, uint32_t millis, uint32_t awaitMillis)
+int libCommanderNotifySetpointsStop(commander_t *cmd, uint32_t millis, uint32_t awaitMillis)
 {
   switch (cmd->mode) {
   case MODE_OFF_IDLE:
   case MODE_OFF_EMERGENCY:
   case MODE_HIGH:
   case MODE_HIGH_LANDING:
-    // Command does not make sense or is redundant.
-    break;
+    return EPERM;
   case MODE_LOW:
     cmd->awaitHighLevelTimeout = awaitMillis;
     cmd->mode = MODE_LOW_AWAITING_HIGH;
@@ -70,7 +70,7 @@ void libCommanderNotifySetpointsStop(commander_t *cmd, uint32_t millis, uint32_t
     cmd->highStartFrom.pos = state2vec(cmd->lastState.position);
     cmd->highStartFrom.vel = state2vec(cmd->lastState.velocity);
     cmd->highStartFrom.yaw = cmd->lastState.attitude.yaw;
-    break;
+    return 0;
   case MODE_LOW_LEVELING:
     // TODO: What should happen?
     break;
@@ -78,6 +78,7 @@ void libCommanderNotifySetpointsStop(commander_t *cmd, uint32_t millis, uint32_t
     // TODO: How to reconcile old and new await timers?
     break;
   }
+  return EPERM;
 }
 
 void libCommanderStep(commander_t *cmd, uint32_t millis, state_t const *state, setpoint_t *setpointOut)
@@ -87,15 +88,15 @@ void libCommanderStep(commander_t *cmd, uint32_t millis, state_t const *state, s
   case MODE_OFF_IDLE:
   case MODE_OFF_EMERGENCY:
   case MODE_HIGH:
-    // No time-triggered state change possible.
+    // No time-triggered state change is possible in these states.
     break;
   case MODE_LOW:
     if ((millis - cmd->lowSetpoint.timestamp) > cmd->levelingTimeout) {
       cmd->mode = MODE_LOW_LEVELING;
     }
     // Technically we could fall through to MODE_LOW_LEVELING in case we passed
-    // both timeouts in the same step, but this should never happen with
-    // reasonable timeout values and stabilizer loop rate.
+    // both timeouts in the same step, but this is confusing to read and should
+    // never happen with reasonable timeout values and stabilizer loop rate.
     break;
   case MODE_LOW_LEVELING:
     if ((millis - cmd->lowSetpoint.timestamp) > cmd->emergencyTimeout) {
@@ -105,7 +106,7 @@ void libCommanderStep(commander_t *cmd, uint32_t millis, state_t const *state, s
   case MODE_LOW_AWAITING_HIGH:
     if ((millis - cmd->lowSetpoint.timestamp) > cmd->awaitHighLevelTimeout) {
       // Skip the leveling state and go straight to emergency - If we didn't
-      // get a high-level command by now, it's probaby never coming.
+      // get a high-level command by now, it's probably never coming.
       cmd->mode = MODE_OFF_EMERGENCY;
     }
     break;
@@ -134,12 +135,9 @@ void libCommanderStep(commander_t *cmd, uint32_t millis, state_t const *state, s
       cmd->mode = MODE_OFF_EMERGENCY;
     }
     break;
-  default:
-    // TODO: error!
-    break;
   }
 
-  // Third pass: Output.
+  // Third pass: Output. No errors can happen.
   switch (cmd->mode) {
   case MODE_OFF_IDLE:
   case MODE_OFF_EMERGENCY:
@@ -147,9 +145,9 @@ void libCommanderStep(commander_t *cmd, uint32_t millis, state_t const *state, s
     // If we are on the ground, update the setpoint with the current state so
     // we can take off correctly. TODO: Is it OK to do this in emergency? Or
     // should be idle only?
-    cmd->highStartFrom.pos = state2vec(cmd->lastState.position);
-    cmd->highStartFrom.vel = state2vec(cmd->lastState.velocity);
-    cmd->highStartFrom.yaw = cmd->lastState.attitude.yaw;
+    cmd->highStartFrom.pos = state2vec(state->position);
+    cmd->highStartFrom.vel = state2vec(state->velocity);
+    cmd->highStartFrom.yaw = state->attitude.yaw;
     break;
   case MODE_LOW:
   case MODE_LOW_AWAITING_HIGH:
@@ -199,26 +197,25 @@ void libCommanderStep(commander_t *cmd, uint32_t millis, state_t const *state, s
 // start a takeoff trajectory.
 int libCommanderTakeoff(commander_t *cmd, uint32_t millis, float hover_height, float hover_yaw, float duration)
 {
-  float t = millis / 1000;
+  float t = millis / 1e3;
   int result = 0;
   switch (cmd->mode) {
   case MODE_OFF_IDLE:
-  case MODE_HIGH:
     result = plan_takeoff(&cmd->planner, cmd->highStartFrom.pos, cmd->highStartFrom.yaw, hover_height, hover_yaw, duration, t);
     if (result == 0) {
       cmd->mode = MODE_HIGH;
     }
     return result;
+  // TODO: Is there any other state from which we should allow takeoff?
   default:
-    // TODO: Signal error?
-    return 0;
+    return EPERM;
   }
 }
 
 // start a landing trajectory.
 int libCommanderLand(commander_t *cmd, uint32_t millis, float hover_height, float hover_yaw, float duration)
 {
-  float t = millis / 1000;
+  float t = millis / 1e3;
   int result = 0;
   switch (cmd->mode) {
   case MODE_HIGH:
@@ -228,16 +225,17 @@ int libCommanderLand(commander_t *cmd, uint32_t millis, float hover_height, floa
       cmd->mode = MODE_HIGH_LANDING;
     }
     return result;
+  case MODE_HIGH_LANDING:
+    // TODO: Should we update the trajectory?
   default:
-    // TODO: Signal error?
-    return 0;
+    return EPERM;
   }
 }
 
 // move to a given position, then hover there.
 int libCommanderGoTo(commander_t *cmd, uint32_t millis, bool relative, struct vec hover_pos, float hover_yaw, float duration)
 {
-  float t = millis / 1000;
+  float t = millis / 1e3;
   int result = 0;
   switch (cmd->mode) {
   case MODE_OFF_IDLE:
@@ -247,17 +245,19 @@ int libCommanderGoTo(commander_t *cmd, uint32_t millis, bool relative, struct ve
     if (result == 0) {
       cmd->mode = MODE_HIGH;
     }
+    // TODO: Verify that planner functions do not modify the planner state if
+    // they return nonzero. Otherwise if we were already in MODE_HIGH, we might
+    // now be executing a garbage trajectory.
     return result;
   default:
-    // TODO: Signal error?
-    return 0;
+    return EPERM;
   }
 }
 
 // start trajectory. start_from param is ignored if relative == false.
 int libCommanderStartTraj(commander_t *cmd, uint32_t millis, struct piecewise_traj* trajectory, bool reversed, bool relative)
 {
-  float t = millis / 1000;
+  float t = millis / 1e3;
   int result = 0;
   switch (cmd->mode) {
   case MODE_OFF_IDLE:
@@ -270,15 +270,14 @@ int libCommanderStartTraj(commander_t *cmd, uint32_t millis, struct piecewise_tr
     }
     return result;
   default:
-    // TODO: Signal error?
-    return 0;
+    return EPERM;
   }
 }
 
 // start compressed trajectory. start_from param is ignored if relative == false.
 int libCommanderStartCompressedTraj(commander_t *cmd, uint32_t millis, struct piecewise_traj_compressed* trajectory, bool relative)
 {
-  float t = millis / 1000;
+  float t = millis / 1e3;
   int result = 0;
   switch (cmd->mode) {
   case MODE_OFF_IDLE:
@@ -291,22 +290,21 @@ int libCommanderStartCompressedTraj(commander_t *cmd, uint32_t millis, struct pi
     }
     return result;
   default:
-    // TODO: Signal error?
-    return 0;
+    return EPERM;
   }
 }
 
 // query if the trajectory is finished.
-bool libCommanderTrajIsFinished(commander_t *cmd, uint32_t millis)
+int libCommanderTrajIsFinished(commander_t *cmd, uint32_t millis, bool *output)
 {
-  float t = millis / 1000;
+  float t = millis / 1e3;
   switch (cmd->mode) {
   case MODE_HIGH:
   case MODE_HIGH_LANDING:
-    return plan_is_finished(&cmd->planner, t);
-  default:
-    // TODO: Signal error?
+    *output = plan_is_finished(&cmd->planner, t);
     return 0;
+  default:
+    return EPERM;
   }
 }
 
