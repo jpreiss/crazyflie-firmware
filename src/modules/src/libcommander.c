@@ -149,7 +149,7 @@ void libCommanderStep(commander_t *cmd, uint32_t millis, state_t const *state, s
     // should be idle only?
     cmd->highStartFrom.pos = state2vec(state->position);
     cmd->highStartFrom.vel = state2vec(state->velocity);
-    cmd->highStartFrom.yaw = state->attitude.yaw;
+    cmd->highStartFrom.yaw = radians(state->attitude.yaw);
     break;
   case MODE_LOW:
   case MODE_LOW_AWAITING_HIGH:

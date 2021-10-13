@@ -31,6 +31,7 @@
 #include "queue.h"
 
 #include "commander.h"
+#include "console.h"
 #include "crtp_commander.h"
 #include "crtp_commander_high_level.h"
 #include "libcommander.h"
@@ -41,11 +42,12 @@
 
 
 /* Static state. */
-static bool isInit;  // For CF init system.
+static bool isInit = false;  // For CF init system.
 static commander_t commander;  // Main state.
 // Only used if commanderGetSetpoint is called while another task holds
 // lockCmd. In this case it's better to give the controller a stale setpoint
-// than to block the stabilizer task.
+// than to block the stabilizer task. Note that the initial value is the null
+// setpoint, which corresponds to motors off.
 static setpoint_t lastSetpoint;
 
 // Mutex is only used for high-level commands. Concurrency w/ radio task for
@@ -127,11 +129,14 @@ void commanderGetSetpoint(setpoint_t *setpoint, const state_t *state)
   }
 
   if (xSemaphoreTake(lockCmd, (TickType_t) 0) == pdTRUE) {
+    consolePrintf("stab sem\n");
     libCommanderStep(&commander, millis, state, setpoint);
+    consolePrintf("stab stepped\n");
     xSemaphoreGive(lockCmd);
     lastSetpoint = *setpoint;
   }
   else {
+    consolePrintf("using old setpoint\n");
     *setpoint = lastSetpoint;
   }
 }

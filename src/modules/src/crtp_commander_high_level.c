@@ -49,6 +49,7 @@ such as: take-off, landing, polynomial trajectories.
 
 // Crazyswarm includes
 #include "commander.h" // Circular dependency - only so we can tell it when a high level command was rec'vd on the radio.
+#include "console.h"
 #include "crtp.h"
 #include "crtp_commander_high_level.h"
 #include "planner.h"
@@ -90,7 +91,7 @@ uint8_t trajectories_memory[TRAJECTORY_MEMORY_SIZE];
 static struct trajectoryDescription trajectory_descriptions[NUM_TRAJECTORY_DEFINITIONS];
 
 static bool isInit = false;
-static uint8_t group_mask;
+static uint8_t group_mask = 0;
 static struct piecewise_traj trajectory;
 static struct piecewise_traj_compressed  compressed_trajectory;
 
@@ -329,9 +330,11 @@ int takeoff(const struct data_takeoff* data)
   int result = 0;
   uint32_t millis = T2M(xTaskGetTickCount());
   if (isInGroup(data->groupMask)) {
+    consolePrintf("HLcmd takeoff\n");
     xSemaphoreTake(getCmdLock(), portMAX_DELAY);
     result = libCommanderTakeoff(getCmd(), millis, data->height, 0.0f, data->duration);
     xSemaphoreGive(getCmdLock());
+    consolePrintf("HLcmd takeoff done\n");
   }
   return result;
 }
