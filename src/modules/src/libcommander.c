@@ -4,14 +4,8 @@
 
 /* libcommander.c - Top-level state machine for Crazyflie.
  *
- * Intended to be compilable on x86 in the future. Currently it is not because
- * the high-level commander is left as a separate file with global/static state
- * and ARM / FreeRTOS dependencies. Eventually the platform-independent parts
- * of the high-level commander should be moved here.
- *
- * NOTE: All switches over commander_t->mode are implemented WITHOUT a
- * "default" case so we get the compiler's help ensuring that we have handled
- * all possible modes.
+ * Intended to be compilable on x86. Should not have any transitive ARM or
+ * FreeRTOS dependencies, or any mutable global state.
  */
 
 // Static structs are zero-initialized, so nullSetpoint corresponds to
