@@ -204,6 +204,11 @@ static void checkEmergencyStopTimeout()
   }
 }
 
+void stabilizerGetStateEstimate(state_t *stateOutput)
+{
+  *stateOutput = state;
+}
+
 /* The stabilizer loop runs at 1kHz (stock) or 500Hz (kalman). It is the
  * responsibility of the different functions to run slower by skipping call
  * (ie. returning without modifying the output structure).

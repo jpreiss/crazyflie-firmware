@@ -64,5 +64,16 @@ void stabilizerResetEmergencyStop();
  */
 void stabilizerSetEmergencyStopTimeout(int timeout);
 
+/**
+ * Gets the current state estimate from the stabilizer subsystem.
+ *
+ * TODO: Figure out a concurrency scheme. Currently does not do any locking.
+ * Using a basic mutex would be bad if more than one part of the firmware wants
+ * to read the state estimate. A readers-writer lock would be preferable.
+ *
+ * @param state Output struct to store result.
+ */
+void stabilizerGetStateEstimate(state_t *state);
+
 
 #endif /* STABILIZER_H_ */

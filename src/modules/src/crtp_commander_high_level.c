@@ -47,7 +47,6 @@ such as: take-off, landing, polynomial trajectories.
 #include "task.h"
 #include "semphr.h"
 
-// Crazyswarm includes
 #include "crtp.h"
 #include "crtp_commander_high_level.h"
 #include "planner.h"
@@ -55,6 +54,8 @@ such as: take-off, landing, polynomial trajectories.
 #include "param.h"
 #include "static_mem.h"
 #include "mem.h"
+#include "commander.h"
+#include "stabilizer.h"
 
 // Local types
 enum TrajectoryLocation_e {
@@ -83,6 +84,8 @@ struct trajectoryDescription
 
 #define ALL_GROUPS 0
 
+#define RATE_EVAL_LOOP RATE_100_HZ
+
 // Global variables
 uint8_t trajectories_memory[TRAJECTORY_MEMORY_SIZE];
 static struct trajectoryDescription trajectory_descriptions[NUM_TRAJECTORY_DEFINITIONS];
@@ -95,6 +98,7 @@ static struct vec vel; // last known setpoint (velocity [m/s])
 static float yaw; // last known setpoint yaw (yaw [rad])
 static struct piecewise_traj trajectory;
 static struct piecewise_traj_compressed  compressed_trajectory;
+static setpoint_t tempSetpoint;
 
 // makes sure that we don't evaluate the trajectory while it is being changed
 static xSemaphoreHandle lockTraj;
@@ -115,7 +119,8 @@ static const MemoryHandlerDef_t memDef = {
   .write = handleMemWrite,
 };
 
-STATIC_MEM_TASK_ALLOC(crtpCommanderHighLevelTask, CMD_HIGH_LEVEL_TASK_STACKSIZE);
+STATIC_MEM_TASK_ALLOC(crtpCommanderHighLevelRadioTask, CMD_HIGH_LEVEL_RADIO_TASK_STACKSIZE);
+STATIC_MEM_TASK_ALLOC(crtpCommanderHighLevelEvalTask, CMD_HIGH_LEVEL_EVAL_TASK_STACKSIZE);
 
 // CRTP Packet definitions
 
@@ -226,7 +231,8 @@ struct data_define_trajectory {
 } __attribute__((packed));
 
 // Private functions
-static void crtpCommanderHighLevelTask(void * prm);
+static void crtpCommanderHighLevelRadioTask(void * prm);
+static void crtpCommanderHighLevelEvalTask(void * prm);
 
 static int set_group_mask(const struct data_set_group_mask* data);
 static int takeoff(const struct data_takeoff* data);
@@ -259,8 +265,9 @@ void crtpCommanderHighLevelInit(void)
   memoryRegisterHandler(&memDef);
   plan_init(&planner);
 
-  //Start the trajectory task
-  STATIC_MEM_TASK_CREATE(crtpCommanderHighLevelTask, crtpCommanderHighLevelTask, CMD_HIGH_LEVEL_TASK_NAME, NULL, CMD_HIGH_LEVEL_TASK_PRI);
+  //Start the trajectory tasks
+  STATIC_MEM_TASK_CREATE(crtpCommanderHighLevelRadioTask, crtpCommanderHighLevelRadioTask, CMD_HIGH_LEVEL_RADIO_TASK_NAME, NULL, CMD_HIGH_LEVEL_RADIO_TASK_PRI);
+  STATIC_MEM_TASK_CREATE(crtpCommanderHighLevelEvalTask, crtpCommanderHighLevelEvalTask, CMD_HIGH_LEVEL_EVAL_TASK_NAME, NULL, CMD_HIGH_LEVEL_EVAL_TASK_PRI);
 
   lockTraj = xSemaphoreCreateMutexStatic(&lockTrajBuffer);
 
@@ -379,7 +386,7 @@ static int handleCommand(const enum TrajectoryCommand_e command, const uint8_t* 
   return ret;
 }
 
-void crtpCommanderHighLevelTask(void * prm)
+void crtpCommanderHighLevelRadioTask(void * prm)
 {
   CRTPPacket p;
   crtpInitTaskQueue(CRTP_PORT_SETPOINT_HL);
@@ -393,6 +400,32 @@ void crtpCommanderHighLevelTask(void * prm)
     p.data[3] = ret;
     p.size = 4;
     crtpSendPacketBlock(&p);
+  }
+}
+
+void crtpCommanderHighLevelEvalTask(void * prm)
+{
+  static state_t state;
+  static setpoint_t setpoint;
+
+  uint32_t lastWakeTime = xTaskGetTickCount();
+
+  while (true) {
+    vTaskDelayUntil(&lastWakeTime, F2T(RATE_EVAL_LOOP));
+    // Call GetSetpoint unconditionally -- if the planner stopped it will still
+    // store the state estimate, which it needs for planning takeoff later.
+    stabilizerGetStateEstimate(&state);
+    crtpCommanderHighLevelGetSetpoint(&setpoint, &state);
+    if (crtpCommanderHighLevelIsStopped()) {
+      // If the commander stopped (i.e. landed), we don't want the last
+      // setpoint to remain valid for the timeout period, so we overwrite it
+      // with a null setpoint.
+      tempSetpoint = nullSetpoint;
+      commanderSetSetpoint(&tempSetpoint, COMMANDER_PRIORITY_HIGHLEVEL);
+    }
+    else {
+      commanderSetSetpoint(&setpoint, COMMANDER_PRIORITY_HIGHLEVEL);
+    }
   }
 }
 
