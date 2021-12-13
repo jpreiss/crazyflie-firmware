@@ -47,7 +47,6 @@ such as: take-off, landing, polynomial trajectories.
 #include "task.h"
 #include "semphr.h"
 
-// Crazyswarm includes
 #include "crtp.h"
 #include "crtp_commander_high_level.h"
 #include "planner.h"
@@ -55,6 +54,9 @@ such as: take-off, landing, polynomial trajectories.
 #include "param.h"
 #include "static_mem.h"
 #include "mem.h"
+#include "commander.h"
+#include "stabilizer_types.h"
+#include "stabilizer.h"
 
 // Local types
 enum TrajectoryLocation_e {
@@ -301,6 +303,10 @@ void crtpCommanderHighLevelGetSetpoint(setpoint_t* setpoint, const state_t *stat
     pos = state2vec(state->position);
     vel = state2vec(state->velocity);
     yaw = radians(state->attitude.yaw);
+    // Return a null setpoint - when the HLcommander is stopped, it wants the
+    // motors to be off. Only reason they should be spinning is if the
+    // HLcommander has been preempted by a streaming setpoint command.
+    *setpoint = nullSetpoint;
   }
 
   if (is_traj_eval_valid(&ev)) {
