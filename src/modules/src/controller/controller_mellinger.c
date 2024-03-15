@@ -43,6 +43,7 @@ We added the following:
 #include "controller_mellinger.h"
 #include "physicalConstants.h"
 #include "platform_defaults.h"
+#include "gaps.h"
 
 // Global state variable used in the
 // firmware as the only instance and in bindings
@@ -88,6 +89,12 @@ static controllerMellinger_t g_self = {
   .i_error_m_y = 0,
   .i_error_m_z = 0,
 };
+// GAPS
+static uint8_t g_gaps_enable = 0;
+static float g_gaps_Qx = 1.0;
+static float g_gaps_Qv = 0.1;
+static float g_gaps_R = 0.01;
+static float g_gaps_eta = 0.01;
 
 
 void controllerMellingerReset(controllerMellinger_t* self)
@@ -106,6 +113,11 @@ void controllerMellingerInit(controllerMellinger_t* self)
   *self = g_self;
 
   controllerMellingerReset(self);
+
+  gaps_init(
+    g_self.kp_xy, g_self.kp_z,
+    g_self.kd_xy, g_self.kd_z,
+    1.0f / ATTITUDE_RATE);
 }
 
 bool controllerMellingerTest(controllerMellinger_t* self)
@@ -160,9 +172,26 @@ void controllerMellinger(controllerMellinger_t* self, control_t *control, const 
 
   // Desired thrust [F_des]
   if (setpoint->mode.x == modeAbs) {
-    target_thrust.x = self->mass * setpoint->acceleration.x                       + self->kp_xy * r_error.x + self->kd_xy * v_error.x + self->ki_xy * self->i_error_x;
-    target_thrust.y = self->mass * setpoint->acceleration.y                       + self->kp_xy * r_error.y + self->kd_xy * v_error.y + self->ki_xy * self->i_error_y;
-    target_thrust.z = self->mass * (setpoint->acceleration.z + GRAVITY_MAGNITUDE) + self->kp_z  * r_error.z + self->kd_z  * v_error.z + self->ki_z  * self->i_error_z;
+    if (g_gaps_enable) {
+      float gaps_u[3];
+      gaps_update(
+        &r_error.x, // float const pos_err[3],
+        &v_error.x, // float const vel_err[3],
+        g_gaps_Qx,  // float const p_cost,
+        g_gaps_Qv,  // float const v_cost,
+        g_gaps_R,   // float const u_cost,
+        g_gaps_eta, // float const eta,
+        gaps_u,     // float u[3] //out
+      );
+      target_thrust.x = self->mass * setpoint->acceleration.x                       + gaps_u[0] + self->ki_xy * self->i_error_x;
+      target_thrust.y = self->mass * setpoint->acceleration.y                       + gaps_u[1] + self->ki_xy * self->i_error_y;
+      target_thrust.z = self->mass * (setpoint->acceleration.z + GRAVITY_MAGNITUDE) + gaps_u[2] + self->ki_z  * self->i_error_z;
+    }
+    else {
+      target_thrust.x = self->mass * setpoint->acceleration.x                       + self->kp_xy * r_error.x + self->kd_xy * v_error.x + self->ki_xy * self->i_error_x;
+      target_thrust.y = self->mass * setpoint->acceleration.y                       + self->kp_xy * r_error.y + self->kd_xy * v_error.y + self->ki_xy * self->i_error_y;
+      target_thrust.z = self->mass * (setpoint->acceleration.z + GRAVITY_MAGNITUDE) + self->kp_z  * r_error.z + self->kd_z  * v_error.z + self->ki_z  * self->i_error_z;
+    }
   } else {
     target_thrust.x = -sinf(radians(setpoint->attitude.pitch));
     target_thrust.y = -sinf(radians(setpoint->attitude.roll));
@@ -415,7 +444,20 @@ PARAM_ADD(PARAM_FLOAT | PARAM_PERSISTENT, i_range_m_xy, &g_self.i_range_m_xy)
  * @brief Attitude maximum accumulated error (yaw)
  */
 PARAM_ADD(PARAM_FLOAT | PARAM_PERSISTENT, i_range_m_z, &g_self.i_range_m_z)
+
+
 PARAM_GROUP_STOP(ctrlMel)
+
+
+// GAPS
+PARAM_GROUP_START(gaps)
+  PARAM_ADD(PARAM_UINT8, enable, &g_gaps_enable)
+  PARAM_ADD(PARAM_FLOAT, Qx, &g_gaps_Qx)
+  PARAM_ADD(PARAM_FLOAT, Qv, &g_gaps_Qv)
+  PARAM_ADD(PARAM_FLOAT, R, &g_gaps_R)
+  PARAM_ADD(PARAM_FLOAT, eta, &g_gaps_eta)
+PARAM_GROUP_STOP(gaps)
+
 
 /**
  * Logging variables for the command and reference signals for the
