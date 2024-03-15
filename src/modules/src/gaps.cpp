@@ -55,9 +55,9 @@ extern "C" void gaps_update(
     float kd_xy = theta[2];
     float kd_z = theta[3];
 
-    u[0] = -kp_xy * pos_err[0] - kd_xy * vel_err[0];
-    u[1] = -kp_xy * pos_err[1] - kd_xy * vel_err[1];
-    u[2] = -kp_z * pos_err[2] - kd_z * vel_err[2];
+    u[0] = kp_xy * pos_err[0] + kd_xy * vel_err[0];
+    u[1] = kp_xy * pos_err[1] + kd_xy * vel_err[1];
+    u[2] = kp_z * pos_err[2] + kd_z * vel_err[2];
 
     // cost derivatives
     dcdx.block<1, 3>(0, 0) = p_cost * Map3(pos_err);

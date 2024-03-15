@@ -167,3 +167,16 @@ structname(struct structname const *x) { \
 %extend traj_eval {
     COPY_CTOR(traj_eval)
 };
+
+%extend control_s {
+    %pythoncode %{
+        def __repr__(self):
+            mode = self.controlMode
+            s = f"control_t({mode}"
+            if mode == controlModeLegacy:
+                s += f", roll={self.roll}, pitch={self.pitch}, yaw={self.yaw})"
+            else:
+                raise NotImplementedError
+            return s
+    %}
+};

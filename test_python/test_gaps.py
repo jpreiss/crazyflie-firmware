@@ -38,12 +38,7 @@ def control_equal(c1, c2):
     raise NotImplementedError
 
 
-def test_gaps_eta_zero_noop():
-
-    ctrl = cffirmware.controllerMellinger_t()
-
-    cffirmware.controllerMellingerInit(ctrl)
-
+def zero_inputs():
     setpoint = cffirmware.setpoint_t()
     setpoint.mode.x = cffirmware.modeAbs
     setpoint.mode.y = cffirmware.modeAbs
@@ -53,6 +48,7 @@ def test_gaps_eta_zero_noop():
     setpoint.yaw = 0
     setpoint.velocity = a2v(np.zeros(3))
     setpoint.attitudeRate = a2att(np.zeros(3))
+    setpoint.attitude = a2att(np.zeros(3))
 
     state = cffirmware.state_t()
     state.position = a2v(np.zeros(3))
@@ -64,15 +60,78 @@ def test_gaps_eta_zero_noop():
     sensors.gyro.y = 0
     sensors.gyro.z = 0
 
-    step = 100
+    return setpoint, state, sensors
+
+
+def test_gaps_eta_zero_no_error_noop():
+
+    ctrl = cffirmware.controllerMellinger_t()
+
+    cffirmware.controllerMellingerInit(ctrl)
+
+    setpoint, state, sensors = zero_inputs()
+    step = 0
 
     ctrl.gaps_enable = 0
     control_disabled = cffirmware.control_t()
     cffirmware.controllerMellinger(ctrl, control_disabled, setpoint, sensors, state, step)
 
+    cffirmware.controllerMellingerInit(ctrl)
     ctrl.gaps_enable = 1
     control_enabled = cffirmware.control_t()
-    cffirmware.controllerMellinger(ctrl, control_enabled, setpoint, sensors, state, step)
+    for _ in range(100):
+        cffirmware.controllerMellinger(ctrl, control_enabled, setpoint, sensors, state, step)
 
-    assert control_equal(control_disabled, control_enabled)
+        assert control_equal(control_disabled, control_enabled)
 
+
+def test_gaps_eta_zero_error_noop():
+
+    ctrl = cffirmware.controllerMellinger_t()
+    ctrl_gaps = cffirmware.controllerMellinger_t()
+    for c in [ctrl, ctrl_gaps]:
+        cffirmware.controllerMellingerInit(c)
+    ctrl_gaps.gaps_enable = 1
+
+    # introduce some error
+    setpoint, state, sensors = zero_inputs()
+    state.position.x = 0.1
+    step = 0
+
+    command = cffirmware.control_t()
+    command_gaps = cffirmware.control_t()
+
+    for _ in range(100):
+        cffirmware.controllerMellinger(
+            ctrl, command, setpoint, sensors, state, step)
+        cffirmware.controllerMellinger(
+            ctrl_gaps, command_gaps, setpoint, sensors, state, step)
+        assert control_equal(command, command_gaps)
+
+
+def test_gaps_eta_nonzero_error_has_effect():
+
+    ctrl = cffirmware.controllerMellinger_t()
+    ctrl_gaps = cffirmware.controllerMellinger_t()
+    for c in [ctrl, ctrl_gaps]:
+        cffirmware.controllerMellingerInit(c)
+    ctrl_gaps.gaps_enable = 1
+    ctrl_gaps.gaps_eta = 1
+
+    # introduce some error
+    setpoint, state, sensors = zero_inputs()
+    state.position.x = 0.1
+    step = 0
+
+    command = cffirmware.control_t()
+    command_gaps = cffirmware.control_t()
+
+    for i in range(100):
+        cffirmware.controllerMellinger(
+            ctrl, command, setpoint, sensors, state, step)
+        cffirmware.controllerMellinger(
+            ctrl_gaps, command_gaps, setpoint, sensors, state, step)
+        if i == 0:
+            assert control_equal(command, command_gaps)
+        else:
+            assert not control_equal(command, command_gaps)
