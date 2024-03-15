@@ -18,6 +18,7 @@ include = [
     "src/platform/interface",
     "vendor/CMSIS/CMSIS/DSP/Include",
     "vendor/CMSIS/CMSIS/Core/Include",
+    "vendor/eigen",
 ]
 
 fw_sources = [
@@ -50,6 +51,7 @@ fw_sources = [
     "src/modules/src/kalman_core/kalman_core.c",
     "src/modules/src/kalman_core/mm_tdoa.c",
     "src/modules/src/outlierfilter/outlierFilterTdoa.c",
+    "src/modules/src/gaps.cpp",
 ]
 
 cffirmware = Extension(
@@ -78,4 +80,5 @@ setup(
     ext_modules=[cffirmware],
     py_modules=["cffirmware"],
     package_dir={"": "build"},
+    language="c++",
 )

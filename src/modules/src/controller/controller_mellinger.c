@@ -181,7 +181,7 @@ void controllerMellinger(controllerMellinger_t* self, control_t *control, const 
         g_gaps_Qv,  // float const v_cost,
         g_gaps_R,   // float const u_cost,
         g_gaps_eta, // float const eta,
-        gaps_u,     // float u[3] //out
+        gaps_u      // float u[3] //out
       );
       target_thrust.x = self->mass * setpoint->acceleration.x                       + gaps_u[0] + self->ki_xy * self->i_error_x;
       target_thrust.y = self->mass * setpoint->acceleration.y                       + gaps_u[1] + self->ki_xy * self->i_error_y;
