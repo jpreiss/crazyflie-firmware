@@ -87,13 +87,15 @@ static controllerMellinger_t g_self = {
   .i_error_m_x = 0,
   .i_error_m_y = 0,
   .i_error_m_z = 0,
+
+  // GAPS
+  .gaps_enable = 0,
+  .gaps_Qx = 1.0f,
+  .gaps_Qv = 0.1f,
+  .gaps_R = 0.01f,
+  .gaps_eta = 0.0f,
+
 };
-// GAPS
-static uint8_t g_gaps_enable = 0;
-static float g_gaps_Qx = 1.0;
-static float g_gaps_Qv = 0.1;
-static float g_gaps_R = 0.01;
-static float g_gaps_eta = 0.01;
 
 
 void controllerMellingerReset(controllerMellinger_t* self)
@@ -171,15 +173,15 @@ void controllerMellinger(controllerMellinger_t* self, control_t *control, const 
 
   // Desired thrust [F_des]
   if (setpoint->mode.x == modeAbs) {
-    if (g_gaps_enable) {
-      float gaps_u[3];
+    if (self->gaps_enable) {
+      static float gaps_u[3];
       gaps_update(
         &r_error.x, // float const pos_err[3],
         &v_error.x, // float const vel_err[3],
-        g_gaps_Qx,  // float const p_cost,
-        g_gaps_Qv,  // float const v_cost,
-        g_gaps_R,   // float const u_cost,
-        g_gaps_eta, // float const eta,
+        self->gaps_Qx,  // float const p_cost,
+        self->gaps_Qv,  // float const v_cost,
+        self->gaps_R,   // float const u_cost,
+        self->gaps_eta, // float const eta,
         gaps_u      // float u[3] //out
       );
       target_thrust.x = self->mass * setpoint->acceleration.x                       + gaps_u[0] + self->ki_xy * self->i_error_x;
@@ -450,11 +452,11 @@ PARAM_GROUP_STOP(ctrlMel)
 
 // GAPS
 PARAM_GROUP_START(gaps)
-  PARAM_ADD(PARAM_UINT8, enable, &g_gaps_enable)
-  PARAM_ADD(PARAM_FLOAT, Qx, &g_gaps_Qx)
-  PARAM_ADD(PARAM_FLOAT, Qv, &g_gaps_Qv)
-  PARAM_ADD(PARAM_FLOAT, R, &g_gaps_R)
-  PARAM_ADD(PARAM_FLOAT, eta, &g_gaps_eta)
+  PARAM_ADD(PARAM_UINT8, enable, &g_self.gaps_enable)
+  PARAM_ADD(PARAM_FLOAT, Qx, &g_self.gaps_Qx)
+  PARAM_ADD(PARAM_FLOAT, Qv, &g_self.gaps_Qv)
+  PARAM_ADD(PARAM_FLOAT, R, &g_self.gaps_R)
+  PARAM_ADD(PARAM_FLOAT, eta, &g_self.gaps_eta)
 PARAM_GROUP_STOP(gaps)
 
 

@@ -85,6 +85,14 @@ typedef struct {
     float r_pitch;
     float r_yaw;
     float accelz;
+
+    // GAPS
+    uint8_t gaps_enable;
+    float gaps_Qx;
+    float gaps_Qv;
+    float gaps_R;
+    float gaps_eta;
+
 } controllerMellinger_t;
 
 void controllerMellingerInit(controllerMellinger_t* self);
