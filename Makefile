@@ -43,6 +43,7 @@ image_LDFLAGS += -L$(srctree)/tools/make/F405/linker
 image_LDFLAGS += -T $(LINKER_DIR)/FLASH_CLOAD.ld
 
 INCLUDES += -I$(srctree)/vendor/CMSIS/CMSIS/Core/Include -I$(srctree)/vendor/CMSIS/CMSIS/DSP/Include
+INCLUDES += -I$(srctree)/vendor/eigen
 INCLUDES += -I$(srctree)/vendor/libdw1000/inc
 INCLUDES += -I$(FREERTOS)/include -I$(PORT)
 INCLUDES += -I$(srctree)/src/config
