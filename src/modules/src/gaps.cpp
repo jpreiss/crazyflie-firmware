@@ -4,9 +4,9 @@
 
 namespace {
 
-int constexpr dimX = 6;
-int constexpr dimU = 3;
-int constexpr dimT = 4;
+int const dimX = 6;
+int const dimU = 3;
+int const dimT = 4;
 
 // state
 Eigen::Matrix<float, dimT, 1> theta;
