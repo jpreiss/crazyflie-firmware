@@ -72,8 +72,9 @@ extern "C" void gaps_update(
     Eigen::Map<Eigen::Matrix<float, 4, 1> > mtheta(gaps->theta);
     Eigen::Map<Eigen::Matrix<float, 6, 4> > my(gaps->y[0]);
     mtheta -= eta * (dcdx * my + dcdu * dudtheta);
-    // dynamic programming
-    my = dxdx * my + dxdu * dudtheta;
+    // dynamic programming with damping
+    // damping ratio results in approx 0.6 decay after 1 sec at 500Hz
+    my = 0.999f * dxdx * my + dxdu * dudtheta;
 }
 
 } // anonymous namespace
