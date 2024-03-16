@@ -28,6 +28,7 @@
 
 #include "stabilizer_types.h"
 #include "math3d.h"
+#include "gaps.h"
 
 typedef struct {
     float mass;
@@ -88,6 +89,7 @@ typedef struct {
 
     // GAPS
     uint8_t gaps_enable;
+    struct gaps gaps;
     float gaps_Qx;
     float gaps_Qv;
     float gaps_R;

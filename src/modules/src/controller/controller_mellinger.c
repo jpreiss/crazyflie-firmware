@@ -107,6 +107,11 @@ void controllerMellingerReset(controllerMellinger_t* self)
   self->i_error_m_x = 0;
   self->i_error_m_y = 0;
   self->i_error_m_z = 0;
+  self->gaps.kp_xy = self->kp_xy;
+  self->gaps.kp_z = self->kp_z;
+  self->gaps.kd_xy = self->kd_xy;
+  self->gaps.kd_z = self->kd_z;
+  gaps_reset(&self->gaps);
 }
 
 void controllerMellingerInit(controllerMellinger_t* self)
@@ -116,10 +121,7 @@ void controllerMellingerInit(controllerMellinger_t* self)
 
   controllerMellingerReset(self);
 
-  gaps_init(
-    g_self.kp_xy, g_self.kp_z,
-    g_self.kd_xy, g_self.kd_z,
-    1.0f / ATTITUDE_RATE);
+  gaps_init(1.0f / ATTITUDE_RATE);
 }
 
 bool controllerMellingerTest(controllerMellinger_t* self)
@@ -183,7 +185,8 @@ void controllerMellinger(controllerMellinger_t* self, control_t *control, const 
         self->gaps_Qv,  // float const v_cost,
         self->gaps_R,   // float const u_cost,
         self->gaps_eta, // float const eta,
-        gaps_u      // float u[3] //out
+        &self->gaps, // struct gaps *gaps // inout
+        gaps_u      // float u[3] // out
       );
       target_thrust.x = self->mass * setpoint->acceleration.x                       + gaps_u[0] + self->ki_xy * self->i_error_x;
       target_thrust.y = self->mass * setpoint->acceleration.y                       + gaps_u[1] + self->ki_xy * self->i_error_y;
