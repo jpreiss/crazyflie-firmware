@@ -20,9 +20,9 @@ extern "C" void gaps_init(float dt)
     // constants
     auto I = Eigen::Matrix<float, 3, 3>::Identity();
     dxdx.setIdentity();
-    dxdx.block<3, 3>(3, 3) = dt * I;
+    dxdx.block<3, 3>(0, 3) = dt * I;
     dxdu.setZero();
-    dxdu.block<3, 3>(3, 0) = dt * I;
+    dxdu.block<3, 3>(3, 0) = -dt * I;
 }
 
 extern "C" void gaps_reset(float kp_xy, float kp_z, float kd_xy, float kd_z, struct gaps *gaps)
@@ -62,9 +62,9 @@ extern "C" void gaps_update(
     // action derivative wrt theta.
     // kp_xy, kp_z, kd_xy, kd_z
     dudtheta <<
-        -pos_err[0],           0, -vel_err[0],           0,  // ux
-        -pos_err[1],           0, -vel_err[1],           0,  // uy
-                  0, -pos_err[2],           0, -vel_err[2];  // uz
+        pos_err[0],          0, vel_err[0],          0,  // ux
+        pos_err[1],          0, vel_err[1],          0,  // uy
+                 0, pos_err[2],          0, vel_err[2];  // uz
 
     // dxdx, dxdu were constant, set in init.
 
