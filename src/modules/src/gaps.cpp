@@ -8,10 +8,6 @@ int const dimX = 6;
 int const dimU = 3;
 int const dimT = 4;
 
-// state
-Eigen::Matrix<float, dimT, 1> theta;
-Eigen::Matrix<float, dimX, dimT> y;
-
 // inputs
 Eigen::Matrix<float, dimX, dimX> dxdx;
 Eigen::Matrix<float, dimX, dimU> dxdu;
@@ -19,22 +15,20 @@ Eigen::Matrix<float, dimU, dimT> dudtheta;
 Eigen::Matrix<float, 1, dimX> dcdx;
 Eigen::Matrix<float, 1, dimU> dcdu;
 
-extern "C" void gaps_init(
-    float kp_xy, float kp_z, float kd_xy, float kd_z, float dt)
+extern "C" void gaps_init(float dt)
 {
-    // state
-    theta[0] = kp_xy;
-    theta[1] = kp_z;
-    theta[2] = kd_xy;
-    theta[3] = kd_z;
-    y.setZero();
-
     // constants
     auto I = Eigen::Matrix<float, 3, 3>::Identity();
     dxdx.setIdentity();
     dxdx.block<3, 3>(3, 3) = dt * I;
     dxdu.setZero();
     dxdu.block<3, 3>(3, 0) = dt * I;
+}
+
+extern "C" void gaps_reset(float kp_xy, float kp_z, float kd_xy, float kd_z, struct gaps *gaps)
+{
+    Eigen::Map<Eigen::Matrix<float, 6, 4> > my(gaps->y[0]);
+    my.setZero();
 }
 
 using Map3 = Eigen::Map<Eigen::Matrix<float, 3, 1> const>;
@@ -46,14 +40,15 @@ extern "C" void gaps_update(
     float const v_cost,
     float const u_cost,
     float const eta,
-    float u[3] //out
+    struct gaps *gaps, // inout
+    float u[3] // out
     )
 {
     // compute u
-    float kp_xy = theta[0];
-    float kp_z = theta[1];
-    float kd_xy = theta[2];
-    float kd_z = theta[3];
+    float kp_xy = gaps->theta[0];
+    float kp_z = gaps->theta[1];
+    float kd_xy = gaps->theta[2];
+    float kd_z = gaps->theta[3];
 
     u[0] = kp_xy * pos_err[0] + kd_xy * vel_err[0];
     u[1] = kp_xy * pos_err[1] + kd_xy * vel_err[1];
@@ -74,9 +69,11 @@ extern "C" void gaps_update(
     // dxdx, dxdu were constant, set in init.
 
     // gradient step
-    theta -= eta * (dcdx * y + dcdu * dudtheta);
+    Eigen::Map<Eigen::Matrix<float, 4, 1> > mtheta(gaps->theta);
+    Eigen::Map<Eigen::Matrix<float, 6, 4> > my(gaps->y[0]);
+    mtheta -= eta * (dcdx * my + dcdu * dudtheta);
     // dynamic programming
-    y = dxdx * y + dxdu * dudtheta;
+    my = dxdx * my + dxdu * dudtheta;
 }
 
 } // anonymous namespace
