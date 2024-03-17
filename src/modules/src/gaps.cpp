@@ -73,6 +73,12 @@ extern "C" void gaps_update(
     Eigen::Map<Eigen::Matrix<float, 6, 1> > mtheta(gaps->theta);
     Eigen::Map<Eigen::Matrix<float, 9, 6> > my(gaps->y[0]);
     mtheta -= eta * (dcdx * my + dcdu * dudtheta);
+
+    // projection
+    for (int i = 0; i < 6; ++i) {
+        mtheta[i] = fmaxf(mtheta[i], 0.0f);
+    }
+
     // dynamic programming with damping
     // damping ratio results in approx 0.6 decay after 1 sec at 500Hz
     my = 0.999f * dxdx * my + dxdu * dudtheta;
