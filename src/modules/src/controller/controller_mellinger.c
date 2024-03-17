@@ -110,6 +110,8 @@ void controllerMellingerReset(controllerMellinger_t* self)
   self->gaps.kp_z = self->kp_z;
   self->gaps.kd_xy = self->kd_xy;
   self->gaps.kd_z = self->kd_z;
+  self->gaps.ki_xy = self->ki_xy;
+  self->gaps.ki_z = self->ki_z;
   gaps_reset(&self->gaps);
 }
 
@@ -177,9 +179,11 @@ void controllerMellinger(controllerMellinger_t* self, control_t *control, const 
   if (setpoint->mode.x == modeAbs) {
     if (self->gaps_enable) {
       static float gaps_u[3];
+      float const i_error[3] = {self->i_error_x, self->i_error_y, self->i_error_z};
       gaps_update(
         &r_error.x, // float const pos_err[3],
         &v_error.x, // float const vel_err[3],
+        i_error,    // float const int_pos_err[3],
         self->gaps_Qx,  // float const p_cost,
         self->gaps_Qv,  // float const v_cost,
         self->gaps_R,   // float const u_cost,
