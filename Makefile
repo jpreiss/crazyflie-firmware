@@ -212,7 +212,7 @@ MOD_SRC = src/modules/src
 
 bindings_python build/cffirmware.py: bindings/setup.py $(MOD_SRC)/*.c $(MOD_SRC)/gaps.cpp
 	swig -python -I$(MOD_INC) -Isrc/hal/interface -Isrc/utils/interface -I$(MOD_INC)/controller -Isrc/platform/interface -I$(MOD_INC)/outlierfilter -I$(MOD_INC)/kalman_core -o build/cffirmware_wrap.c bindings/cffirmware.i
-	$(PYTHON) bindings/setup.py build_ext --inplace
+	$(PYTHON) bindings/setup.py build_ext --inplace --debug
 	cp cffirmware_setup.py build/setup.py
 
 test_python: build/cffirmware.py
