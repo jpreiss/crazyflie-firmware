@@ -59,7 +59,9 @@ cffirmware = Extension(
     include_dirs=include,
     sources=fw_sources + ["build/cffirmware_wrap.c"],
     extra_compile_args=[
-        "-O3",
+        #"-O3",
+        "-O0",
+        "-g",
         # The following flags are also used for compiling the actual firmware
         "-fno-strict-aliasing",
         "-Wno-address-of-packed-member",
