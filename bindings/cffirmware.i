@@ -106,7 +106,23 @@ void assertFail(char *exp, char *file, int line) {
 
     PyErr_SetString(PyExc_AssertionError, buf);
 }
+
+float gaps_y_elt(struct gaps const *g, int i, int j)
+{
+    return g->y[i][j];
+}
 %}
+
+%extend gaps {
+    %pythoncode %{
+        @property
+        def y(self):
+            return np.array([
+                [gaps_y_elt(self, ix, itheta) for itheta in range(6)]
+                for ix in range(9)
+            ])
+    %}
+};
 
 %pythoncode %{
 import numpy as np
@@ -166,19 +182,6 @@ structname(struct structname const *x) { \
 
 %extend traj_eval {
     COPY_CTOR(traj_eval)
-};
-
-%extend state_s {
-    %pythoncode %{
-        def __repr__(self):
-            mode = self.controlMode
-            s = f"control_t({mode}"
-            if mode == controlModeLegacy:
-                s += f", roll={self.roll}, pitch={self.pitch}, yaw={self.yaw})"
-            else:
-                raise NotImplementedError
-            return s
-    %}
 };
 
 %extend control_s {
