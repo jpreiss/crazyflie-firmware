@@ -5,9 +5,11 @@
 namespace {
 
 // inputs
+// state is (pos err, vel err, int pos err)
 Eigen::Matrix<float, 9, 9> dxdx;
 Eigen::Matrix<float, 9, 3> dxdu;
 Eigen::Matrix<float, 3, 6> dudtheta;
+Eigen::Matrix<float, 3, 9> dudx;
 Eigen::Matrix<float, 1, 9> dcdx;
 Eigen::Matrix<float, 1, 3> dcdu;
 
@@ -67,6 +69,13 @@ extern "C" void gaps_update(
         pos_err[1],          0, vel_err[1],          0, int_pos_err[1],              0,  // uy
                  0, pos_err[2],          0, vel_err[2],              0, int_pos_err[2];  // uz
 
+    // action derivative wrt x.
+    // pos, vel, int_pos
+    dudx <<
+        kp_xy,     0,    0, kd_xy,     0,    0, ki_xy,     0,    0,  // ux
+            0, kp_xy,    0,     0, kd_xy,    0,     0, ki_xy,    0,  // uy
+            0,     0, kp_z,     0,     0, kd_z,     0,     0, ki_z;  // uz
+
     // dxdx, dxdu were constant, set in init.
 
     // gradient step
@@ -79,9 +88,8 @@ extern "C" void gaps_update(
         mtheta[i] = fmaxf(mtheta[i], 0.0f);
     }
 
-    // dynamic programming with damping
-    // damping ratio results in approx 0.6 decay after 1 sec at 500Hz
-    my = 0.999f * dxdx * my + dxdu * dudtheta;
+    // dynamic programming
+    my = (dxdx + dxdu * dudx) * my + dxdu * dudtheta;
 }
 
 } // anonymous namespace
