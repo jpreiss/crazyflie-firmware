@@ -88,8 +88,9 @@ extern "C" void gaps_update(
         mtheta[i] = fmaxf(mtheta[i], 0.0f);
     }
 
-    // dynamic programming
-    my = (dxdx + dxdu * dudx) * my + dxdu * dudtheta;
+    // dynamic programming with slight damping
+    // at 500 Hz, damps to 0.6 in 10 seconds
+    my = 0.9999f * (dxdx + dxdu * dudx) * my + dxdu * dudtheta;
 }
 
 } // anonymous namespace
