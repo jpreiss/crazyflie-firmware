@@ -11,6 +11,7 @@ struct gaps
 		};
 		float theta[6];
 	};
+	// state is position error, velocity error, integrated position error
 	float y[9][6];
 };
 
