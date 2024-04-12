@@ -41,6 +41,7 @@ extern "C" void gaps_update(
     float const v_cost,
     float const u_cost,
     float const eta,
+    float const damping,
     struct gaps *gaps, // inout
     float u[3] // out
     )
@@ -90,7 +91,7 @@ extern "C" void gaps_update(
 
     // dynamic programming with slight damping
     // at 500 Hz, damps to 0.6 in 10 seconds
-    my = 0.9999f * (dxdx + dxdu * dudx) * my + dxdu * dudtheta;
+    my = damping * (dxdx + dxdu * dudx) * my + dxdu * dudtheta;
 }
 
 } // anonymous namespace

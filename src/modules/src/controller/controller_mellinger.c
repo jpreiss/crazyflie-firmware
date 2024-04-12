@@ -94,7 +94,7 @@ static controllerMellinger_t g_self = {
   .gaps_Qv = 0.1f,
   .gaps_R = 0.01f,
   .gaps_eta = 0.0f,
-
+  .gaps_damping = 0.9999f,
 };
 
 
@@ -188,6 +188,7 @@ void controllerMellinger(controllerMellinger_t* self, control_t *control, const 
         self->gaps_Qv,  // float const v_cost,
         self->gaps_R,   // float const u_cost,
         self->gaps_eta, // float const eta,
+        self->gaps_damping, // float const damping,
         &self->gaps, // struct gaps *gaps // inout
         gaps_u      // float u[3] // out
       );
@@ -464,6 +465,7 @@ PARAM_GROUP_START(gaps)
   PARAM_ADD(PARAM_FLOAT, Qv, &g_self.gaps_Qv)
   PARAM_ADD(PARAM_FLOAT, R, &g_self.gaps_R)
   PARAM_ADD(PARAM_FLOAT, eta, &g_self.gaps_eta)
+  PARAM_ADD(PARAM_FLOAT, damping, &g_self.gaps_damping)
 PARAM_GROUP_STOP(gaps)
 
 

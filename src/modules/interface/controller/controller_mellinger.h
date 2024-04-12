@@ -94,6 +94,7 @@ typedef struct {
     float gaps_Qv;
     float gaps_R;
     float gaps_eta;
+    float gaps_damping;
 
 } controllerMellinger_t;
 

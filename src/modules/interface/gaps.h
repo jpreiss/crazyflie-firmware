@@ -27,6 +27,7 @@ void gaps_update(
     float const v_cost,
     float const u_cost,
     float const eta,
+    float const damping,
     struct gaps *gaps, // inout
     float u[3] //out
     );
