@@ -192,9 +192,9 @@ void controllerMellinger(controllerMellinger_t* self, control_t *control, const 
         &self->gaps, // struct gaps *gaps // inout
         gaps_u      // float u[3] // out
       );
-      target_thrust.x = self->mass * setpoint->acceleration.x                       + gaps_u[0] + self->ki_xy * self->i_error_x;
-      target_thrust.y = self->mass * setpoint->acceleration.y                       + gaps_u[1] + self->ki_xy * self->i_error_y;
-      target_thrust.z = self->mass * (setpoint->acceleration.z + GRAVITY_MAGNITUDE) + gaps_u[2] + self->ki_z  * self->i_error_z;
+      target_thrust.x = self->mass * setpoint->acceleration.x                       + gaps_u[0];
+      target_thrust.y = self->mass * setpoint->acceleration.y                       + gaps_u[1];
+      target_thrust.z = self->mass * (setpoint->acceleration.z + GRAVITY_MAGNITUDE) + gaps_u[2];
     }
     else {
       target_thrust.x = self->mass * setpoint->acceleration.x                       + self->kp_xy * r_error.x + self->kd_xy * v_error.x + self->ki_xy * self->i_error_x;
