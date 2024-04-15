@@ -13,6 +13,8 @@ struct gaps
 	};
 	// state is position error, velocity error, integrated position error
 	float y[9][6];
+	// useful for logging/debugging - max abs value of y
+	float yabsmax;
 };
 
 void gaps_init(float dt);

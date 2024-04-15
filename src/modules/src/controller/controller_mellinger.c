@@ -489,3 +489,15 @@ LOG_ADD(LOG_FLOAT, i_err_x, &g_self.i_error_x)
 LOG_ADD(LOG_FLOAT, i_err_y, &g_self.i_error_y)
 LOG_ADD(LOG_FLOAT, i_err_z, &g_self.i_error_z)
 LOG_GROUP_STOP(ctrlMel)
+
+
+LOG_GROUP_START(gaps)
+  LOG_ADD(LOG_FLOAT, yabsmax, &g_self.gaps.yabsmax)
+  LOG_ADD(LOG_FLOAT, kp_xy, &g_self.gaps.kp_xy)
+  LOG_ADD(LOG_FLOAT, kp_z, &g_self.gaps.kp_z)
+  LOG_ADD(LOG_FLOAT, kd_xy, &g_self.gaps.kd_xy)
+  LOG_ADD(LOG_FLOAT, kd_z, &g_self.gaps.kd_z)
+  LOG_ADD(LOG_FLOAT, ki_xy, &g_self.gaps.ki_xy)
+  LOG_ADD(LOG_FLOAT, ki_z, &g_self.gaps.ki_z)
+LOG_GROUP_STOP(gaps)
+

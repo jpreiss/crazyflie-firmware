@@ -92,6 +92,7 @@ extern "C" void gaps_update(
     // dynamic programming with slight damping
     // at 500 Hz, damps to 0.6 in 10 seconds
     my = damping * (dxdx + dxdu * dudx) * my + dxdu * dudtheta;
+    gaps->yabsmax = my.cwiseAbs().maxCoeff();
 }
 
 } // anonymous namespace
