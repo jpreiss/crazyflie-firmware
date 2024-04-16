@@ -19,9 +19,9 @@ extern "C" void gaps_init(float dt)
     auto I = Eigen::Matrix<float, 3, 3>::Identity();
     dxdx.setIdentity();
     dxdx.block<3, 3>(0, 3) = dt * I;
-    dxdx.block<3, 3>(6, 0) = dt * I;
+    dxdx.block<3, 3>(6, 0) = -dt * I;
     dxdu.setZero();
-    dxdu.block<3, 3>(3, 0) = -dt * I;
+    dxdu.block<3, 3>(3, 0) = dt * I;
     dcdx.setZero();
 }
 
@@ -59,8 +59,8 @@ extern "C" void gaps_update(
     u[2] = kp_z * pos_err[2] + kd_z * vel_err[2] + ki_z * int_pos_err[2];
 
     // cost derivatives
-    dcdx.block<1, 3>(0, 0) = p_cost * Map3(pos_err);
-    dcdx.block<1, 3>(0, 3) = v_cost * Map3(vel_err);
+    dcdx.block<1, 3>(0, 0) = -p_cost * Map3(pos_err);
+    dcdx.block<1, 3>(0, 3) = -v_cost * Map3(vel_err);
     dcdu = u_cost * Map3(u);
 
     // action derivative wrt theta.
@@ -73,9 +73,9 @@ extern "C" void gaps_update(
     // action derivative wrt x.
     // pos, vel, int_pos
     dudx <<
-        kp_xy,     0,    0, kd_xy,     0,    0, ki_xy,     0,    0,  // ux
-            0, kp_xy,    0,     0, kd_xy,    0,     0, ki_xy,    0,  // uy
-            0,     0, kp_z,     0,     0, kd_z,     0,     0, ki_z;  // uz
+        -kp_xy,      0,     0, -kd_xy,      0,     0, ki_xy,     0,    0, // ux
+             0, -kp_xy,     0,      0, -kd_xy,     0,     0, ki_xy,    0, // uy
+             0,      0, -kp_z,      0,      0, -kd_z,     0,     0, ki_z; // uz
 
     // dxdx, dxdu were constant, set in init.
 
