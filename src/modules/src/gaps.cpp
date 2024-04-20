@@ -13,6 +13,10 @@ Eigen::Matrix<float, 3, 9> dudx;
 Eigen::Matrix<float, 1, 9> dcdx;
 Eigen::Matrix<float, 1, 3> dcdu;
 
+using Map3 = Eigen::Map<Eigen::Matrix<float, 3, 1> const>;
+using Arr6 = Eigen::Array<float, 6, 1>;
+using Map6a = Eigen::Map<Arr6>;
+
 extern "C" void gaps_init(float dt)
 {
     // constants
@@ -25,13 +29,13 @@ extern "C" void gaps_init(float dt)
     dcdx.setZero();
 }
 
-extern "C" void gaps_reset(float kp_xy, float kp_z, float kd_xy, float kd_z, struct gaps *gaps)
+extern "C" void gaps_reset(struct gaps *gaps)
 {
     Eigen::Map<Eigen::Matrix<float, 9, 6> > my(gaps->y[0]);
     my.setZero();
+    Map6a(gaps->grad_accum).setZero();
+    Map6a(gaps->update_accum).setZero();
 }
-
-using Map3 = Eigen::Map<Eigen::Matrix<float, 3, 1> const>;
 
 extern "C" void gaps_update(
     float const pos_err[3],
@@ -42,6 +46,9 @@ extern "C" void gaps_update(
     float const u_cost,
     float const eta,
     float const damping,
+    float const ad_decay,
+    float const ad_eps,
+    enum gaps_opt opt,
     struct gaps *gaps, // inout
     float u[3] // out
     )
@@ -79,10 +86,29 @@ extern "C" void gaps_update(
 
     // dxdx, dxdu were constant, set in init.
 
-    // gradient step
-    Eigen::Map<Eigen::Matrix<float, 6, 1> > mtheta(gaps->theta);
+    // gradient computation
     Eigen::Map<Eigen::Matrix<float, 9, 6> > my(gaps->y[0]);
-    mtheta -= eta * (dcdx * my + dcdu * dudtheta);
+    Eigen::Matrix<float, 6, 1> grad = dcdx * my + dcdu * dudtheta;
+    Map6a mtheta(gaps->theta);
+
+    if (opt == GAPS_OPT_OGD) {
+        mtheta -= eta * grad.array();
+    }
+    else if (opt == GAPS_OPT_ADADELTA) {
+        // AdaDelta dynamics - notation follows paper
+        Map6a ad_grads(gaps->grad_accum);
+        Map6a ad_updates(gaps->update_accum);
+        ad_grads = ad_decay * ad_grads + (1.0f - ad_decay) * grad.array().square();
+        Arr6 numerator = (ad_eps + ad_updates.array()).sqrt();
+        Arr6 denominator = (ad_eps + ad_grads.array()).sqrt();
+        Arr6 scale = numerator / denominator;
+        Arr6 update = -scale * grad.array();
+        ad_updates = ad_decay * ad_updates + (1.0f - ad_decay) * update.square();
+        mtheta += eta * update;
+    }
+    else {
+        // error! do nothing
+    }
 
     // projection
     for (int i = 0; i < 6; ++i) {
@@ -90,8 +116,9 @@ extern "C" void gaps_update(
     }
 
     // dynamic programming with slight damping
-    // at 500 Hz, damps to 0.6 in 10 seconds
     my = damping * (dxdx + dxdu * dudx) * my + dxdu * dudtheta;
+
+    // storing strictly for diagnostic purposes, not used in algorithm.
     gaps->yabsmax = my.cwiseAbs().maxCoeff();
 }
 

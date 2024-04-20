@@ -95,6 +95,9 @@ static controllerMellinger_t g_self = {
   .gaps_R = 0.01f,
   .gaps_eta = 0.0f,
   .gaps_damping = 0.9999f,
+  .gaps_ad_decay = 0.9f,  // same as PyTorch.
+  .gaps_ad_eps = 1e-4,    // higher than PyTorch - adapt conservatively.
+  .gaps_opt = GAPS_OPT_OGD,
 };
 
 
@@ -189,6 +192,9 @@ void controllerMellinger(controllerMellinger_t* self, control_t *control, const 
         self->gaps_R,   // float const u_cost,
         self->gaps_eta, // float const eta,
         self->gaps_damping, // float const damping,
+        self->gaps_ad_decay,
+        self->gaps_ad_eps,
+        self->gaps_opt,
         &self->gaps, // struct gaps *gaps // inout
         gaps_u      // float u[3] // out
       );
@@ -466,6 +472,9 @@ PARAM_GROUP_START(gaps)
   PARAM_ADD(PARAM_FLOAT, R, &g_self.gaps_R)
   PARAM_ADD(PARAM_FLOAT, eta, &g_self.gaps_eta)
   PARAM_ADD(PARAM_FLOAT, damping, &g_self.gaps_damping)
+  PARAM_ADD(PARAM_FLOAT, ad_decay, &g_self.gaps_ad_decay)
+  PARAM_ADD(PARAM_FLOAT, ad_eps, &g_self.gaps_ad_eps)
+  PARAM_ADD(PARAM_UINT8, optimizer, &g_self.gaps_opt)
 PARAM_GROUP_STOP(gaps)
 
 

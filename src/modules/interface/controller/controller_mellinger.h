@@ -95,6 +95,9 @@ typedef struct {
     float gaps_R;
     float gaps_eta;
     float gaps_damping;
+    float gaps_ad_decay;
+    float gaps_ad_eps;
+    enum gaps_opt gaps_opt;
 
 } controllerMellinger_t;
 

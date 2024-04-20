@@ -111,6 +111,16 @@ float gaps_y_elt(struct gaps const *g, int i, int j)
 {
     return g->y[i][j];
 }
+
+float gaps_grads_elt(struct gaps const *g, int i)
+{
+    return g->grad_accum[i];
+}
+
+float gaps_updates_elt(struct gaps const *g, int i)
+{
+    return g->update_accum[i];
+}
 %}
 
 %extend gaps {
@@ -121,6 +131,12 @@ float gaps_y_elt(struct gaps const *g, int i, int j)
                 [gaps_y_elt(self, ix, itheta) for itheta in range(6)]
                 for ix in range(9)
             ])
+        @property
+        def grad_accum(self):
+            return np.array([gaps_grads_elt(self, i) for i in range(6)])
+        @property
+        def update_accum(self):
+            return np.array([gaps_updates_elt(self, i) for i in range(6)])
     %}
 };
 
