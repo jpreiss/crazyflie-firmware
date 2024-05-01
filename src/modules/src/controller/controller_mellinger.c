@@ -43,6 +43,7 @@ We added the following:
 #include "controller_mellinger.h"
 #include "physicalConstants.h"
 #include "gaps.h"
+#include "platform_defaults.h"
 
 // Global state variable used in the
 // firmware as the only instance and in bindings
