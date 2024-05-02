@@ -98,7 +98,7 @@ static controllerMellinger_t g_self = {
   .gaps_damping = 0.9999f,
   .gaps_ad_decay = 0.9f,  // same as PyTorch.
   .gaps_ad_eps = 1e-4,    // higher than PyTorch - adapt conservatively.
-  .gaps_opt = GAPS_OPT_OGD,
+  .gaps_opt = GAPS3DOF_OPT_OGD,
 };
 
 

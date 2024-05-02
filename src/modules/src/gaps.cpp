@@ -91,10 +91,10 @@ extern "C" void gaps_update(
     Eigen::Matrix<float, 6, 1> grad = dcdx * my + dcdu * dudtheta;
     Map6a mtheta(gaps->theta);
 
-    if (opt == GAPS_OPT_OGD) {
+    if (opt == GAPS3DOF_OPT_OGD) {
         mtheta -= eta * grad.array();
     }
-    else if (opt == GAPS_OPT_ADADELTA) {
+    else if (opt == GAPS3DOF_OPT_ADADELTA) {
         // AdaDelta dynamics - notation follows paper
         Map6a ad_grads(gaps->grad_accum);
         Map6a ad_updates(gaps->update_accum);

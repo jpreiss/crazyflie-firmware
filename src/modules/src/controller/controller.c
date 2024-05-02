@@ -7,6 +7,8 @@
 #include "controller_mellinger.h"
 #include "controller_indi.h"
 #include "controller_brescianini.h"
+
+typedef float FLOAT;
 #include "controller_lee.h"
 
 #include "autoconf.h"

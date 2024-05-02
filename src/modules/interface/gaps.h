@@ -25,8 +25,8 @@ void gaps_init(float dt);
 void gaps_reset(struct gaps *gaps);
 
 enum gaps_opt {
-	GAPS_OPT_OGD = 0,
-	GAPS_OPT_ADADELTA,
+	GAPS3DOF_OPT_OGD = 0,
+	GAPS3DOF_OPT_ADADELTA,
 };
 
 void gaps_update(

@@ -26,34 +26,19 @@ SOFTWARE.
 
 #include "stabilizer_types.h"
 
+typedef float FLOAT;
+#include "gapsquad.h"
+
 // This structure contains the mutable state and inmutable parameters
 typedef struct controllerLee_s {
+    // system ID needed to convert normalized units to SI units
     float mass;
-    float thrustSi;
-    struct vec J; // Inertia matrix (diagonal matrix); kg m^2
+    float arm;
+    // Inertia matrix (diagonal matrix); kg m^2
+    struct vec J;
 
-    // Position PID
-    struct vec Kpos_P; // Kp in paper
-    float Kpos_P_limit;
-    struct vec Kpos_D; // Kv in paper
-    float Kpos_D_limit;
-    struct vec Kpos_I; // not in paper
-    float Kpos_I_limit;
-    struct vec i_error_pos;
-    struct vec p_error;
-    struct vec v_error;
-    // Attitude PID
-    struct vec KR;
-    struct vec Komega;
-    struct vec KI;
-    struct vec i_error_att;
-    // Logging variables
-    struct vec rpy;
-    struct vec rpy_des;
-    struct mat33 R_des;
-    struct vec omega;
-    struct vec omega_r;
-    struct vec u;
+    uint8_t gaps_enable;
+    struct GAPS gaps;
 } controllerLee_t;
 
 
