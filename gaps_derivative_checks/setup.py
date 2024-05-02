@@ -10,12 +10,11 @@ include_dirs = [
     eigen,
     eigen + "/unsupported",
     "../src/modules/interface",
-    "../src/modules/src/controller",
 ]
 
 deps = [
     "../src/modules/interface/gapsquad.h",
-    "../src/modules/src/controller/gapsquad.hpp",
+    "../src/modules/interface/gapsquad.hpp",
 ]
 
 ext_modules = [
