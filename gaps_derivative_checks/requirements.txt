@@ -1,0 +1,9 @@
+colorama
+eigenpip
+matplotlib
+numpy
+pandas
+pybind11
+scipy
+seaborn
+sympy
