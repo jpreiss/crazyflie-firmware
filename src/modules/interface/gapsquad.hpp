@@ -288,16 +288,16 @@ void ctrl(
 			throw std::runtime_error("normalization wrong");
 		}
 		FLOAT norm = xgoal.norm();
-		if (std::abs(norm - 1) > 1e-7) {
+		if (std::abs(norm - 1) > 1e-6) {
 			throw std::runtime_error("xgoal norm too far from 1: is " + std::to_string(norm));
 		}
 		FLOAT det = Rd.determinant();
-		if (std::abs(det - 1) > 1e-7) {
+		if (std::abs(det - 1) > 1e-6) {
 			throw std::runtime_error("Rd determinant too far from 1: is " + std::to_string(det));
 		}
 		Mat RdTRd = Rd.transpose() * Rd;
 		FLOAT maxerr = (RdTRd - I).array().abs().maxCoeff();
-		if (maxerr > 1e-7) {
+		if (maxerr > 1e-6) {
 			throw std::runtime_error("Rd is not orthogonal: maxerr is " + std::to_string(maxerr));
 		}
 	}

@@ -146,7 +146,7 @@ void controllerLee(
 		goto fail;
 	}
 	// we do not handle manual flight with this controller
-	if (set->mode.x != modeAbs || set->mode.y != modeAbs || set->mode.z == modeAbs) {
+	if (set->mode.x != modeAbs || set->mode.y != modeAbs || set->mode.z != modeAbs) {
 		goto fail;
 	}
 
@@ -194,8 +194,9 @@ void controllerLee(
 	control->controlMode = controlModeForceTorque;
 	control->thrustSi = self->mass * u.thrust;
 	// TODO: C
-	//using Map3 = Eigen::Map<Eigen::Array<float, 3, 1>>;
-	//Map3(&control->torque[0]) = (1.0f / self->arm) * Map3(&self->J.x) * u.torque.array();
+	struct vec torque = vscl(1.0f / self->arm, veltmul(self->J, u.torque));
+	vstoref(torque, &control->torque[0]);
+	return;
 
 fail:
 	control->controlMode = controlModeForceTorque;
