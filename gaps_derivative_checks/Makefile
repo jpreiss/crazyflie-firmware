@@ -3,6 +3,8 @@ MOD_INC := ../src/modules/interface
 
 SRCS := benchmark.cpp $(MOD_INC)/gapsquad.h $(MOD_INC)/gapsquad.hpp
 
+all: benchmark bindings
+
 benchmark: $(SRCS)
 	$(CXX) \
 		$(CXXFLAGS) --std=c++14 -DEIGEN_NO_MALLOC -g -O3 -fstack-usage \

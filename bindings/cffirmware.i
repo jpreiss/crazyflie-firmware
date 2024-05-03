@@ -26,6 +26,7 @@
 #include "kalman_core.h"
 #include "mm_tdoa.h"
 #include "gaps.h"
+#include "gapsquad.h"
 %}
 
 %include "math3d.h"
@@ -44,6 +45,7 @@
 %include "kalman_core.h"
 %include "mm_tdoa.h"
 %include "gaps.h"
+%include "gapsquad.h"
 
 
 %inline %{

@@ -1,6 +1,24 @@
-#include <cmath>
-#include <tuple>
+#pragma once
 
+/*
+C++ Style Note
+--------------
+
+Distutils (used for the firmware python bindings, essential for simulation
+testing) will happily compile an extension containing both C and C++ sources,
+but it wants to always use the C compiler for both. Clang will switch to C++
+mode based on file extension, but then uses a weird standard that allows some
+C++11 features (such as `auto`) but disallows others (such as brace
+initialization). Unfortunately Clang also rejects passing a `--std=c++*`
+argument - you must invoke it as clang++ to allow that. I spent several hours
+trying to figure out a way to make distutils invoke a C++ compiler for C++
+sources, but eventually gave up and adopted its permitted features.
+
+The main feature sacrificed was `std::tuple` return types. We use output
+reference parameters instead.
+*/
+
+#include <cmath>
 #include <Eigen/Dense>
 #include <Eigen/KroneckerProduct>
 
@@ -15,15 +33,17 @@ using Jux = Eigen::Matrix<FLOAT, UDIM, XDIM, Eigen::RowMajor>;
 using Gcx = Eigen::Matrix<FLOAT, 1, XDIM>;
 using Gcu = Eigen::Matrix<FLOAT, 1, UDIM>;
 
-FLOAT constexpr GRAV = 9.81;
+FLOAT const GRAV = 9.81;
 using Mat39 = Eigen::Matrix<FLOAT, 3, 9>;
 using Mat93 = Eigen::Matrix<FLOAT, 9, 3>;
 using Mat99 = Eigen::Matrix<FLOAT, 9, 9>;
 using VecT = Eigen::Matrix<FLOAT, 1, 3>;
 
-std::tuple<Vec, Vec, Vec> colsplit(Mat const &m)
+void colsplit(Mat const &m, Vec &x, Vec &y, Vec &z)
 {
-	return std::make_tuple(m.col(0), m.col(1), m.col(2));
+	x = m.col(0);
+	y = m.col(1);
+	z = m.col(2);
 }
 
 Mat fromcols(Vec const &a, Vec const &b, Vec const &c)
@@ -48,25 +68,25 @@ However, we use it here because its Jacobian is so simple.
 Aggressive Trajectory Tracking. Jacob Johnson and Randal Beard.
 https://arxiv.org/abs/2109.07025
 */
-std::tuple<Vec, Mat39, Mat39> SO3error(Mat const &R, Mat const &Rd)
+Vec SO3error(Mat const &R, Mat const &Rd, Mat39 &JR, Mat39 &JRd)
 {
 	Mat errmat = 0.5 * (Rd.transpose() * R - R.transpose() * Rd);
-	Vec err {errmat(2, 1), errmat(0, 2), errmat(1, 0)};
+	Vec err(errmat(2, 1), errmat(0, 2), errmat(1, 0));
 	Vec Rx, Ry, Rz;
-	std::tie(Rx, Ry, Rz) = colsplit(R);
+	colsplit(R, Rx, Ry, Rz);
 	Vec Rdx, Rdy, Rdz;
-	std::tie(Rdx, Rdy, Rdz) = colsplit(Rd);
+	colsplit(Rd, Rdx, Rdy, Rdz);
 	VecT Z = VecT::Zero();
-	Mat39 JR = 0.5 * (Mat39() <<
+	// negation makes torque = -k * error work for k > 0.
+	JR = -0.5 * (Mat39() <<
 		               Z,  Rdz.transpose(), -Rdy.transpose(),
 		-Rdz.transpose(),                Z,  Rdx.transpose(),
 		 Rdy.transpose(), -Rdx.transpose(),               Z).finished();
-	Mat39 JRd = 0.5 * (Mat39() <<
+	JRd = -0.5 * (Mat39() <<
 		              Z, -Rz.transpose(),  Ry.transpose(),
 		 Rz.transpose(),               Z, -Rx.transpose(),
 		-Ry.transpose(),  Rx.transpose(),              Z).finished();
-	// these are the signs that make torque = -k * error work for k > 0.
-	return std::make_tuple(-err, -JR, -JRd);
+	return -err;
 }
 
 Mat hat(Vec const &w)
@@ -79,26 +99,26 @@ Mat hat(Vec const &w)
 	return m;
 }
 
-std::tuple<Vec, Mat> normalize(Vec const &v)
+Vec normalize(Vec const &v, Mat &J)
 {
 	FLOAT vn = (FLOAT)1.0 / v.norm();
 	FLOAT vn3 = vn * vn * vn;
-	Mat J = vn * Mat::Identity() - vn3 * v * v.transpose();
-	return std::make_tuple(vn * v, J);
+	J = vn * Mat::Identity() - vn3 * v * v.transpose();
+	return vn * v;
 }
 
-std::tuple<Vec, Mat, Mat> cross(Vec const &a, Vec const &b)
+Vec cross(Vec const &a, Vec const &b, Mat &Ja, Mat &Jb)
 {
 	FLOAT ax = a[0], ay = a[1], az = a[2];
 	FLOAT bx = b[0], by = b[1], bz = b[2];
-	Vec x {
+	Vec x(
 		ay * bz - az * by,
 		az * bx - ax * bz,
 		ax * by - ay * bx
-	};
-	Mat Ja = -hat(b);
-	Mat Jb = hat(a);
-	return std::make_tuple(x, Ja, Jb);
+	);
+	Ja = -hat(b);
+	Jb = hat(a);
+	return x;
 }
 
 
@@ -107,7 +127,7 @@ void dynamics(
 	State &x_t, Jxx &Dx_x, Jxu &Dx_u // outputs
 	)
 {
-	Vec g {0, 0, GRAV};
+	Vec g(0, 0, GRAV);
 	Mat I3 = Mat::Identity();
 	Mat99 I9 = Mat99::Identity();
 
@@ -135,7 +155,7 @@ void dynamics(
 	Mat99 DRt_R = I9 + dt * kroneckerProduct(hat(-x.w), I3);
 
 	Vec Rx, Ry, Rz;
-	std::tie(Rx, Ry, Rz) = colsplit(x.R);
+	colsplit(x.R, Rx, Ry, Rz);
 
 	Mat93 DRt_w;
 	// shift operator constructor transposes everything by itself!
@@ -217,15 +237,15 @@ void ctrl(
 	Action &u, Jux &Du_x, Jut &Du_th // outputs
 	)
 {
-	Vec g {0, 0, GRAV};
+	Vec g(0, 0, GRAV);
 	Mat I = Mat::Identity();
 
 	using Diag = Eigen::DiagonalMatrix<FLOAT, 3>;
-	Diag ki {th.ki_xy, th.ki_xy, th.ki_z};
-	Diag kp {th.kp_xy, th.kp_xy, th.kp_z};
-	Diag kv {th.kv_xy, th.kv_xy, th.kv_z};
-	Diag kr {th.kr_xy, th.kr_xy, th.kr_z};
-	Diag kw {th.kw_xy, th.kw_xy, th.kw_z};
+	Diag ki(th.ki_xy, th.ki_xy, th.ki_z);
+	Diag kp(th.kp_xy, th.kp_xy, th.kp_z);
+	Diag kv(th.kv_xy, th.kv_xy, th.kv_z);
+	Diag kr(th.kr_xy, th.kr_xy, th.kr_z);
+	Diag kw(th.kw_xy, th.kw_xy, th.kw_z);
 
 	// position part components
 	Vec perr = x.p - t.p_d;
@@ -246,22 +266,18 @@ void ctrl(
 	u.thrust = a.norm();
 	VecT Dthrust_a = (a / u.thrust).transpose();
 
-	Vec zgoal;
 	Mat Dzgoal_a;
-	std::tie(zgoal, Dzgoal_a) = normalize(a);
+	Vec zgoal = normalize(a, Dzgoal_a);
 
-	Vec xgoalflat { std::cos(t.y_d), std::sin(t.y_d), 0 };
-	Vec ygoalnn;
+	Vec xgoalflat(std::cos(t.y_d), std::sin(t.y_d), 0);
 	Mat Dygoalnn_zgoal, dummy;
-	std::tie(ygoalnn, Dygoalnn_zgoal, dummy) = cross(zgoal, xgoalflat);
-	Vec ygoal;
+	Vec ygoalnn = cross(zgoal, xgoalflat, Dygoalnn_zgoal, dummy);
 	Mat Dygoal_ygoalnn;
-	std::tie(ygoal, Dygoal_ygoalnn) = normalize(ygoalnn);
+	Vec ygoal = normalize(ygoalnn, Dygoal_ygoalnn);
 	Mat Dygoal_a = Dygoal_ygoalnn * Dygoalnn_zgoal * Dzgoal_a;
 
-	Vec xgoal;
 	Mat Dxgoal_ygoal, Dxgoal_zgoal;
-	std::tie(xgoal, Dxgoal_ygoal, Dxgoal_zgoal) = cross(ygoal, zgoal);
+	Vec xgoal = cross(ygoal, zgoal, Dxgoal_ygoal, Dxgoal_zgoal);
 	Mat Dxgoal_a = Dxgoal_ygoal * Dygoal_a + Dxgoal_zgoal * Dzgoal_a;
 	Mat Rd = fromcols(xgoal, ygoal, zgoal);
 
@@ -292,9 +308,8 @@ void ctrl(
 	DRd_a.block<3, 3>(3, 0) = Dygoal_a;
 	DRd_a.block<3, 3>(6, 0) = Dzgoal_a;
 
-	Vec er;
 	Mat39 Der_R, Der_Rd;
-	std::tie(er, Der_R, Der_Rd) = SO3error(x.R, Rd);
+	Vec er = SO3error(x.R, Rd, Der_R, Der_Rd);
 
 	Vec ew = x.w - t.w_d;
 	u.torque = -(kr * er) - (kw * ew);
