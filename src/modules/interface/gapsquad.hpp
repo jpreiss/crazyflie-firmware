@@ -433,6 +433,10 @@ extern "C" bool gaps_step(
 		y_R.col(i) = y_R_i;
 	}
 
+	gaps->ierr += dt * (x->p - t->p_d);
+	float const I_LIMIT = 0.5f;
+	gaps->ierr = gaps->ierr.array().max(-I_LIMIT).min(I_LIMIT);
+
 	// storing strictly for diagnostic purposes, not used in algorithm.
 	gaps->yabsmax = y.array().abs().maxCoeff();
 

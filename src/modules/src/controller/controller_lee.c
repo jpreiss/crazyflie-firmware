@@ -193,7 +193,6 @@ void controllerLee(
 	// mass/inertia-dependent units.
 	control->controlMode = controlModeForceTorque;
 	control->thrustSi = self->mass * u.thrust;
-	// TODO: C
 	struct vec torque = vscl(1.0f / self->arm, veltmul(self->J, u.torque));
 	vstoref(torque, &control->torque[0]);
 	return;
