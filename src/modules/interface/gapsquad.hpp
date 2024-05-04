@@ -19,6 +19,8 @@ reference parameters instead.
 */
 
 #include <cmath>
+#include <iostream>
+
 #include <Eigen/Dense>
 #include <Eigen/KroneckerProduct>
 
@@ -395,7 +397,9 @@ extern "C" bool gaps_step(
 	// projection
 	theta = theta.max(0.0f);
 	// dynamic programming (with slight damping)
-	y = gaps->damping * (Dx_x + Dx_u * Du_x) * y + Dx_u * Du_t;
+	auto product = Dx_x + Dx_u * Du_x;
+	// std::cout << "product eigvals:" << product.eigenvalues() << "\n";
+	y = gaps->damping * product * y + Dx_u * Du_t;
 	// enforce that the R component of y is within the tangent space of R
 	auto y_R = y.block<9, TDIM>(9, 0);
 	for (int i = 0; i < TDIM; ++i) {
