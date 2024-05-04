@@ -402,13 +402,34 @@ extern "C" bool gaps_step(
 	y = gaps->damping * product * y + Dx_u * Du_t;
 	// enforce that the R component of y is within the tangent space of R
 	auto y_R = y.block<9, TDIM>(9, 0);
+
+	// project the R components of y onto the tangent space of current R
 	for (int i = 0; i < TDIM; ++i) {
 		Eigen::Matrix<FLOAT, 9, 1> y_R_i = y_R.col(i);
+
+		// y_R_i_M is analogous to R^T since we store concatenated cols but Mat is row-major
 		Eigen::Map<Mat> y_R_i_M(y_R_i.data());
-		Mat in_tangent = xnext.R.transpose() * y_R_i_M;
-		Mat sym_part = 0.5 * (in_tangent.transpose() + in_tangent);
-		Mat skew_part = in_tangent - sym_part;
-		y_R_i_M = xnext.R * skew_part;
+
+		// move from tangent space of R to tangent space of identity
+		Mat in_tangent = xnext.R.transpose() * y_R_i_M.transpose();
+
+		// enforce to be in so(3) Lie algebra
+		Mat skew_part = 0.5 * (in_tangent - in_tangent.transpose());
+
+		#ifndef CRAZYFLIE_FW
+		if (!allclose(skew_part, -skew_part.transpose())) {
+			throw std::runtime_error("skew projection failed.");
+		}
+		#endif
+
+		// go back to tangent space of R
+		y_R_i_M = (xnext.R * skew_part).transpose();
+
+		// FLOAT relative = (y_R_i - y_R.col(i)).norm() / y_R.col(i).norm();
+		// std::cout << "\nto\n" << y_R_i
+			// "\nnorm(change)/norm(before) = " << relative << "\n";
+
+		// remember y_R_i_M was a mapped view onto y_R
 		y_R.col(i) = y_R_i;
 	}
 
