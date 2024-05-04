@@ -77,16 +77,15 @@ Vec SO3error(Mat const &R, Mat const &Rd, Mat39 &JR, Mat39 &JRd)
 	Vec Rdx, Rdy, Rdz;
 	colsplit(Rd, Rdx, Rdy, Rdz);
 	VecT Z = VecT::Zero();
-	// negation makes torque = -k * error work for k > 0.
-	JR = -0.5 * (Mat39() <<
+	JR = 0.5 * (Mat39() <<
 		               Z,  Rdz.transpose(), -Rdy.transpose(),
 		-Rdz.transpose(),                Z,  Rdx.transpose(),
 		 Rdy.transpose(), -Rdx.transpose(),               Z).finished();
-	JRd = -0.5 * (Mat39() <<
+	JRd = 0.5 * (Mat39() <<
 		              Z, -Rz.transpose(),  Ry.transpose(),
 		 Rz.transpose(),               Z, -Rx.transpose(),
 		-Ry.transpose(),  Rx.transpose(),              Z).finished();
-	return -err;
+	return err;
 }
 
 Mat hat(Vec const &w)
