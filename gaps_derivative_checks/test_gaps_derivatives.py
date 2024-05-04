@@ -272,7 +272,7 @@ def dynamics(x: State, xd: Target, u: Action, c: Const):
 # TODO: costs?
 
 
-EPS = 1e-8
+EPS = 1e-6
 # slight loosening of defaults
 RTOL = 1e-4
 ATOL = 1e-6
@@ -367,7 +367,7 @@ def cost(x: State, t: Target, u: Action, Q: CostParam):
 
 
 def test_gaps_derivatives():
-    const = Const(g=9.81, m=1, j=None, dt=0.01)
+    const = Const(g=9.81, m=1, j=None, dt=0.1)
     rng = np.random.default_rng(0)
     for i in range(100):
 
