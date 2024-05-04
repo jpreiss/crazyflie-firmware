@@ -66,6 +66,7 @@ struct GAPS
 
 	// diagnostics
 	FLOAT yabsmax;
+	FLOAT sum_cost;
 
 	// AdaDelta state
 	FLOAT grad_accum[TDIM];
@@ -80,5 +81,4 @@ EXTERN_C bool gaps_step(
 	struct State const *x,
 	struct Target const *t,
 	FLOAT const dt,
-	struct Action *u_out,
-	FLOAT *cost_out);
+	struct Action *u_out);

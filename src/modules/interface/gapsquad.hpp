@@ -343,8 +343,7 @@ extern "C" bool gaps_step(
 	struct State const *x,
 	struct Target const *t,
 	FLOAT const dt,
-	struct Action *u_out,
-	FLOAT *cost_out)
+	struct Action *u_out)
 {
 	static Jux Du_x;
 	static Jut Du_t;
@@ -357,7 +356,9 @@ extern "C" bool gaps_step(
 
 	static Gcx Dc_x;
 	static Gcu Dc_u;
-	cost(*x, *t, *u_out, gaps->cost_param, *cost_out, Dc_x, Dc_u);
+	FLOAT stage_cost;
+	cost(*x, *t, *u_out, gaps->cost_param, stage_cost, Dc_x, Dc_u);
+	gaps->sum_cost += dt * stage_cost;
 
 	using MapTheta = Eigen::Map<Theta>;
 

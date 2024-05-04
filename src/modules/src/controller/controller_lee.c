@@ -78,6 +78,7 @@ static controllerLee_t g_self = {
 
 		// diagnostics
 		.yabsmax = 0.0f,
+		.sum_cost = 0.0f,
 
 		// AdaDelta
 		.grad_accum = { 0 },
@@ -174,9 +175,8 @@ void controllerLee(
 		radians(sensors->gyro.z)
 	);
 
-	float cost;
 	bool gaps_ok;
-	gaps_ok = gaps_step(&self->gaps, &x, &target, dt, &u, &cost);
+	gaps_ok = gaps_step(&self->gaps, &x, &target, dt, &u);
 
 	if (!gaps_ok) {
 		goto fail;
