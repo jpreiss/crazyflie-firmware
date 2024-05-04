@@ -42,7 +42,7 @@ struct Param {
 	FLOAT kr_xy; FLOAT kr_z; FLOAT kw_xy; FLOAT kw_z; // attitude gains
 };
 struct CostParam {
-	FLOAT p; FLOAT v; FLOAT w; FLOAT thrust; FLOAT torque;
+	FLOAT p; FLOAT v; FLOAT w; FLOAT thrust; FLOAT torque; FLOAT reg_L2;
 };
 
 enum gaps_optimizer {

@@ -367,6 +367,8 @@ extern "C" bool gaps_step(
 	Eigen::Map<GapsY> y(gaps->y[0]);
 	Theta grad = (Dc_x * y + Dc_u * Du_t).array();
 	MapTheta theta((FLOAT *)&gaps->theta);
+	// regularization
+	grad += gaps->cost_param.reg_L2 * theta;
 
 	// 2) run the optimizer
 	gaps_optimizer const opt = (gaps_optimizer)gaps->optimizer;
