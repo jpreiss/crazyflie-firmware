@@ -372,8 +372,10 @@ def test_gaps_derivatives():
     for i in range(100):
 
         ierr, p, v, w = rng.normal(size=(4, 3))
-        R = SO3.random(rng, 3).flatten()
-        x = State(ierr=ierr, p=p, v=v, R=R, w=w)
+        R = SO3.random(rng, 3)
+        assert np.allclose(np.eye(3), R.T @ R)
+        assert np.isclose(np.linalg.det(R), 1)
+        x = State(ierr=ierr, p=p, v=v, R=R.flatten(), w=w)
 
         pd, vd, ad, wd = rng.normal(size=(4, 3))
         yd = rng.normal()

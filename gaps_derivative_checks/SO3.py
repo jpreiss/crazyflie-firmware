@@ -53,7 +53,11 @@ def Jlog_mine(q):
 def random(rng, dim=3):
     G = rng.normal(size=(dim, dim))
     U, _, VT = np.linalg.svd(G)
-    return U @ VT
+    R = U @ VT
+    # TODO: Prevent, rather than fix.
+    if np.linalg.det(R) < 0:
+        R = -R
+    return R
 
 
 def evalf(x):
