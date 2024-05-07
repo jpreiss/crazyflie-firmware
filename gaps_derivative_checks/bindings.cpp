@@ -14,7 +14,7 @@ using ParamTuple = std::tuple<
 	FLOAT, FLOAT, FLOAT, FLOAT, FLOAT, FLOAT, // position gains
 	FLOAT, FLOAT, FLOAT, FLOAT // attitude gains
 >;
-using CostParamTuple = std::tuple<FLOAT, FLOAT, FLOAT, FLOAT, FLOAT>;
+using CostParamTuple = std::tuple<FLOAT, FLOAT, FLOAT, FLOAT, FLOAT, FLOAT>;
 
 // The C++ standard doesn't guarantee that this will hold, but it does in
 // practice (at least on Clang++ 15), so we can use it to catch errors due to
