@@ -16,30 +16,81 @@ using ParamTuple = std::tuple<
 >;
 using CostParamTuple = std::tuple<FLOAT, FLOAT, FLOAT, FLOAT, FLOAT, FLOAT>;
 
-// The C++ standard doesn't guarantee that this will hold, but it does in
-// practice (at least on Clang++ 15), so we can use it to catch errors due to
-// adding/removing a field.
-static_assert(sizeof(StateTuple) == sizeof(State), "struct/tuple error");
-static_assert(sizeof(ActionTuple) == sizeof(Action), "struct/tuple error");
-static_assert(sizeof(TargetTuple) == sizeof(Target), "struct/tuple error");
-static_assert(sizeof(ParamTuple) == sizeof(Param), "struct/tuple error");
-static_assert(sizeof(CostParamTuple) == sizeof(CostParam), "struct/tuple error");
-static_assert(sizeof(State) == sizeof(FLOAT) * XDIM, "size error");
-static_assert(sizeof(Action) == sizeof(FLOAT) * UDIM, "size error");
-static_assert(sizeof(Param) == sizeof(FLOAT) * TDIM, "size error");
+
+// TODO: Figure out how to use variadic macros to replace this boilerplate.
+
+State t2s(StateTuple const &st)
+{
+	State s;
+	std::tie(s.ierr, s.p, s.v, s.R, s.w) = st;
+	return s;
+}
+StateTuple s2t(State const &s)
+{
+	return std::make_tuple(s.ierr, s.p, s.v, s.R, s.w);
+}
+
+Target t2s(TargetTuple const &tt)
+{
+	Target t;
+	std::tie(t.p_d, t.v_d, t.a_d, t.y_d, t.w_d) = tt;
+	return t;
+}
+TargetTuple s2t(Target const &t)
+{
+	return std::make_tuple(t.p_d, t.v_d, t.a_d, t.y_d, t.w_d);
+}
+
+Action t2s(ActionTuple const &at)
+{
+	Action a;
+	std::tie(a.thrust, a.torque) = at;
+	return a;
+}
+ActionTuple s2t(Action const &a)
+{
+	return std::make_tuple(a.thrust, a.torque);
+}
+
+Param t2s(ParamTuple const &pt)
+{
+	Param p;
+	std::tie(
+		p.ki_xy, p.ki_z,
+		p.kp_xy, p.kp_z,
+		p.kv_xy, p.kv_z,
+		p.kr_xy, p.kr_z,
+		p.kw_xy, p.kw_z) = pt;
+	return p;
+}
+ParamTuple s2t(Param const &p)
+{
+	return std::make_tuple(
+		p.ki_xy, p.ki_z,
+		p.kp_xy, p.kp_z,
+		p.kv_xy, p.kv_z,
+		p.kr_xy, p.kr_z,
+		p.kw_xy, p.kw_z);
+}
+
+CostParam t2s(CostParamTuple const &cpt)
+{
+	CostParam cp;
+	std::tie(cp.p, cp.v, cp.w, cp.thrust, cp.torque, cp.reg_L2) = cpt;
+	return cp;
+}
+CostParamTuple s2t(CostParam const &cp)
+{
+	return std::make_tuple(cp.p, cp.v, cp.w, cp.thrust, cp.torque, cp.reg_L2);
+}
 
 std::tuple<ActionTuple, Jux, Jut>
 ctrl_wrap(StateTuple const &xt, TargetTuple const &tt, ParamTuple const &tht)
 {
 	std::tuple<ActionTuple, Jux, Jut> output;
-
-	State const &x = reinterpret_cast<State const &>(xt);
-	Target const &t = reinterpret_cast<Target const &>(tt);
-	Param const &th = reinterpret_cast<Param const &>(tht);
-	Action &u = reinterpret_cast<Action &>(std::get<ActionTuple>(output));
-
-	ctrl(x, t, th, u, std::get<Jux>(output), std::get<Jut>(output));
-
+	Action u;
+	ctrl(t2s(xt), t2s(tt), t2s(tht), u, std::get<Jux>(output), std::get<Jut>(output));
+	std::get<ActionTuple>(output) = s2t(u);
 	return output;
 }
 
@@ -47,14 +98,9 @@ std::tuple<StateTuple, Jxx, Jxu>
 dynamics_wrap(StateTuple const &xt, TargetTuple const &tt, ActionTuple const &ut, FLOAT dt)
 {
 	std::tuple<StateTuple, Jxx, Jxu> output;
-
-	State const &x = reinterpret_cast<State const &>(xt);
-	Target const &t = reinterpret_cast<Target const &>(tt);
-	Action const &u = reinterpret_cast<Action const &>(ut);
-	State &xnext = reinterpret_cast<State &>(std::get<StateTuple>(output));
-
-	dynamics(x, t, u, dt, xnext, std::get<Jxx>(output), std::get<Jxu>(output));
-
+	State xnext;
+	dynamics(t2s(xt), t2s(tt), t2s(ut), dt, xnext, std::get<Jxx>(output), std::get<Jxu>(output));
+	std::get<StateTuple>(output) = s2t(xnext);
 	return output;
 }
 
@@ -62,14 +108,8 @@ std::tuple<FLOAT, Gcx, Gcu>
 cost_wrap(StateTuple const &xt, TargetTuple const &tt, ActionTuple const &ut, CostParamTuple const &Qt) // inputs
 {
 	std::tuple<FLOAT, Gcx, Gcu> output;
-
-	State const &x = reinterpret_cast<State const &>(xt);
-	Target const &t = reinterpret_cast<Target const &>(tt);
-	Action const &u = reinterpret_cast<Action const &>(ut);
-	CostParam const &Q = reinterpret_cast<CostParam const &>(Qt);
-
-	cost(x, t, u, Q, std::get<FLOAT>(output), std::get<Gcx>(output), std::get<Gcu>(output));
-
+	cost(t2s(xt), t2s(tt), t2s(ut), t2s(Qt),
+		std::get<FLOAT>(output), std::get<Gcx>(output), std::get<Gcu>(output));
 	return output;
 }
 
