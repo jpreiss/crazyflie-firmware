@@ -74,7 +74,8 @@ static controllerLee_t g_self = {
 		},
 		.eta = 0.0f,
 		.damping = 0.9999f,
-		.optimizer = GAPS_OPT_DISABLE,
+		.enable = false,
+		.optimizer = GAPS_OPT_GRAD,
 
 		// diagnostics
 		.yabsmax = 0.0f,
@@ -229,8 +230,9 @@ void controllerLeeFirmware(control_t *control, const setpoint_t *setpoint,
 	controllerLee(&g_self, control, setpoint, sensors, state, tick);
 }
 
-PARAM_GROUP_START(gaps)
+PARAM_GROUP_START(gaps6DOF)
 	// the GAPS params
+	PARAM_ADD(PARAM_UINT8, enable, &g_self.gaps.enable)
 	PARAM_ADD(PARAM_UINT8, optimizer, &g_self.gaps.optimizer)
 	PARAM_ADD(PARAM_FLOAT, Qp, &g_self.gaps.cost_param.p)
 	PARAM_ADD(PARAM_FLOAT, Qv, &g_self.gaps.cost_param.v)
@@ -256,10 +258,10 @@ PARAM_GROUP_START(gaps)
 
 	// SystemID params
 	PARAM_ADD(PARAM_FLOAT, mass, &g_self.mass)
-PARAM_GROUP_STOP(gaps)
+PARAM_GROUP_STOP(gaps6DOF)
 
 
-LOG_GROUP_START(gaps)
+LOG_GROUP_START(gaps6DOF)
 	LOG_ADD(LOG_FLOAT, ki_xy, &g_self.gaps.theta.kr_xy)
 	LOG_ADD(LOG_FLOAT, ki_z, &g_self.gaps.theta.kr_z)
 	LOG_ADD(LOG_FLOAT, kp_xy, &g_self.gaps.theta.kr_xy)
@@ -307,6 +309,6 @@ LOG_GROUP_START(gaps)
 	// LOG_ADD(LOG_FLOAT, omegarz, &g_self.omega_r.z)
 
 	// LOG_ADD(LOG_UINT32, ticks, &ticks)
-LOG_GROUP_STOP(gaps)
+LOG_GROUP_STOP(gaps6DOF)
 
 #endif // CRAZYFLIE_FW defined

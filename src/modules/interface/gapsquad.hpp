@@ -376,7 +376,7 @@ extern "C" bool gaps_step(
 
 	// 2) run the optimizer
 	gaps_optimizer const opt = (gaps_optimizer)gaps->optimizer;
-	if (opt == GAPS_OPT_DISABLE) {
+	if (!gaps->enable) {
 		// Do nothing.
 	}
 	else if (opt == GAPS_OPT_GRAD) {

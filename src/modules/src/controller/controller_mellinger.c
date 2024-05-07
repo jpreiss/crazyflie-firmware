@@ -466,7 +466,7 @@ PARAM_GROUP_STOP(ctrlMel)
 
 
 // GAPS
-PARAM_GROUP_START(gaps)
+PARAM_GROUP_START(gaps3DOF)
   PARAM_ADD(PARAM_UINT8, enable, &g_self.gaps_enable)
   PARAM_ADD(PARAM_FLOAT, Qx, &g_self.gaps_Qx)
   PARAM_ADD(PARAM_FLOAT, Qv, &g_self.gaps_Qv)
@@ -476,7 +476,7 @@ PARAM_GROUP_START(gaps)
   PARAM_ADD(PARAM_FLOAT, ad_decay, &g_self.gaps_ad_decay)
   PARAM_ADD(PARAM_FLOAT, ad_eps, &g_self.gaps_ad_eps)
   PARAM_ADD(PARAM_UINT8, optimizer, &g_self.gaps_opt)
-PARAM_GROUP_STOP(gaps)
+PARAM_GROUP_STOP(gaps3DOF)
 
 
 /**
@@ -501,7 +501,7 @@ LOG_ADD(LOG_FLOAT, i_err_z, &g_self.i_error_z)
 LOG_GROUP_STOP(ctrlMel)
 
 
-LOG_GROUP_START(gaps)
+LOG_GROUP_START(gaps3DOF)
   LOG_ADD(LOG_FLOAT, yabsmax, &g_self.gaps.yabsmax)
   LOG_ADD(LOG_FLOAT, kp_xy, &g_self.gaps.kp_xy)
   LOG_ADD(LOG_FLOAT, kp_z, &g_self.gaps.kp_z)
@@ -509,5 +509,5 @@ LOG_GROUP_START(gaps)
   LOG_ADD(LOG_FLOAT, kd_z, &g_self.gaps.kd_z)
   LOG_ADD(LOG_FLOAT, ki_xy, &g_self.gaps.ki_xy)
   LOG_ADD(LOG_FLOAT, ki_z, &g_self.gaps.ki_z)
-LOG_GROUP_STOP(gaps)
+LOG_GROUP_STOP(gaps3DOF)
 

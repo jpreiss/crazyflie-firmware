@@ -46,9 +46,8 @@ struct CostParam {
 };
 
 enum gaps_optimizer {
-	GAPS_OPT_DISABLE = 0,
-	GAPS_OPT_GRAD = 1,
-	GAPS_OPT_ADADELTA = 2,
+	GAPS_OPT_GRAD = 0,
+	GAPS_OPT_ADADELTA = 1,
 };
 
 struct GAPS
@@ -62,6 +61,7 @@ struct GAPS
 	struct CostParam cost_param;
 	FLOAT eta;
 	FLOAT damping;
+	uint8_t enable;
 	uint8_t optimizer;
 
 	// diagnostics
