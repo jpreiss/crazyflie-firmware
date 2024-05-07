@@ -35,7 +35,7 @@ setup(
     ext_modules=ext_modules,
     packages=["gapsquad"],
     package_data={
-        "gapsquad": ["gapsquad/bindings.cpp"] + deps
+        "gapsquad": ["bindings.cpp"] + deps
     },
     install_requires=["eigenpip"],
     zip_safe=False,  # TODO: Understand.

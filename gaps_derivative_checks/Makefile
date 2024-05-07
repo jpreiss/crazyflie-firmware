@@ -1,4 +1,4 @@
-EIGEN := $(shell python -c 'import eigenpip as e; print(e.get_include())')
+EIGEN := $(shell python3 -c 'import eigenpip as e; print(e.get_include())')
 MOD_INC := ../src/modules/interface
 
 SRCS := benchmark.cpp $(MOD_INC)/gapsquad.h $(MOD_INC)/gapsquad.hpp
@@ -11,8 +11,12 @@ benchmark: $(SRCS)
 		-I$(EIGEN) -I$(EIGEN)/unsupported -I$(MOD_INC) \
 		-o $@ $<
 
+install: bindings
+	pip install -e .
+
 bindings: $(SRCS) setup.py pyproject.toml
-	python setup.py build
+	mkdir -p gapsquad
+	python3 setup.py build
 
 .PHONY: stack
 
