@@ -22,7 +22,7 @@ DFU_UTIL          ?= dfu-util
 CLOAD_CMDS        ?=
 CLOAD_ARGS        ?=
 
-CXXFLAGS += -fno-exceptions -DEIGEN_NO_MALLOC -DEIGEN_NO_EXCEPTIONS -Wno-unused-result -O3
+CXXFLAGS += -fno-exceptions -DEIGEN_NO_MALLOC -DEIGEN_NO_EXCEPTIONS -Wno-unused-result -O3 -fno-threadsafe-statics
 
 ARCH := stm32f4
 SRCARCH := stm32f4

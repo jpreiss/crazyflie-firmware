@@ -339,6 +339,17 @@ void ctrl(
 	Du_th << Dthrust_th, Dtorque_th;
 }
 
+// spiritually these are function-static to gaps_step(), but we make them fully
+// global to avoid g++ emitting the __cxa_guard* calls, which are not available
+// in CF firmware and apply only to function-static variables.
+static Jux Du_x;
+static Jut Du_t;
+static State xnext;
+static Jxx Dx_x;
+static Jxu Dx_u;
+static Gcx Dc_x;
+static Gcu Dc_u;
+
 extern "C" bool gaps_step(
 	struct GAPS *gaps,
 	struct State const *x,
@@ -346,17 +357,10 @@ extern "C" bool gaps_step(
 	FLOAT const dt,
 	struct Action *u_out)
 {
-	static Jux Du_x;
-	static Jut Du_t;
 	ctrl(*x, *t, gaps->theta, *u_out, Du_x, Du_t);
 
-	static State xnext;
-	static Jxx Dx_x;
-	static Jxu Dx_u;
 	dynamics(*x, *t, *u_out, dt, xnext, Dx_x, Dx_u);
 
-	static Gcx Dc_x;
-	static Gcu Dc_u;
 	FLOAT stage_cost;
 	cost(*x, *t, *u_out, gaps->cost_param, stage_cost, Dc_x, Dc_u);
 	gaps->sum_cost += dt * stage_cost;
