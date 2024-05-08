@@ -37,7 +37,6 @@ typedef struct controllerLee_s {
     // Inertia matrix (diagonal matrix); kg m^2
     struct vec J;
 
-    uint8_t gaps_enable;
     struct GAPS gaps;
 } controllerLee_t;
 
