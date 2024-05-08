@@ -31,7 +31,7 @@ reference parameters instead.
 		#include "debug.h"
 	}
 #else
-	int const EXC_MSG_BUFSZ 512;
+	int const EXC_MSG_BUFSZ = 512;
 	static char exc_msg_buf[EXC_MSG_BUFSZ] = { 0 };
 	#define DEBUG_PRINT(fmt, ...) printf(fmt, ##__VA_ARGS__)
 #endif
