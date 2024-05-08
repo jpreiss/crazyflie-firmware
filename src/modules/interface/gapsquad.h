@@ -66,6 +66,8 @@ struct GAPS
 
 	// diagnostics
 	FLOAT yabsmax;
+	uint8_t max_row;
+	uint8_t max_col;
 	FLOAT sum_cost;
 
 	// AdaDelta state

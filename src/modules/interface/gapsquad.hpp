@@ -477,7 +477,10 @@ extern "C" bool gaps_step(
 	}
 
 	// storing strictly for diagnostic purposes, not used in algorithm.
-	gaps->yabsmax = y.array().abs().maxCoeff();
+	Eigen::Index max_row, max_col;
+	gaps->yabsmax = y.array().abs().maxCoeff(&max_row, &max_col);
+	gaps->max_row = max_row;
+	gaps->max_col = max_col;
 
 	return true;
 }
