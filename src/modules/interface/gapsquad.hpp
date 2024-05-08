@@ -243,6 +243,17 @@ void cost(
 		Q.torque * u.torque.transpose();
 }
 
+// spiritually these are function-static to ctrl().
+// see comment for gaps_step().
+static Eigen::Matrix<FLOAT, 3, XDIM> Da_x;
+static Eigen::Matrix<FLOAT, 3, TDIM> Da_th;
+static Eigen::Matrix<FLOAT, 9, 3> DRd_a;
+static Mat39 Der_R, Der_Rd;
+static Eigen::Matrix<FLOAT, 3, XDIM> Der_x;
+static Eigen::Matrix<FLOAT, 3, TDIM> Der_th;
+static Eigen::Matrix<FLOAT, 3, XDIM> Dtorque_x;
+static Eigen::Matrix<FLOAT, 3, TDIM> Dtorque_th;
+
 void ctrl(
 	State const &x, Target const &t, Param const &th, // inputs
 	Action &u, Jux &Du_x, Jut &Du_th // outputs
@@ -265,10 +276,8 @@ void ctrl(
 	Vec const feedback = - (ki * x.ierr) - (kp * perr) - (kv * verr);
 	Vec const a = feedback + t.a_d + g;
 
-	Eigen::Matrix<FLOAT, 3, XDIM> Da_x;
 	Da_x << -(ki * I), -(kp * I), -(kv * I), Eigen::Matrix<FLOAT, 3, 9 + 3>::Zero();
 
-	Eigen::Matrix<FLOAT, 3, TDIM> Da_th;
 	Da_th <<
 		-x.ierr[0],          0, -perr[0],        0, -verr[0],        0, 0, 0, 0, 0,
 		-x.ierr[1],          0, -perr[1],        0, -verr[1],        0, 0, 0, 0, 0,
@@ -332,12 +341,10 @@ void ctrl(
 	}
 	#endif
 
-	Eigen::Matrix<FLOAT, 9, 3> DRd_a;
 	DRd_a.block<3, 3>(0, 0) = Dxgoal_a;
 	DRd_a.block<3, 3>(3, 0) = Dygoal_a;
 	DRd_a.block<3, 3>(6, 0) = Dzgoal_a;
 
-	Mat39 Der_R, Der_Rd;
 	Vec const er = SO3error(x.R, Rd, Der_R, Der_Rd);
 
 	Vec const ew = x.w - t.w_d;
@@ -347,17 +354,16 @@ void ctrl(
 	auto const Dthrust_x = Dthrust_a * Da_x;
 	auto const Dthrust_th = Dthrust_a * Da_th;
 
-	Eigen::Matrix<FLOAT, 3, XDIM> Der_x;
 	Der_x.setZero();
 	Der_x.block<3, 9>(0, 9) = Der_R;
 	Der_x += Der_Rd * DRd_a * Da_x;
 
-	Eigen::Matrix<FLOAT, 3, TDIM> const Der_th = Der_Rd * DRd_a * Da_th;
+	Der_th = Der_Rd * DRd_a * Da_th;
 
-	Eigen::Matrix<FLOAT, 3, XDIM> Dtorque_x = -(kr * Der_x);
+	Dtorque_x = -(kr * Der_x);
 	Dtorque_x.block<3, 3>(0, 3 + 3 + 3 + 9) -= kw * I;
 
-	Eigen::Matrix<FLOAT, 3, TDIM> Dtorque_th = -(kr * Der_th); // indirect part
+	Dtorque_th = -(kr * Der_th); // indirect part
 	Dtorque_th += (Eigen::Matrix<FLOAT, 3, TDIM>() <<
 		0, 0, 0, 0, 0, 0, -er[0],      0, -ew[0],      0,
 		0, 0, 0, 0, 0, 0, -er[1],      0, -ew[1],      0,
