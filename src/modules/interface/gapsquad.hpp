@@ -248,22 +248,22 @@ void ctrl(
 	Action &u, Jux &Du_x, Jut &Du_th // outputs
 	)
 {
-	Vec g(0, 0, GRAV);
-	Mat I = Mat::Identity();
+	Vec const g(0, 0, GRAV);
+	Mat const I = Mat::Identity();
 
 	using Diag = Eigen::DiagonalMatrix<FLOAT, 3>;
-	Diag ki(th.ki_xy, th.ki_xy, th.ki_z);
-	Diag kp(th.kp_xy, th.kp_xy, th.kp_z);
-	Diag kv(th.kv_xy, th.kv_xy, th.kv_z);
-	Diag kr(th.kr_xy, th.kr_xy, th.kr_z);
-	Diag kw(th.kw_xy, th.kw_xy, th.kw_z);
+	Diag const ki(th.ki_xy, th.ki_xy, th.ki_z);
+	Diag const kp(th.kp_xy, th.kp_xy, th.kp_z);
+	Diag const kv(th.kv_xy, th.kv_xy, th.kv_z);
+	Diag const kr(th.kr_xy, th.kr_xy, th.kr_z);
+	Diag const kw(th.kw_xy, th.kw_xy, th.kw_z);
 
 	// position part components
-	Vec perr = x.p - t.p_d;
-	Vec verr = x.v - t.v_d;
+	Vec const perr = x.p - t.p_d;
+	Vec const verr = x.v - t.v_d;
 	// Parens because Eigen forbids negating diagonal matrices for some reason?
-	Vec feedback = - (ki * x.ierr) - (kp * perr) - (kv * verr);
-	Vec a = feedback + t.a_d + g;
+	Vec const feedback = - (ki * x.ierr) - (kp * perr) - (kv * verr);
+	Vec const a = feedback + t.a_d + g;
 
 	Eigen::Matrix<FLOAT, 3, XDIM> Da_x;
 	Da_x << -(ki * I), -(kp * I), -(kv * I), Eigen::Matrix<FLOAT, 3, 9 + 3>::Zero();
@@ -280,17 +280,18 @@ void ctrl(
 	Mat Dzgoal_a;
 	Vec zgoal = normalize(a, Dzgoal_a);
 
-	Vec xgoalflat(std::cos(t.y_d), std::sin(t.y_d), 0);
+	Vec const xgoalflat(std::cos(t.y_d), std::sin(t.y_d), 0);
 	Mat Dygoalnn_zgoal, dummy;
-	Vec ygoalnn = cross(zgoal, xgoalflat, Dygoalnn_zgoal, dummy);
+	Vec const ygoalnn = cross(zgoal, xgoalflat, Dygoalnn_zgoal, dummy);
 	Mat Dygoal_ygoalnn;
-	Vec ygoal = normalize(ygoalnn, Dygoal_ygoalnn);
+	// TODO: handle case where too close to zero.
+	Vec const ygoal = normalize(ygoalnn, Dygoal_ygoalnn);
 	Mat Dygoal_a = Dygoal_ygoalnn * Dygoalnn_zgoal * Dzgoal_a;
 
 	Mat Dxgoal_ygoal, Dxgoal_zgoal;
-	Vec xgoal = cross(ygoal, zgoal, Dxgoal_ygoal, Dxgoal_zgoal);
-	Mat Dxgoal_a = Dxgoal_ygoal * Dygoal_a + Dxgoal_zgoal * Dzgoal_a;
-	Mat Rd = fromcols(xgoal, ygoal, zgoal);
+	Vec const xgoal = cross(ygoal, zgoal, Dxgoal_ygoal, Dxgoal_zgoal);
+	Mat const Dxgoal_a = Dxgoal_ygoal * Dygoal_a + Dxgoal_zgoal * Dzgoal_a;
+	Mat const Rd = fromcols(xgoal, ygoal, zgoal);
 
 	#ifndef CRAZYFLIE_FW
 	{
@@ -320,21 +321,21 @@ void ctrl(
 	DRd_a.block<3, 3>(6, 0) = Dzgoal_a;
 
 	Mat39 Der_R, Der_Rd;
-	Vec er = SO3error(x.R, Rd, Der_R, Der_Rd);
+	Vec const er = SO3error(x.R, Rd, Der_R, Der_Rd);
 
-	Vec ew = x.w - t.w_d;
+	Vec const ew = x.w - t.w_d;
 	u.torque = -(kr * er) - (kw * ew);
 
 	// controller chain rules
-	auto Dthrust_x = Dthrust_a * Da_x;
-	auto Dthrust_th = Dthrust_a * Da_th;
+	auto const Dthrust_x = Dthrust_a * Da_x;
+	auto const Dthrust_th = Dthrust_a * Da_th;
 
 	Eigen::Matrix<FLOAT, 3, XDIM> Der_x;
 	Der_x.setZero();
 	Der_x.block<3, 9>(0, 9) = Der_R;
 	Der_x += Der_Rd * DRd_a * Da_x;
 
-	Eigen::Matrix<FLOAT, 3, TDIM> Der_th = Der_Rd * DRd_a * Da_th;
+	Eigen::Matrix<FLOAT, 3, TDIM> const Der_th = Der_Rd * DRd_a * Da_th;
 
 	Eigen::Matrix<FLOAT, 3, XDIM> Dtorque_x = -(kr * Der_x);
 	Dtorque_x.block<3, 3>(0, 3 + 3 + 3 + 9) -= kw * I;
