@@ -369,6 +369,15 @@ extern "C" bool gaps_step(
 {
 	ctrl(*x, *t, gaps->theta, *u_out, Du_x, Du_t);
 
+	// integrate the ierr right away in case we exit due to being disabled.
+	gaps->ierr += dt * (x->p - t->p_d);
+	float const I_LIMIT = 0.5f;
+	gaps->ierr = gaps->ierr.array().max(-I_LIMIT).min(I_LIMIT);
+
+	if (!gaps->enable) {
+		return true;
+	}
+
 	dynamics(*x, *t, *u_out, dt, xnext, Dx_x, Dx_u);
 
 	FLOAT stage_cost;
@@ -386,10 +395,7 @@ extern "C" bool gaps_step(
 
 	// 2) run the optimizer
 	gaps_optimizer const opt = (gaps_optimizer)gaps->optimizer;
-	if (!gaps->enable) {
-		// Do nothing.
-	}
-	else if (opt == GAPS_OPT_GRAD) {
+	if (opt == GAPS_OPT_GRAD) {
 		theta -= gaps->eta * grad;
 	}
 	else if (opt == GAPS_OPT_ADADELTA) {
@@ -445,10 +451,6 @@ extern "C" bool gaps_step(
 		// remember y_R_i_M was a mapped view onto y_R
 		y_R.col(i) = y_R_i;
 	}
-
-	gaps->ierr += dt * (x->p - t->p_d);
-	float const I_LIMIT = 0.5f;
-	gaps->ierr = gaps->ierr.array().max(-I_LIMIT).min(I_LIMIT);
 
 	// storing strictly for diagnostic purposes, not used in algorithm.
 	gaps->yabsmax = y.array().abs().maxCoeff();
