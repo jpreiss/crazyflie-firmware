@@ -277,8 +277,25 @@ void ctrl(
 	u.thrust = a.norm();
 	VecT Dthrust_a = (a / u.thrust).transpose();
 
+	Vec zgoal;
 	Mat Dzgoal_a;
-	Vec zgoal = normalize(a, Dzgoal_a);
+	// Note this threshold is much higher than necessary for numerical
+	// purposes, but since `a` should be 9.81 for gravity compensation,
+	// magnitude of 0.1 is effectively very close to free fall. (Possibly below
+	// the minimum motor speed for many quads.) We can therefore assume that
+	// the direction of a is not particularly meaningful and may not be stable
+	// over time. In such cases, it is probably not productive to track it.
+	if (a.norm() > 0.1f) {
+		zgoal = normalize(a, Dzgoal_a);
+	}
+	else {
+		// Pos controller wants to free fall. This controller isn't really
+		// designed for such aggressive maneuvers, but it seems reasonable to
+		// fall in a straight and level attitude so all directions of lateral
+		// (x-y) thrust are equally easy to achieve in the future.
+		zgoal = Vec(0, 0, 1);
+		Dzgoal_a.setZero();
+	}
 
 	Vec const xgoalflat(std::cos(t.y_d), std::sin(t.y_d), 0);
 	Mat Dygoalnn_zgoal, dummy;
