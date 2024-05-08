@@ -25,6 +25,7 @@ SOFTWARE.
 #include <math.h>
 #include <string.h>
 
+#include "debug.h"
 #include "math3d.h"
 #include "controller_lee.h"
 #include "physicalConstants.h"
@@ -94,6 +95,7 @@ static float const dt = 1.0f/ATTITUDE_RATE;
 
 void controllerLeeReset(controllerLee_t* self)
 {
+	self->gaps.ierr = vzero();
 	// TODO: C
 	// Eigen::Map<GapsY>(&self->gaps.y[0][0]).setZero();
 	// Eigen::Map<Theta>(&self->gaps.grad_accum[0]).setZero();
@@ -141,14 +143,17 @@ void controllerLee(
 		target.y_d = quat2rpy(setpoint_quat).z;
 	}
 	else {
+		DEBUG_PRINT("fail due to unsupported setpoint attitude mode\n");
 		goto fail;
 	}
 
 	if (set->mode.z == modeDisable && set->thrust < 1000) {
+		DEBUG_PRINT("fail due to setpoint modeDisable\n");
 		goto fail;
 	}
 	// we do not handle manual flight with this controller
 	if (set->mode.x != modeAbs || set->mode.y != modeAbs || set->mode.z != modeAbs) {
+		DEBUG_PRINT("fail due to setpoint not modeAbs\n");
 		goto fail;
 	}
 
@@ -180,14 +185,16 @@ void controllerLee(
 	gaps_ok = gaps_step(&self->gaps, &x, &target, dt, &u);
 
 	if (!gaps_ok) {
+		DEBUG_PRINT("fail due to gaps_ok\n");
 		goto fail;
 	}
 
 	// Reset the accumulated error while on the ground
-	if (u.thrust < 0.37f) {
+	if (u.thrust < 1.0f) {
 		// Magic number comes from un-dividing original constant by CF mass.
 		// Sanity check: It's a lot less than 1g, but not infinitesimal.
-		controllerLeeReset(self);
+		DEBUG_PRINT("fail due to low thrust\n");
+		goto fail;
 	}
 
 	// output to the rest of the world: convert from normalized to
@@ -201,8 +208,9 @@ void controllerLee(
 fail:
 	control->controlMode = controlModeForceTorque;
 	control->thrustSi = 0;
-	// TODO: C
-	// Map3(&control->torque[0]).setZero();
+	control->torque[0] = 0;
+	control->torque[1] = 0;
+	control->torque[2] = 0;
 	controllerLeeReset(self);
 }
 

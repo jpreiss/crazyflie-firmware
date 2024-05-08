@@ -26,6 +26,16 @@ reference parameters instead.
 
 #include "gapsquad.h"
 
+#ifdef CRAZYFLIE_FW
+	extern "C" {
+		#include "debug.h"
+	}
+#else
+	int const EXC_MSG_BUFSZ 512;
+	static char exc_msg_buf[EXC_MSG_BUFSZ] = { 0 };
+	#define DEBUG_PRINT(fmt, ...) printf(fmt, ##__VA_ARGS__)
+#endif
+
 using Theta = Eigen::Array<FLOAT, TDIM, 1>;
 using GapsY = Eigen::Matrix<FLOAT, XDIM, TDIM, Eigen::RowMajor>;
 using Jxx = Eigen::Matrix<FLOAT, XDIM, XDIM, Eigen::RowMajor>;
@@ -422,18 +432,15 @@ extern "C" bool gaps_step(
 		// enforce to be in so(3) Lie algebra
 		Mat skew_part = 0.5 * (in_tangent - in_tangent.transpose());
 
-		#ifndef CRAZYFLIE_FW
 		if (!allclose(skew_part, -skew_part.transpose())) {
-			throw std::runtime_error("skew projection failed.");
+			DEBUG_PRINT("skew projection failed.\n");
 		}
-		#endif
 
 		// go back to tangent space of R
 		y_R_i_M = (xnext.R * skew_part).transpose();
 
 		// FLOAT relative = (y_R_i - y_R.col(i)).norm() / y_R.col(i).norm();
-		// std::cout << "\nto\n" << y_R_i
-			// "\nnorm(change)/norm(before) = " << relative << "\n";
+		// DEBUG_PRINT("skew proj relative %f\n", (double)relative);
 
 		// remember y_R_i_M was a mapped view onto y_R
 		y_R.col(i) = y_R_i;
