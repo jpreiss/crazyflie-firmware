@@ -45,12 +45,16 @@ We added the following:
 #include "gaps.h"
 #include "platform_defaults.h"
 
+
+static float const J[3] = {16.571710e-6, 16.655602e-6, 29.261652e-6};
+static float const arm = ARM_LENGTH / sqrtf(2.0f);
+
 // Global state variable used in the
 // firmware as the only instance and in bindings
 // to hold the default values
 static controllerMellinger_t g_self = {
   .mass = CF_MASS,
-  .massThrust = 132000,
+  .massThrust = 117000,
 
   // XY Position PID
   .kp_xy = 0.4,       // P
@@ -65,19 +69,19 @@ static controllerMellinger_t g_self = {
   .i_range_z  = 0.4,
 
   // Attitude
-  .kR_xy = 70000, // P
-  .kw_xy = 20000, // D
+  .kR_xy = 1660, // P
+  .kw_xy = 475, // D
   .ki_m_xy = 0.0, // I
   .i_range_m_xy = 1.0,
 
   // Yaw
-  .kR_z = 60000, // P
-  .kw_z = 12000, // D
-  .ki_m_z = 500, // I
+  .kR_z = 806, // P
+  .kw_z = 162, // D
+  .ki_m_z = 0.0, // I
   .i_range_m_z  = 1500,
 
   // roll and pitch angular velocity
-  .kd_omega_rp = 200, // D
+  .kd_omega_rp = 4.72, // D
 
 
   // Helper variables
@@ -325,6 +329,10 @@ void controllerMellinger(controllerMellinger_t* self, control_t *control, const 
   M.y = -self->kR_xy * eR.y + self->kw_xy * ew.y + self->ki_m_xy * self->i_error_m_y + self->kd_omega_rp * err_d_pitch;
   M.z = -self->kR_z  * eR.z + self->kw_z  * ew.z + self->ki_m_z  * self->i_error_m_z;
 
+  M.x *= J[0] / arm;
+  M.y *= J[1] / arm;
+  M.z *= J[2] / arm;
+
   // Output
   if (setpoint->mode.z == modeDisable) {
     control->thrust = setpoint->thrust;
@@ -339,9 +347,9 @@ void controllerMellinger(controllerMellinger_t* self, control_t *control, const 
   self->accelz = sensors->acc.z;
 
   if (control->thrust > 0) {
-    control->roll = clamp(M.x, -32000, 32000);
-    control->pitch = clamp(M.y, -32000, 32000);
-    control->yaw = clamp(-M.z, -32000, 32000);
+    control->roll = clamp(self->massThrust * M.x, -32000, 32000);
+    control->pitch = clamp(self->massThrust * M.y, -32000, 32000);
+    control->yaw = clamp(-self->massThrust * M.z, -32000, 32000);
 
     self->cmd_roll = control->roll;
     self->cmd_pitch = control->pitch;
