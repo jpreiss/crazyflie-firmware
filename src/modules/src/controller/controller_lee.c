@@ -157,7 +157,8 @@ void controllerLee(
 		target.y_d = quat2rpy(setpoint_quat).z;
 	}
 	else {
-		DEBUG_PRINT("fail due to unsupported setpoint attitude mode\n");
+		// This happens routinely, i.e. after startup on ground.
+		// DEBUG_PRINT("fail due to unsupported setpoint attitude mode\n");
 		goto fail;
 	}
 
@@ -203,13 +204,6 @@ void controllerLee(
 		goto fail;
 	}
 
-	// Reset the accumulated error while on the ground
-	if (u.thrust < 1.0f) {
-		// Magic number comes from un-dividing original constant by CF mass.
-		// Sanity check: It's a lot less than 1g, but not infinitesimal.
-		DEBUG_PRINT("fail due to low thrust\n");
-		goto fail;
-	}
 	g_log.ki_xy = 1000 * self->gaps.theta.ki_xy;
 	g_log.ki_z  = 1000 * self->gaps.theta.ki_z;
 	g_log.kp_xy = 1000 * self->gaps.theta.kp_xy;
