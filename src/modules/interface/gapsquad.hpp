@@ -110,6 +110,17 @@ Mat hat(Vec const &w)
 	return m;
 }
 
+static Mat93 const Dhat_w = (Mat93() <<
+	 0,  0,  0,
+	 0,  0,  1,
+	 0, -1,  0,
+	 0,  0, -1,
+	 0,  0,  0,
+	 1,  0,  0,
+	 0,  1,  0,
+	-1,  0,  0,
+	 0,  0,  0).finished();
+
 Vec normalize(Vec const &v, Mat &J)
 {
 	FLOAT vn = (FLOAT)1.0 / v.norm();
@@ -140,7 +151,6 @@ void dynamics(
 {
 	Vec g(0, 0, GRAV);
 	Mat I3 = Mat::Identity();
-	Mat99 I9 = Mat99::Identity();
 
 	Vec up = x.R.col(2);
 	Vec acc = u.thrust * up - g;
@@ -153,32 +163,26 @@ void dynamics(
 	// Normally I would use symplectic Euler integration, but plain forward
 	// Euler gives simpler Jacobians.
 
+	auto hatw = hat(x.w);
+	auto exp_dt_hatw = I3 + dt * hatw;
+	auto Dexp_w = dt * Dhat_w;
+
 	x_t.ierr = x.ierr + dt * (x.p - t.p_d);
 	x_t.p = x.p + dt * x.v;
 	x_t.v = x.v + dt * acc;
-	x_t.R = x.R + dt * x.R * hat(x.w);
+	x_t.R = x.R * exp_dt_hatw;
 	x_t.w = x.w + dt * u.torque;
 
 	// TODO: This became trivial after we went from angle state to rotation
 	// matrix -- condense some ops.
 	Mat39 Dvt_R = dt * Dacc_x.block<3, 9>(0, 9);
 
-	Mat99 DRt_R = I9 + dt * kroneckerProduct(hat(-x.w), I3);
+	Mat99 DRt_R = kroneckerProduct(exp_dt_hatw.transpose(), I3);
 
 	Vec Rx, Ry, Rz;
 	colsplit(x.R, Rx, Ry, Rz);
 
-	Mat93 DRt_w;
-	// shift operator constructor transposes everything by itself!
-	// VecT Z31 = Vec::Zero();
-	// DRt_w <<
-		// Z31, -Rz,  Ry,
-		 // Rz, Z31, -Rx,
-		// -Ry,  Rx, Z31;
-	DRt_w.setZero();
-	/* 0 */                                DRt_w.block<3, 1>(0, 1) = -dt * Rz;    DRt_w.block<3, 1>(0, 2) =  dt * Ry;
-	DRt_w.block<3, 1>(3, 0) =  dt * Rz;    /* 0 */                                DRt_w.block<3, 1>(3, 2) = -dt * Rx;
-	DRt_w.block<3, 1>(6, 0) = -dt * Ry;    DRt_w.block<3, 1>(6, 1) =  dt * Rx;    /* 0 */
+	Mat93 DRt_w = kroneckerProduct(I3, x.R) * Dexp_w;
 
 	// auto keeps the expression templates, for possible optimization
 	auto Z33 = Mat::Zero();
