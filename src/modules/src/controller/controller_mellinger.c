@@ -48,6 +48,7 @@ We added the following:
 
 static float const J[3] = {16.571710e-6, 16.655602e-6, 29.261652e-6};
 static float const arm = ARM_LENGTH / sqrtf(2.0f);
+static float const thrustToTorque = 0.005964552f;
 
 // Global state variable used in the
 // firmware as the only instance and in bindings
@@ -75,8 +76,8 @@ static controllerMellinger_t g_self = {
   .i_range_m_xy = 1.0,
 
   // Yaw
-  .kR_z = 806, // P
-  .kw_z = 162, // D
+  .kR_z = 4.8, // P
+  .kw_z = 0.966, // D
   .ki_m_z = 0.0, // I
   .i_range_m_z  = 1500,
 
@@ -350,7 +351,7 @@ void controllerMellinger(controllerMellinger_t* self, control_t *control, const 
   if (control->thrust > 0) {
     control->roll = clamp(self->massThrust * M.x, -32000, 32000);
     control->pitch = clamp(self->massThrust * M.y, -32000, 32000);
-    control->yaw = clamp(-self->massThrust * M.z, -32000, 32000);
+    control->yaw = clamp(-self->massThrust * M.z / thrustToTorque, -32000, 32000);
 
     self->cmd_roll = control->roll;
     self->cmd_pitch = control->pitch;
