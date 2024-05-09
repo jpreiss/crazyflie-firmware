@@ -57,15 +57,15 @@ static controllerMellinger_t g_self = {
   .massThrust = 117000,
 
   // XY Position PID
-  .kp_xy = 0.4,       // P
-  .kd_xy = 0.2,       // D
-  .ki_xy = 0.05,      // I
+  .kp_xy = 12.5,       // P
+  .kd_xy = 6.25,       // D
+  .ki_xy = 1.56,      // I
   .i_range_xy = 2.0,
 
   // Z Position
-  .kp_z = 1.25,       // P
-  .kd_z = 0.4,        // D
-  .ki_z = 0.05,       // I
+  .kp_z = 39.0,       // P
+  .kd_z = 12.5,        // D
+  .ki_z = 1.56,       // I
   .i_range_z  = 0.4,
 
   // Attitude
@@ -208,9 +208,10 @@ void controllerMellinger(controllerMellinger_t* self, control_t *control, const 
       target_thrust.z = self->mass * (setpoint->acceleration.z + GRAVITY_MAGNITUDE) + gaps_u[2];
     }
     else {
-      target_thrust.x = self->mass * setpoint->acceleration.x                       + self->kp_xy * r_error.x + self->kd_xy * v_error.x + self->ki_xy * self->i_error_x;
-      target_thrust.y = self->mass * setpoint->acceleration.y                       + self->kp_xy * r_error.y + self->kd_xy * v_error.y + self->ki_xy * self->i_error_y;
-      target_thrust.z = self->mass * (setpoint->acceleration.z + GRAVITY_MAGNITUDE) + self->kp_z  * r_error.z + self->kd_z  * v_error.z + self->ki_z  * self->i_error_z;
+      target_thrust.x = setpoint->acceleration.x                       + self->kp_xy * r_error.x + self->kd_xy * v_error.x + self->ki_xy * self->i_error_x;
+      target_thrust.y = setpoint->acceleration.y                       + self->kp_xy * r_error.y + self->kd_xy * v_error.y + self->ki_xy * self->i_error_y;
+      target_thrust.z = setpoint->acceleration.z + GRAVITY_MAGNITUDE + self->kp_z  * r_error.z + self->kd_z  * v_error.z + self->ki_z  * self->i_error_z;
+      target_thrust = vscl(self->mass, target_thrust);
     }
   } else {
     target_thrust.x = -sinf(radians(setpoint->attitude.pitch));
