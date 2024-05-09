@@ -84,7 +84,8 @@ static controllerLee_t g_self = {
 			.v = 0.01f,
 			.w = 0.01f,
 			.thrust = 0.01f,
-			.torque = 0.01f
+			.torque = 0.01f,
+			.reg_L2 = 1e-6
 		},
 		.eta = 0.0f,
 		.damping = 0.9999f,
@@ -270,6 +271,7 @@ PARAM_GROUP_START(gaps6DOF)
 	PARAM_ADD(PARAM_FLOAT, Qw, &g_self.gaps.cost_param.w)
 	PARAM_ADD(PARAM_FLOAT, Rthrust, &g_self.gaps.cost_param.thrust)
 	PARAM_ADD(PARAM_FLOAT, Rtorque, &g_self.gaps.cost_param.torque)
+	PARAM_ADD(PARAM_FLOAT, reg_L2, &g_self.gaps.cost_param.reg_L2)
 	PARAM_ADD(PARAM_FLOAT, eta, &g_self.gaps.eta)
 	PARAM_ADD(PARAM_FLOAT, damping, &g_self.gaps.damping)
 	PARAM_ADD(PARAM_FLOAT, ad_decay, &g_self.gaps.ad_decay)
