@@ -163,11 +163,11 @@ void dynamics(
 	// Normally I would use symplectic Euler integration, but plain forward
 	// Euler gives simpler Jacobians.
 
-	auto hatw = hat(x.w);
-	auto exp_dt_hatw = I3 + dt * hatw + (dt * dt / 2) * hatw * hatw;
+	Mat hatw = hat(x.w);
+	Mat exp_dt_hatw = I3 + dt * hatw + (dt * dt / 2) * hatw * hatw;
 
-	auto Dhatw2_hatw = kroneckerProduct(hatw.transpose(), I3) + kroneckerProduct(I3, hatw);
-	auto Dexp_w = dt * Dhat_w + (dt * dt / 2) * (Dhatw2_hatw * Dhat_w);
+	Mat99 Dhatw2_hatw = kroneckerProduct(hatw.transpose(), I3) + kroneckerProduct(I3, hatw);
+	Mat93 Dexp_w = dt * Dhat_w + (dt * dt / 2) * (Dhatw2_hatw * Dhat_w);
 
 	x_t.ierr = x.ierr + dt * (x.p - t.p_d);
 	x_t.p = x.p + dt * x.v;
@@ -401,7 +401,7 @@ extern "C" bool gaps_step(
 
 	// integrate the ierr right away in case we exit due to being disabled.
 	gaps->ierr += dt * (x->p - t->p_d);
-	float const I_LIMIT = 0.5f;
+	FLOAT const I_LIMIT = 0.5f;
 	gaps->ierr = gaps->ierr.array().max(-I_LIMIT).min(I_LIMIT);
 
 	if (!gaps->enable) {
