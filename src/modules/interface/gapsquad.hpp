@@ -164,8 +164,10 @@ void dynamics(
 	// Euler gives simpler Jacobians.
 
 	auto hatw = hat(x.w);
-	auto exp_dt_hatw = I3 + dt * hatw;
-	auto Dexp_w = dt * Dhat_w;
+	auto exp_dt_hatw = I3 + dt * hatw + (dt * dt / 2) * hatw * hatw;
+
+	auto Dhatw2_hatw = kroneckerProduct(hatw.transpose(), I3) + kroneckerProduct(I3, hatw);
+	auto Dexp_w = dt * Dhat_w + (dt * dt / 2) * (Dhatw2_hatw * Dhat_w);
 
 	x_t.ierr = x.ierr + dt * (x.p - t.p_d);
 	x_t.p = x.p + dt * x.v;
