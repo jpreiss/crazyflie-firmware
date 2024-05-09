@@ -289,8 +289,9 @@ void ctrl(
 		-x.ierr[1],          0, -perr[1],        0, -verr[1],        0, 0, 0, 0, 0,
 		         0, -x.ierr[2],        0, -perr[2],        0, -verr[2], 0, 0, 0, 0;
 
-	u.thrust = a.norm();
-	VecT Dthrust_a = (a / u.thrust).transpose();
+	Vec Rz = x.R.col(2);
+	u.thrust = a.dot(Rz);
+	VecT Dthrust_a = Rz.transpose();
 
 	Vec zgoal;
 	Mat Dzgoal_a;
