@@ -35,6 +35,19 @@ SOFTWARE.
 #define FLOAT float
 #include "gapsquad.h"
 
+// fixed-point x1000, for logging
+static struct {
+	uint16_t ki_xy;
+	uint16_t ki_z;
+	uint16_t kp_xy;
+	uint16_t kp_z;
+	uint16_t kv_xy;
+	uint16_t kv_z;
+	uint16_t kr_xy;
+	uint16_t kr_z;
+	uint16_t kw_xy;
+	uint16_t kw_z;
+} g_log;
 
 static controllerLee_t g_self = {
 	.mass = CF_MASS,
@@ -196,6 +209,16 @@ void controllerLee(
 		DEBUG_PRINT("fail due to low thrust\n");
 		goto fail;
 	}
+	g_log.ki_xy = 1000 * self->gaps.theta.ki_xy;
+	g_log.ki_z  = 1000 * self->gaps.theta.ki_z;
+	g_log.kp_xy = 1000 * self->gaps.theta.kp_xy;
+	g_log.kp_z  = 1000 * self->gaps.theta.kp_z;
+	g_log.kv_xy = 1000 * self->gaps.theta.kv_xy;
+	g_log.kv_z  = 1000 * self->gaps.theta.kv_z;
+	g_log.kr_xy = 1000 * self->gaps.theta.kr_xy;
+	g_log.kr_z  = 1000 * self->gaps.theta.kr_z;
+	g_log.kw_xy = 1000 * self->gaps.theta.kw_xy;
+	g_log.kw_z  = 1000 * self->gaps.theta.kw_z;
 
 	// output to the rest of the world: convert from normalized to
 	// mass/inertia-dependent units.
@@ -270,16 +293,16 @@ PARAM_GROUP_STOP(gaps6DOF)
 
 
 LOG_GROUP_START(gaps6DOF)
-	LOG_ADD(LOG_FLOAT, ki_xy, &g_self.gaps.theta.kr_xy)
-	LOG_ADD(LOG_FLOAT, ki_z, &g_self.gaps.theta.kr_z)
-	LOG_ADD(LOG_FLOAT, kp_xy, &g_self.gaps.theta.kr_xy)
-	LOG_ADD(LOG_FLOAT, kp_z, &g_self.gaps.theta.kr_z)
-	LOG_ADD(LOG_FLOAT, kv_xy, &g_self.gaps.theta.kr_xy)
-	LOG_ADD(LOG_FLOAT, kv_z, &g_self.gaps.theta.kr_z)
-	LOG_ADD(LOG_FLOAT, kr_xy, &g_self.gaps.theta.kr_xy)
-	LOG_ADD(LOG_FLOAT, kr_z, &g_self.gaps.theta.kr_z)
-	LOG_ADD(LOG_FLOAT, kw_xy, &g_self.gaps.theta.kr_xy)
-	LOG_ADD(LOG_FLOAT, kw_z, &g_self.gaps.theta.kr_z)
+	LOG_ADD(LOG_UINT16, ki_xy, &g_log.ki_xy)
+	LOG_ADD(LOG_UINT16, ki_z,  &g_log.ki_z)
+	LOG_ADD(LOG_UINT16, kp_xy, &g_log.kp_xy)
+	LOG_ADD(LOG_UINT16, kp_z,  &g_log.kp_z)
+	LOG_ADD(LOG_UINT16, kv_xy, &g_log.kv_xy)
+	LOG_ADD(LOG_UINT16, kv_z,  &g_log.kv_z)
+	LOG_ADD(LOG_UINT16, kr_xy, &g_log.kr_xy)
+	LOG_ADD(LOG_UINT16, kr_z,  &g_log.kr_z)
+	LOG_ADD(LOG_UINT16, kw_xy, &g_log.kw_xy)
+	LOG_ADD(LOG_UINT16, kw_z,  &g_log.kw_z)
 	LOG_ADD(LOG_FLOAT, yabsmax, &g_self.gaps.yabsmax)
 	LOG_ADD(LOG_UINT8, max_row, &g_self.gaps.max_row)
 	LOG_ADD(LOG_UINT8, max_col, &g_self.gaps.max_col)
