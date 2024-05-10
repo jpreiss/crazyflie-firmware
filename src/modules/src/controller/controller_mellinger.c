@@ -55,7 +55,7 @@ static float const thrustToTorque = 0.005964552f;
 // to hold the default values
 static controllerMellinger_t g_self = {
   .mass = CF_MASS,
-  .massThrust = 117000,
+  .massThrust = 468000,
 
   // XY Position PID
   .kp_xy = 12.5,       // P
@@ -70,19 +70,19 @@ static controllerMellinger_t g_self = {
   .i_range_z  = 0.4,
 
   // Attitude
-  .kR_xy = 3320, // P
-  .kw_xy = 950, // D
+  .kR_xy = 830.0, // P
+  .kw_xy = 237.5, // D
   .ki_m_xy = 0.0, // I
   .i_range_m_xy = 1.0,
 
   // Yaw
-  .kR_z = 588.0, // P
-  .kw_z = 118.8, // D
+  .kR_z = 147.0, // P
+  .kw_z = 29.7, // D
   .ki_m_z = 0.0, // I
   .i_range_m_z  = 1500,
 
   // roll and pitch angular velocity
-  .kd_omega_rp = 9.44, // D
+  .kd_omega_rp = 2.36, // D
 
 
   // Helper variables
@@ -342,6 +342,7 @@ void controllerMellinger(controllerMellinger_t* self, control_t *control, const 
   M.x *= 0.5f / arm;
   M.y *= 0.5f / arm;
   M.z *= -0.25f / thrustToTorque;
+  current_thrust *= 0.25f;
 
   // Output
   if (setpoint->mode.z == modeDisable) {
