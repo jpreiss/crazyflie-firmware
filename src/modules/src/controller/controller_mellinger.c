@@ -156,8 +156,6 @@ void controllerMellinger(controllerMellinger_t* self, control_t *control, const 
   float dt;
   float desiredYaw = 0; //deg
 
-  control->controlMode = controlModeLegacy;
-
   if (!RATE_DO_EXECUTE(ATTITUDE_RATE, stabilizerStep)) {
     return;
   }
