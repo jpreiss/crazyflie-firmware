@@ -47,8 +47,6 @@ We added the following:
 
 
 static float const J[3] = {16.571710e-6, 16.655602e-6, 29.261652e-6};
-static float const arm = ARM_LENGTH / sqrtf(2.0f);
-static float const thrustToTorque = 0.005964552f;
 
 // Global state variable used in the
 // firmware as the only instance and in bindings
@@ -291,19 +289,16 @@ void controllerMellinger(controllerMellinger_t* self, control_t *control, const 
   eR.y = x_axis_desired.z - self->z_axis_desired.x - 2*(fsqr(x)*x_axis_desired.z + y*(x_axis_desired.z*y - x_axis_desired.y*z) - (fsqr(y) + fsqr(z))*self->z_axis_desired.x + x*(-(x_axis_desired.x*z) + y*self->z_axis_desired.y + z*self->z_axis_desired.z) + w*(x*x_axis_desired.y + z*self->z_axis_desired.y - y*(x_axis_desired.x + self->z_axis_desired.z)));
   eR.z = y_axis_desired.x - 2*(y*(x*x_axis_desired.x + y*y_axis_desired.x - x*y_axis_desired.y) + w*(x*x_axis_desired.z + y*y_axis_desired.z)) + 2*(-(x_axis_desired.z*y) + w*(x_axis_desired.x + y_axis_desired.y) + x*y_axis_desired.z)*z - 2*y_axis_desired.x*fsqr(z) + x_axis_desired.y*(-1 + 2*fsqr(x) + 2*fsqr(z));
 
-  // Account for Crazyflie coordinate system
-  eR.y = -eR.y;
-
   // [ew]
   float err_d_roll = 0;
   float err_d_pitch = 0;
 
   float stateAttitudeRateRoll = radians(sensors->gyro.x);
-  float stateAttitudeRatePitch = -radians(sensors->gyro.y);
+  float stateAttitudeRatePitch = radians(sensors->gyro.y);
   float stateAttitudeRateYaw = radians(sensors->gyro.z);
 
   ew.x = radians(setpoint->attitudeRate.roll) - stateAttitudeRateRoll;
-  ew.y = -radians(setpoint->attitudeRate.pitch) - stateAttitudeRatePitch;
+  ew.y = radians(setpoint->attitudeRate.pitch) - stateAttitudeRatePitch;
   ew.z = radians(setpoint->attitudeRate.yaw) - stateAttitudeRateYaw;
   if (self->prev_omega_roll == self->prev_omega_roll) { /*d part initialized*/
     err_d_roll = ((radians(setpoint->attitudeRate.roll) - self->prev_setpoint_omega_roll) - (stateAttitudeRateRoll - self->prev_omega_roll)) / dt;
@@ -351,7 +346,7 @@ void controllerMellinger(controllerMellinger_t* self, control_t *control, const 
 
   self->cmd_thrust = control->thrust;
   self->r_roll = radians(sensors->gyro.x);
-  self->r_pitch = -radians(sensors->gyro.y);
+  self->r_pitch = radians(sensors->gyro.y);
   self->r_yaw = radians(sensors->gyro.z);
   self->accelz = sensors->acc.z;
 
@@ -364,7 +359,7 @@ void controllerMellinger(controllerMellinger_t* self, control_t *control, const 
     // seems that ultra-high attitude gain with fairly aggressive clamping is
     // the secret to this controller tune's performance.
     control->torqueX = M.x;
-    control->torqueY = -M.y;
+    control->torqueY = M.y;
     control->torqueZ = M.z;
     //control->roll = clamp(self->massThrust * M.x, -32000, 32000);
     //control->pitch = clamp(self->massThrust * M.y, -32000, 32000);
