@@ -37,6 +37,7 @@ We added the following:
 
 #include <math.h>
 
+#include "math3d.h"
 #include "param.h"
 #include "log.h"
 #include "position_controller.h"
@@ -358,9 +359,11 @@ void controllerMellinger(controllerMellinger_t* self, control_t *control, const 
     // from disturbances (too much lift sacrificed to get large moments). It
     // seems that ultra-high attitude gain with fairly aggressive clamping is
     // the secret to this controller tune's performance.
-    control->torqueX = M.x;
-    control->torqueY = M.y;
-    control->torqueZ = M.z;
+    #define RP_LIM 0.00445f
+    #define Y_LIM 0.00163f
+    control->torqueX = clamp(M.x, -RP_LIM, RP_LIM);
+    control->torqueY = clamp(M.y, -RP_LIM, RP_LIM);
+    control->torqueZ = clamp(M.z, -Y_LIM, Y_LIM);
     //control->roll = clamp(self->massThrust * M.x, -32000, 32000);
     //control->pitch = clamp(self->massThrust * M.y, -32000, 32000);
     //control->yaw = clamp(self->massThrust * M.z, -32000, 32000);
