@@ -91,22 +91,15 @@ static void powerDistributionLegacy(const control_t *control, motors_thrust_unca
   motorThrustUncapped->motors.m4 = control->thrust + r + p - control->yaw;
 }
 
-static float const massThrust = 468000;
-
 static void powerDistributionForceTorque(const control_t *control, motors_thrust_uncapped_t* motorThrustUncapped) {
   static float motorForces[STABILIZER_NR_OF_MOTORS];
 
   const float arm = 0.707106781f * armLength;
 
-  float rollPart = (0.25f * massThrust / arm) * control->torqueX;
-  float pitchPart = (0.25f * massThrust / arm) * control->torqueY;
-  float yawPart = (0.25f * massThrust / thrustToTorque) * control->torqueZ;
-  float thrustPart = (0.25f * massThrust) * control->thrustSi; // N (per rotor)
-
-  rollPart /= massThrust;
-  pitchPart /= massThrust;
-  yawPart /= massThrust;
-  thrustPart /= massThrust;
+  float const rollPart = (0.25f / arm) * control->torqueX;
+  float const pitchPart = (0.25f / arm) * control->torqueY;
+  float const yawPart = (0.25f / thrustToTorque) * control->torqueZ;
+  float const thrustPart = 0.25f * control->thrustSi; // N (per rotor)
 
   motorForces[0] = thrustPart - rollPart - pitchPart - yawPart;
   motorForces[1] = thrustPart - rollPart + pitchPart + yawPart;
