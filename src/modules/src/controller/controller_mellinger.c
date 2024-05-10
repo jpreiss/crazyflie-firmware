@@ -76,8 +76,8 @@ static controllerMellinger_t g_self = {
   .i_range_m_xy = 1.0,
 
   // Yaw
-  .kR_z = 4.8, // P
-  .kw_z = 0.966, // D
+  .kR_z = 147, // P
+  .kw_z = 29.7, // D
   .ki_m_z = 0.0, // I
   .i_range_m_z  = 1500,
 
@@ -333,7 +333,7 @@ void controllerMellinger(controllerMellinger_t* self, control_t *control, const 
 
   M.x *= J[0] / arm;
   M.y *= J[1] / arm;
-  M.z *= J[2] / arm;
+  M.z *= J[2];
 
   // Output
   if (setpoint->mode.z == modeDisable) {
