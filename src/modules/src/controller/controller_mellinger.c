@@ -331,9 +331,10 @@ void controllerMellinger(controllerMellinger_t* self, control_t *control, const 
   M.y = -self->kR_xy * eR.y + self->kw_xy * ew.y + self->ki_m_xy * self->i_error_m_y + self->kd_omega_rp * err_d_pitch;
   M.z = -self->kR_z  * eR.z + self->kw_z  * ew.z + self->ki_m_z  * self->i_error_m_z;
 
+  // This is simulating what powerDistributionSI would do for us
   M.x *= J[0] / arm;
   M.y *= J[1] / arm;
-  M.z *= J[2];
+  M.z *= J[2] / thrustToTorque;
 
   // Output
   if (setpoint->mode.z == modeDisable) {
@@ -351,7 +352,7 @@ void controllerMellinger(controllerMellinger_t* self, control_t *control, const 
   if (control->thrust > 0) {
     control->roll = clamp(self->massThrust * M.x, -32000, 32000);
     control->pitch = clamp(self->massThrust * M.y, -32000, 32000);
-    control->yaw = clamp(-self->massThrust * M.z / thrustToTorque, -32000, 32000);
+    control->yaw = clamp(-self->massThrust * M.z, -32000, 32000);
 
     self->cmd_roll = control->roll;
     self->cmd_pitch = control->pitch;
