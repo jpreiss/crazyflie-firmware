@@ -33,6 +33,7 @@
 #include "autoconf.h"
 #include "config.h"
 #include "math.h"
+#include "math3d.h"
 #include "platform_defaults.h"
 
 #ifndef CONFIG_MOTORS_DEFAULT_IDLE_THRUST
@@ -90,14 +91,21 @@ static void powerDistributionLegacy(const control_t *control, motors_thrust_unca
   motorThrustUncapped->motors.m4 = control->thrust + r + p - control->yaw;
 }
 
+static float const massThrust = 468000;
+static float si2leg(float x)
+{
+  return clamp(massThrust * x, -32000, 32000);
+}
+
 static void powerDistributionForceTorque(const control_t *control, motors_thrust_uncapped_t* motorThrustUncapped) {
   static float motorForces[STABILIZER_NR_OF_MOTORS];
 
+
   const float arm = 0.707106781f * armLength;
-  const float rollPart = 0.25f / arm * control->torqueX;
-  const float pitchPart = 0.25f / arm * control->torqueY;
-  const float thrustPart = 0.25f * control->thrustSi; // N (per rotor)
-  const float yawPart = 0.25f * control->torqueZ / thrustToTorque;
+  const float rollPart = 0.5f * si2leg(0.5f * control->torqueX / arm);
+  const float pitchPart = 0.5f * si2leg(0.5f * control->torqueY / arm);
+  const float thrustPart = 0.25f * massThrust * control->thrustSi; // N (per rotor)
+  const float yawPart = si2leg(0.25f * control->torqueZ / thrustToTorque);
 
   motorForces[0] = thrustPart - rollPart - pitchPart - yawPart;
   motorForces[1] = thrustPart - rollPart + pitchPart + yawPart;
@@ -110,8 +118,9 @@ static void powerDistributionForceTorque(const control_t *control, motors_thrust
       motorForce = 0.0f;
     }
 
-    float motor_pwm = (-pwmToThrustB + sqrtf(pwmToThrustB * pwmToThrustB + 4.0f * pwmToThrustA * motorForce)) / (2.0f * pwmToThrustA);
-    motorThrustUncapped->list[motorIndex] = motor_pwm * UINT16_MAX;
+    motorThrustUncapped->list[motorIndex] = motorForce;
+    //float motor_pwm = (-pwmToThrustB + sqrtf(pwmToThrustB * pwmToThrustB + 4.0f * pwmToThrustA * motorForce)) / (2.0f * pwmToThrustA);
+    //motorThrustUncapped->list[motorIndex] = motor_pwm * UINT16_MAX;
   }
 }
 

@@ -339,10 +339,10 @@ void controllerMellinger(controllerMellinger_t* self, control_t *control, const 
   // Legacy divides roll/pitch by 2 when it should divide by 4 and doesn't
   // scale yaw at all when it should also divide by 4. SI will divide by 4 and
   // account for arm and thrustToTorque, but not account for moment of inertia.
-  M.x *= 0.5f / arm;
-  M.y *= 0.5f / arm;
-  M.z *= -0.25f / thrustToTorque;
-  current_thrust *= 0.25f;
+  //M.x *= 0.5f / arm;
+  //M.y *= 0.5f / arm;
+  //M.z *= -0.25f / thrustToTorque;
+  //current_thrust *= 0.25f;
 
   // Output
   if (setpoint->mode.z == modeDisable) {
@@ -358,9 +358,14 @@ void controllerMellinger(controllerMellinger_t* self, control_t *control, const 
   self->accelz = sensors->acc.z;
 
   if (control->thrust > 0) {
-    control->roll = clamp(self->massThrust * M.x, -32000, 32000);
-    control->pitch = clamp(self->massThrust * M.y, -32000, 32000);
-    control->yaw = clamp(self->massThrust * M.z, -32000, 32000);
+    control->controlMode = controlModeForceTorque;
+    control->thrustSi = current_thrust;
+    control->torqueX = M.x;
+    control->torqueY = -M.y;
+    control->torqueZ = M.z;
+    //control->roll = clamp(self->massThrust * M.x, -32000, 32000);
+    //control->pitch = clamp(self->massThrust * M.y, -32000, 32000);
+    //control->yaw = clamp(self->massThrust * M.z, -32000, 32000);
 
     self->cmd_roll = control->roll;
     self->cmd_pitch = control->pitch;
