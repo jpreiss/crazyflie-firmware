@@ -70,19 +70,19 @@ static controllerMellinger_t g_self = {
   .i_range_z  = 0.4,
 
   // Attitude
-  .kR_xy = 1660, // P
-  .kw_xy = 475, // D
+  .kR_xy = 3320, // P
+  .kw_xy = 950, // D
   .ki_m_xy = 0.0, // I
   .i_range_m_xy = 1.0,
 
   // Yaw
-  .kR_z = 147, // P
-  .kw_z = 29.7, // D
+  .kR_z = 588.0, // P
+  .kw_z = 118.8, // D
   .ki_m_z = 0.0, // I
   .i_range_m_z  = 1500,
 
   // roll and pitch angular velocity
-  .kd_omega_rp = 4.72, // D
+  .kd_omega_rp = 9.44, // D
 
 
   // Helper variables
@@ -331,10 +331,17 @@ void controllerMellinger(controllerMellinger_t* self, control_t *control, const 
   M.y = -self->kR_xy * eR.y + self->kw_xy * ew.y + self->ki_m_xy * self->i_error_m_y + self->kd_omega_rp * err_d_pitch;
   M.z = -self->kR_z  * eR.z + self->kw_z  * ew.z + self->ki_m_z  * self->i_error_m_z;
 
-  // This is simulating what powerDistributionSI would do for us
-  M.x *= J[0] / arm;
-  M.y *= J[1] / arm;
-  M.z *= J[2] / thrustToTorque;
+  M.x *= J[0];
+  M.y *= J[1];
+  M.z *= J[2];
+
+  // This is undoing the effect of tuning gains for the wrongness of legacy.
+  // Legacy divides roll/pitch by 2 when it should divide by 4 and doesn't
+  // scale yaw at all when it should also divide by 4. SI will divide by 4 and
+  // account for arm and thrustToTorque, but not account for moment of inertia.
+  M.x *= 0.5f / arm;
+  M.y *= 0.5f / arm;
+  M.z *= -0.25f / thrustToTorque;
 
   // Output
   if (setpoint->mode.z == modeDisable) {
@@ -352,7 +359,7 @@ void controllerMellinger(controllerMellinger_t* self, control_t *control, const 
   if (control->thrust > 0) {
     control->roll = clamp(self->massThrust * M.x, -32000, 32000);
     control->pitch = clamp(self->massThrust * M.y, -32000, 32000);
-    control->yaw = clamp(-self->massThrust * M.z, -32000, 32000);
+    control->yaw = clamp(self->massThrust * M.z, -32000, 32000);
 
     self->cmd_roll = control->roll;
     self->cmd_pitch = control->pitch;
