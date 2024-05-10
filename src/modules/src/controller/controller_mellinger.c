@@ -358,6 +358,11 @@ void controllerMellinger(controllerMellinger_t* self, control_t *control, const 
   if (control->thrust > 0) {
     control->controlMode = controlModeForceTorque;
     control->thrustSi = current_thrust;
+    // Note the clamping has been moved to power distribution, but it's very
+    // important! Without it we will still hover OK but be unable to recover
+    // from disturbances (too much lift sacrificed to get large moments). It
+    // seems that ultra-high attitude gain with fairly aggressive clamping is
+    // the secret to this controller tune's performance.
     control->torqueX = M.x;
     control->torqueY = -M.y;
     control->torqueZ = M.z;
