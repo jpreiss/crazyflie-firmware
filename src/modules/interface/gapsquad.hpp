@@ -282,6 +282,8 @@ void ctrl(
 	Vec const feedback = - (ki * x.ierr) - (kp * perr) - (kv * verr);
 	Vec const a = feedback + t.a_d + g;
 
+	// MEL DIFF: mel clamps I terms
+
 	Da_x << -(ki * I), -(kp * I), -(kv * I), Eigen::Matrix<FLOAT, 3, 9 + 3>::Zero();
 
 	Da_th <<
@@ -356,6 +358,8 @@ void ctrl(
 
 	Vec const ew = x.w - t.w_d;
 	u.torque = -(kr * er) - (kw * ew);
+
+	// MEL DIFF: derivative term on omega
 
 	// controller chain rules
 	auto const Dthrust_x = Dthrust_a * Da_x;
