@@ -100,12 +100,17 @@ static float si2leg(float x)
 static void powerDistributionForceTorque(const control_t *control, motors_thrust_uncapped_t* motorThrustUncapped) {
   static float motorForces[STABILIZER_NR_OF_MOTORS];
 
-
   const float arm = 0.707106781f * armLength;
-  const float rollPart = 0.5f * si2leg(0.5f * control->torqueX / arm);
-  const float pitchPart = 0.5f * si2leg(0.5f * control->torqueY / arm);
-  const float thrustPart = 0.25f * massThrust * control->thrustSi; // N (per rotor)
-  const float yawPart = si2leg(0.25f * control->torqueZ / thrustToTorque);
+
+  float rollPart = 0.5f * si2leg(0.5f * control->torqueX / arm);
+  float pitchPart = 0.5f * si2leg(0.5f * control->torqueY / arm);
+  float yawPart = si2leg(0.25f * control->torqueZ / thrustToTorque);
+  float thrustPart = 0.25f * massThrust * control->thrustSi; // N (per rotor)
+
+  rollPart /= massThrust;
+  pitchPart /= massThrust;
+  yawPart /= massThrust;
+  thrustPart /= massThrust;
 
   motorForces[0] = thrustPart - rollPart - pitchPart - yawPart;
   motorForces[1] = thrustPart - rollPart + pitchPart + yawPart;
@@ -118,9 +123,8 @@ static void powerDistributionForceTorque(const control_t *control, motors_thrust
       motorForce = 0.0f;
     }
 
-    motorThrustUncapped->list[motorIndex] = motorForce;
-    //float motor_pwm = (-pwmToThrustB + sqrtf(pwmToThrustB * pwmToThrustB + 4.0f * pwmToThrustA * motorForce)) / (2.0f * pwmToThrustA);
-    //motorThrustUncapped->list[motorIndex] = motor_pwm * UINT16_MAX;
+    float motor_pwm = (-pwmToThrustB + sqrtf(pwmToThrustB * pwmToThrustB + 4.0f * pwmToThrustA * motorForce)) / (2.0f * pwmToThrustA);
+    motorThrustUncapped->list[motorIndex] = motor_pwm * UINT16_MAX;
   }
 }
 
