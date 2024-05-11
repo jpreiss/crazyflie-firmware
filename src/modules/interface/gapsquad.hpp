@@ -291,9 +291,13 @@ void ctrl(
 		-x.ierr[1],          0, -perr[1],        0, -verr[1],        0, 0, 0, 0, 0,
 		         0, -x.ierr[2],        0, -perr[2],        0, -verr[2], 0, 0, 0, 0;
 
-	Vec Rz = x.R.col(2);
+	Vec const Rz = x.R.col(2);
 	u.thrust = a.dot(Rz);
-	VecT Dthrust_a = Rz.transpose();
+	VecT const Dthrust_a = Rz.transpose();
+	auto Dthrust_xRpart = (Eigen::Matrix<FLOAT, 1, XDIM>() <<
+		Eigen::Matrix<FLOAT, 1, 3 + 3 + 3 + 3 + 3>::Zero(),
+	//                          i   p   v  Rx  Ry
+		a.transpose()).finished();
 
 	Vec zgoal;
 	Mat Dzgoal_a;
@@ -359,7 +363,7 @@ void ctrl(
 	// MEL DIFF: derivative term on omega
 
 	// controller chain rules
-	auto const Dthrust_x = Dthrust_a * Da_x;
+	auto const Dthrust_x = Dthrust_a * Da_x + Dthrust_xRpart;
 	auto const Dthrust_th = Dthrust_a * Da_th;
 
 	Der_x.setZero();

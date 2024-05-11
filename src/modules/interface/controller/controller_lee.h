@@ -33,7 +33,6 @@ typedef float FLOAT;
 typedef struct controllerLee_s {
     // system ID needed to convert normalized units to SI units
     float mass;
-    float arm;
     // Inertia matrix (diagonal matrix); kg m^2
     struct vec J;
 
