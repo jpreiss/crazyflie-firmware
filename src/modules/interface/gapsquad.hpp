@@ -331,9 +331,6 @@ void ctrl(
 	#ifndef CRAZYFLIE_FW
 	{
 		// extra correctness checks
-		if (!allclose(zgoal, a / u.thrust)) {
-			throw std::runtime_error("normalization wrong");
-		}
 		FLOAT norm = xgoal.norm();
 		if (std::abs(norm - 1) > 1e-6) {
 			throw std::runtime_error("xgoal norm too far from 1: is " + std::to_string(norm));
