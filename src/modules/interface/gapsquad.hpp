@@ -50,6 +50,8 @@ using Mat39 = Eigen::Matrix<FLOAT, 3, 9>;
 using Mat93 = Eigen::Matrix<FLOAT, 9, 3>;
 using Mat99 = Eigen::Matrix<FLOAT, 9, 9>;
 using VecT = Eigen::Matrix<FLOAT, 1, 3>;
+using Diag = Eigen::DiagonalMatrix<FLOAT, 3>;
+using Arr3 = Eigen::Array<FLOAT, 3, 1>;
 
 void colsplit(Mat const &m, Vec &x, Vec &y, Vec &z)
 {
@@ -269,7 +271,6 @@ void ctrl(
 	Vec const g(0, 0, GRAV);
 	Mat const I = Mat::Identity();
 
-	using Diag = Eigen::DiagonalMatrix<FLOAT, 3>;
 	Diag const ki(th.ki_xy, th.ki_xy, th.ki_z);
 	Diag const kp(th.kp_xy, th.kp_xy, th.kp_z);
 	Diag const kv(th.kv_xy, th.kv_xy, th.kv_z);
@@ -358,7 +359,14 @@ void ctrl(
 	Vec const er = SO3error(x.R, Rd, Der_R, Der_Rd);
 
 	Vec const ew = x.w - t.w_d;
-	u.torque = -(kr * er) - (kw * ew);
+	Arr3 const dw_raw = -(kr * er) - (kw * ew);
+	static FLOAT constexpr RP_LIM = 268;
+	static FLOAT constexpr Y_LIM = 56;
+	Arr3 const dw_lims(RP_LIM, RP_LIM, Y_LIM);
+	Arr3 const dw = dw_lims * (dw_raw / dw_lims).tanh();
+	u.torque = dw.matrix();
+	Diag const Ddw_dwraw =
+		(dw_raw.array() / dw_lims).cosh().square().inverse().matrix().asDiagonal();
 
 	// MEL DIFF: derivative term on omega
 
@@ -374,12 +382,14 @@ void ctrl(
 
 	Dtorque_x = -(kr * Der_x);
 	Dtorque_x.block<3, 3>(0, 3 + 3 + 3 + 9) -= kw * I;
+	Dtorque_x = Ddw_dwraw * Dtorque_x;
 
 	Dtorque_th = -(kr * Der_th); // indirect part
 	Dtorque_th += (Eigen::Matrix<FLOAT, 3, TDIM>() <<
 		0, 0, 0, 0, 0, 0, -er[0],      0, -ew[0],      0,
 		0, 0, 0, 0, 0, 0, -er[1],      0, -ew[1],      0,
 		0, 0, 0, 0, 0, 0,      0, -er[2],      0, -ew[2]).finished();
+	Dtorque_th = Ddw_dwraw * Dtorque_th;
 
 	Du_x << Dthrust_x, Dtorque_x;
 	Du_th << Dthrust_th, Dtorque_th;

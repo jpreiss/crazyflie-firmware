@@ -229,11 +229,7 @@ void controllerLee(
 	control->controlMode = controlModeForceTorque;
 	control->thrustSi = self->mass * u.thrust;
 	struct vec torque = veltmul(self->J, u.torque);
-	#define RP_LIM 0.00445f
-	#define Y_LIM 0.00163f
-	control->torqueX = RP_LIM * tanhf(torque.x / RP_LIM);
-	control->torqueY = RP_LIM * tanhf(torque.y / RP_LIM);
-	control->torqueZ = Y_LIM * tanhf(torque.z / Y_LIM);
+	vstoref(torque, &control->torque[0]);
 	return;
 
 fail:
