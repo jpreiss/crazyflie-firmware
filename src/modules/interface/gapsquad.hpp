@@ -284,8 +284,6 @@ void ctrl(
 	Vec const feedback = - (ki * x.ierr) - (kp * perr) - (kv * verr);
 	Vec const a = feedback + t.a_d + g;
 
-	// MEL DIFF: mel clamps I terms
-
 	Da_x << -(ki * I), -(kp * I), -(kv * I), Eigen::Matrix<FLOAT, 3, 9 + 3>::Zero();
 
 	Da_th <<
@@ -368,8 +366,6 @@ void ctrl(
 	Diag const Ddw_dwraw =
 		(dw_raw.array() / dw_lims).cosh().square().inverse().matrix().asDiagonal();
 
-	// MEL DIFF: derivative term on omega
-
 	// controller chain rules
 	auto const Dthrust_x = Dthrust_a * Da_x + Dthrust_xRpart;
 	auto const Dthrust_th = Dthrust_a * Da_th;
@@ -406,6 +402,14 @@ static Jxu Dx_u;
 static Gcx Dc_x;
 static Gcu Dc_u;
 
+template <typename T>
+T clampsym(T const &x, T const &absmax)
+{
+	if (x < -absmax) return -absmax;
+	if (x > absmax) return absmax;
+	return x;
+}
+
 extern "C" bool gaps_step(
 	struct GAPS *gaps,
 	struct State const *x,
@@ -417,8 +421,9 @@ extern "C" bool gaps_step(
 
 	// integrate the ierr right away in case we exit due to being disabled.
 	gaps->ierr += dt * (x->p - t->p_d);
-	FLOAT const I_LIMIT = 0.5f;
-	gaps->ierr = gaps->ierr.array().max(-I_LIMIT).min(I_LIMIT);
+	gaps->ierr[0] = clampsym(gaps->ierr[0], 2.0f);
+	gaps->ierr[1] = clampsym(gaps->ierr[1], 2.0f);
+	gaps->ierr[2] = clampsym(gaps->ierr[2], 0.4f);
 
 	if (!gaps->enable) {
 		return true;
