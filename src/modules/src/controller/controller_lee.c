@@ -38,7 +38,6 @@ SOFTWARE.
 
 static controllerLee_t g_self = {
 	.mass = CF_MASS,
-	.arm = ARM_LENGTH,
 
 	// Inertia matrix (diagonal matrix), see
 	// System Identification of the Crazyflie 2.0 Nano Quadrocopter
@@ -201,7 +200,7 @@ void controllerLee(
 	// mass/inertia-dependent units.
 	control->controlMode = controlModeForceTorque;
 	control->thrustSi = self->mass * u.thrust;
-	struct vec torque = vscl(1.0f / self->arm, veltmul(self->J, u.torque));
+	struct vec torque = veltmul(self->J, u.torque);
 	vstoref(torque, &control->torque[0]);
 	return;
 
