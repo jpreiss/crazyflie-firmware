@@ -54,7 +54,6 @@ static float const J[3] = {16.571710e-6, 16.655602e-6, 29.261652e-6};
 // to hold the default values
 static controllerMellinger_t g_self = {
   .mass = CF_MASS,
-  .massThrust = 468000,
 
   // XY Position PID
   .kp_xy = 12.5,       // P
@@ -338,13 +337,6 @@ void controllerMellinger(controllerMellinger_t* self, control_t *control, const 
   //M.z *= -0.25f / thrustToTorque;
   //current_thrust *= 0.25f;
 
-  // Output
-  if (setpoint->mode.z == modeDisable) {
-    control->thrust = setpoint->thrust;
-  } else {
-    control->thrust = self->massThrust * current_thrust;
-  }
-
   self->cmd_thrust = control->thrust;
   self->r_roll = radians(sensors->gyro.x);
   self->r_pitch = radians(sensors->gyro.y);
@@ -354,19 +346,11 @@ void controllerMellinger(controllerMellinger_t* self, control_t *control, const 
   if (control->thrust > 0) {
     control->controlMode = controlModeForceTorque;
     control->thrustSi = current_thrust;
-    // Note the clamping has been moved to power distribution, but it's very
-    // important! Without it we will still hover OK but be unable to recover
-    // from disturbances (too much lift sacrificed to get large moments). It
-    // seems that ultra-high attitude gain with fairly aggressive clamping is
-    // the secret to this controller tune's performance.
     #define RP_LIM 0.00445f
     #define Y_LIM 0.00163f
     control->torqueX = RP_LIM * tanhf(M.x / RP_LIM);
     control->torqueY = RP_LIM * tanhf(M.y / RP_LIM);
     control->torqueZ = Y_LIM * tanhf(M.z / Y_LIM);
-    //control->roll = clamp(self->massThrust * M.x, -32000, 32000);
-    //control->pitch = clamp(self->massThrust * M.y, -32000, 32000);
-    //control->yaw = clamp(self->massThrust * M.z, -32000, 32000);
 
     self->cmd_roll = control->roll;
     self->cmd_pitch = control->pitch;
@@ -445,10 +429,6 @@ PARAM_ADD(PARAM_FLOAT | PARAM_PERSISTENT, i_range_z, &g_self.i_range_z)
  * @brief total mass [kg]
  */
 PARAM_ADD_CORE(PARAM_FLOAT | PARAM_PERSISTENT, mass, &g_self.mass)
-/**
- * @brief Force to PWM stretch factor
- */
-PARAM_ADD_CORE(PARAM_FLOAT | PARAM_PERSISTENT, massThrust, &g_self.massThrust)
 /**
  * @brief Attitude P-gain (roll and pitch)
  */
