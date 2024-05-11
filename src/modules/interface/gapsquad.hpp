@@ -259,6 +259,7 @@ static Eigen::Matrix<FLOAT, 3, XDIM> Der_x;
 static Eigen::Matrix<FLOAT, 3, TDIM> Der_th;
 static Eigen::Matrix<FLOAT, 3, XDIM> Dtorque_x;
 static Eigen::Matrix<FLOAT, 3, TDIM> Dtorque_th;
+static Eigen::Matrix<FLOAT, 1, XDIM> Dthrust_xRpart;
 
 void ctrl(
 	State const &x, Target const &t, Param const &th, // inputs
@@ -294,10 +295,9 @@ void ctrl(
 	Vec const Rz = x.R.col(2);
 	u.thrust = a.dot(Rz);
 	VecT const Dthrust_a = Rz.transpose();
-	auto Dthrust_xRpart = (Eigen::Matrix<FLOAT, 1, XDIM>() <<
-		Eigen::Matrix<FLOAT, 1, 3 + 3 + 3 + 3 + 3>::Zero(),
+	Dthrust_xRpart <<
+		Eigen::Matrix<FLOAT, 1, 3 + 3 + 3 + 3 + 3>::Zero(), a.transpose(), VecT::Zero();
 	//                          i   p   v  Rx  Ry
-		a.transpose()).finished();
 
 	Vec zgoal;
 	Mat Dzgoal_a;
