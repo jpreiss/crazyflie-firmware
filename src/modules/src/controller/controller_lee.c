@@ -58,9 +58,6 @@ static controllerLee_t g_self = {
 	// https://polybox.ethz.ch/index.php/s/20dde63ee00ffe7085964393a55a91c7
 	.J = {16.571710e-6, 16.655602e-6, 29.261652e-6}, // kg m^2
 
-	.kdw_xy = 0.0f,
-	.prev_w_err = {0.0f, 0.0f, 0.0f},
-
 	.gaps = {
 		// main state
 		.ierr = {
@@ -185,6 +182,7 @@ void controllerLee(
 	);
 
 	x.ierr = self->gaps.ierr;
+	x.werr = self->gaps.prev_w_err;
 	x.p = mkvec(state->position.x, state->position.y, state->position.z);
 	x.v = mkvec(state->velocity.x, state->velocity.y, state->velocity.z);
 	x.R = quat2rotmat(mkquat(
@@ -205,13 +203,6 @@ void controllerLee(
 		DEBUG_PRINT("fail due to gaps_ok\n");
 		goto fail;
 	}
-
-	// TODO: is it ok to keep this out of the GAPS dynamics model?
-	struct vec w_err = vsub(x.w, target.w_d);
-	struct vec dw_err = vscl(1.0f / dt, vsub(w_err, self->prev_w_err));
-	dw_err.z = 0.0f;
-	u.torque = vsub(u.torque, vscl(self->kdw_xy, dw_err));
-	self->prev_w_err = w_err;
 
 	g_log.ki_xy = 1000 * self->gaps.theta.ki_xy;
 	g_log.ki_z  = 1000 * self->gaps.theta.ki_z;
@@ -291,7 +282,7 @@ PARAM_GROUP_START(gaps6DOF)
 	PARAM_ADD(PARAM_FLOAT, kr_z, &g_self.gaps.theta.kr_z)
 	PARAM_ADD(PARAM_FLOAT, kw_xy, &g_self.gaps.theta.kw_xy)
 	PARAM_ADD(PARAM_FLOAT, kw_z, &g_self.gaps.theta.kw_z)
-	PARAM_ADD(PARAM_FLOAT, kdw_xy, &g_self.kdw_xy)
+	PARAM_ADD(PARAM_FLOAT, kdw_xy, &g_self.gaps.theta.kdw_xy)
 
 	// SystemID params
 	PARAM_ADD(PARAM_FLOAT, mass, &g_self.mass)

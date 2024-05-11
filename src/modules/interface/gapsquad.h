@@ -13,7 +13,7 @@
 // precision. We need double for debugging and single for running on firmware.
 
 // externally visible types / constants
-#define XDIM (3 + 3 + 3 + 9 + 3)
+#define XDIM (3 + 3 + 3 + 9 + 3)  // dwerr not included - yet !!!
 #define UDIM (1 + 3)
 // 5 params, each with xy and z variants
 #define TDIM (2 * 5)
@@ -34,12 +34,12 @@
 	//typedef FLOAT[UDIM][XDIM] Jux;
 #endif
 
-struct State { Vec ierr; Vec p; Vec v; Mat R; Vec w; };
+struct State { Vec ierr; Vec p; Vec v; Mat R; Vec w; Vec werr; };
 struct Action { FLOAT thrust; Vec torque; };
 struct Target { Vec p_d; Vec v_d; Vec a_d; FLOAT y_d; Vec w_d; };
 struct Param {
 	FLOAT ki_xy; FLOAT ki_z; FLOAT kp_xy; FLOAT kp_z; FLOAT kv_xy; FLOAT kv_z; // position gains
-	FLOAT kr_xy; FLOAT kr_z; FLOAT kw_xy; FLOAT kw_z; // attitude gains
+	FLOAT kr_xy; FLOAT kr_z; FLOAT kw_xy; FLOAT kw_z; FLOAT kdw_xy; // attitude gains
 };
 struct CostParam {
 	FLOAT p; FLOAT v; FLOAT w; FLOAT thrust; FLOAT torque; FLOAT reg_L2;
@@ -54,6 +54,7 @@ struct GAPS
 {
 	// main state
 	Vec ierr;
+	Vec prev_w_err;
 	struct Param theta;
 	FLOAT y[XDIM][TDIM];
 

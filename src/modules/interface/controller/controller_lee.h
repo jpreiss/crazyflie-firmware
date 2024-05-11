@@ -36,10 +36,6 @@ typedef struct controllerLee_s {
     // Inertia matrix (diagonal matrix); kg m^2
     struct vec J;
 
-    // see if we can get away with doing this outside GAPS
-    float kdw_xy;
-    struct vec prev_w_err;
-
     struct GAPS gaps;
 } controllerLee_t;
 

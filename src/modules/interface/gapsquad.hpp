@@ -265,7 +265,8 @@ static Eigen::Matrix<FLOAT, 1, XDIM> Dthrust_xRpart;
 
 void ctrl(
 	State const &x, Target const &t, Param const &th, // inputs
-	Action &u, Jux &Du_x, Jut &Du_th // outputs
+	Action &u, Jux &Du_x, Jut &Du_th, // outputs
+	FLOAT dt // params
 	)
 {
 	Vec const g(0, 0, GRAV);
@@ -357,7 +358,11 @@ void ctrl(
 	Vec const er = SO3error(x.R, Rd, Der_R, Der_Rd);
 
 	Vec const ew = x.w - t.w_d;
-	Arr3 const dw_raw = -(kr * er) - (kw * ew);
+
+	Vec dwerr = (1.0f / dt) * (ew - x.werr);
+	dwerr[2] = 0.0f;
+
+	Arr3 const dw_raw = -(kr * er) - (kw * ew) - (th.kdw_xy * dwerr);
 	static FLOAT constexpr RP_LIM = 268;
 	static FLOAT constexpr Y_LIM = 56;
 	Arr3 const dw_lims(RP_LIM, RP_LIM, Y_LIM);
@@ -417,13 +422,15 @@ extern "C" bool gaps_step(
 	FLOAT const dt,
 	struct Action *u_out)
 {
-	ctrl(*x, *t, gaps->theta, *u_out, Du_x, Du_t);
+	ctrl(*x, *t, gaps->theta, *u_out, Du_x, Du_t, dt);
 
 	// integrate the ierr right away in case we exit due to being disabled.
 	gaps->ierr += dt * (x->p - t->p_d);
-	gaps->ierr[0] = clampsym(gaps->ierr[0], 2.0f);
-	gaps->ierr[1] = clampsym(gaps->ierr[1], 2.0f);
-	gaps->ierr[2] = clampsym(gaps->ierr[2], 0.4f);
+	gaps->ierr[0] = clampsym(gaps->ierr[0], (FLOAT)2.0);
+	gaps->ierr[1] = clampsym(gaps->ierr[1], (FLOAT)2.0);
+	gaps->ierr[2] = clampsym(gaps->ierr[2], (FLOAT)0.4);
+
+	gaps->prev_w_err = x->w - t->w_d;
 
 	if (!gaps->enable) {
 		return true;
