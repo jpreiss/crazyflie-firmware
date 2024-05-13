@@ -200,16 +200,16 @@ void controllerMellinger(controllerMellinger_t* self, control_t *control, const 
         &self->gaps, // struct gaps *gaps // inout
         gaps_u      // float u[3] // out
       );
-      target_thrust.x = self->mass * setpoint->acceleration.x                       + gaps_u[0];
-      target_thrust.y = self->mass * setpoint->acceleration.y                       + gaps_u[1];
-      target_thrust.z = self->mass * (setpoint->acceleration.z + GRAVITY_MAGNITUDE) + gaps_u[2];
+      target_thrust.x = setpoint->acceleration.x                       + gaps_u[0];
+      target_thrust.y = setpoint->acceleration.y                       + gaps_u[1];
+      target_thrust.z = (setpoint->acceleration.z + GRAVITY_MAGNITUDE) + gaps_u[2];
     }
     else {
       target_thrust.x = setpoint->acceleration.x                       + self->kp_xy * r_error.x + self->kd_xy * v_error.x + self->ki_xy * self->i_error_x;
       target_thrust.y = setpoint->acceleration.y                       + self->kp_xy * r_error.y + self->kd_xy * v_error.y + self->ki_xy * self->i_error_y;
       target_thrust.z = setpoint->acceleration.z + GRAVITY_MAGNITUDE + self->kp_z  * r_error.z + self->kd_z  * v_error.z + self->ki_z  * self->i_error_z;
-      target_thrust = vscl(self->mass, target_thrust);
     }
+    target_thrust = vscl(self->mass, target_thrust);
   } else {
     target_thrust.x = -sinf(radians(setpoint->attitude.pitch));
     target_thrust.y = -sinf(radians(setpoint->attitude.roll));
@@ -328,43 +328,19 @@ void controllerMellinger(controllerMellinger_t* self, control_t *control, const 
   M.y *= J[1];
   M.z *= J[2];
 
-  // This is undoing the effect of tuning gains for the wrongness of legacy.
-  // Legacy divides roll/pitch by 2 when it should divide by 4 and doesn't
-  // scale yaw at all when it should also divide by 4. SI will divide by 4 and
-  // account for arm and thrustToTorque, but not account for moment of inertia.
-  //M.x *= 0.5f / arm;
-  //M.y *= 0.5f / arm;
-  //M.z *= -0.25f / thrustToTorque;
-  //current_thrust *= 0.25f;
+  control->controlMode = controlModeForceTorque;
+  control->thrustSi = current_thrust;
 
-  self->cmd_thrust = control->thrust;
-  self->r_roll = radians(sensors->gyro.x);
-  self->r_pitch = radians(sensors->gyro.y);
-  self->r_yaw = radians(sensors->gyro.z);
-  self->accelz = sensors->acc.z;
-
-  if (control->thrust > 0) {
-    control->controlMode = controlModeForceTorque;
-    control->thrustSi = current_thrust;
+  if (control->thrustSi > 0) {
     #define RP_LIM 0.00445f
     #define Y_LIM 0.00163f
     control->torqueX = RP_LIM * tanhf(M.x / RP_LIM);
     control->torqueY = RP_LIM * tanhf(M.y / RP_LIM);
     control->torqueZ = Y_LIM * tanhf(M.z / Y_LIM);
-
-    self->cmd_roll = control->roll;
-    self->cmd_pitch = control->pitch;
-    self->cmd_yaw = control->yaw;
-
   } else {
-    control->roll = 0;
-    control->pitch = 0;
-    control->yaw = 0;
-
-    self->cmd_roll = control->roll;
-    self->cmd_pitch = control->pitch;
-    self->cmd_yaw = control->yaw;
-
+    control->torqueX = 0;
+    control->torqueY = 0;
+    control->torqueZ = 0;
     controllerMellingerReset(self);
   }
 }
