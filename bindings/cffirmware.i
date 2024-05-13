@@ -227,7 +227,11 @@ structname(struct structname const *x) { \
             mode = self.controlMode
             s = f"control_t({mode}"
             if mode == controlModeLegacy:
-                s += f", roll={self.roll}, pitch={self.pitch}, yaw={self.yaw})"
+                s += (f", thrust={self.thrust}, roll={self.roll}"
+                      f", pitch={self.pitch}, yaw={self.yaw})")
+            elif mode == controlModeForceTorque:
+                s += (f", thrust={self.thrustSi}, torqueX={self.torqueX}"
+                      f", torqueY={self.torqueY}, torqueZ={self.torqueZ})")
             else:
                 raise NotImplementedError
             return s

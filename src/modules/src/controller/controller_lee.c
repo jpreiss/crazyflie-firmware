@@ -64,16 +64,17 @@ static controllerLee_t g_self = {
 			0.0f, 0.0f, 0.0f
 		},
 		.theta = {
-			.ki_xy = 0.0,
-			.ki_z = 0.0,
-			.kp_xy = 7.0,
-			.kp_z = 7.0,
-			.kv_xy = 4.0,
-			.kv_z = 4.0,
-			.kr_xy = 19.5,
-			.kr_z = 12.5,
-			.kw_xy = 3.15,
-			.kw_z = 3.15
+			.ki_xy = 1.56f,
+			.ki_z = 1.56f,
+			.kp_xy = 12.5f,
+			.kp_z = 39.0f,
+			.kv_xy = 6.25f,
+			.kv_z = 12.5f,
+			.kr_xy = 1660.0f,
+			.kr_z = 294.0f,
+			.kw_xy = 237.5f,
+			.kw_z = 29.7f,
+			.kdw_xy = 2.36f,
 		},
 		.y = { { 0 } },
 

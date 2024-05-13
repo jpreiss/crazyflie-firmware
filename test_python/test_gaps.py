@@ -25,17 +25,16 @@ def v2a(v):
     return np.array([v.x, v.y, v.z], dtype=np.float32)
 
 
-def control_equal(c1, c2):
+def control_equal(c1, c2, rtol=0.0, atol=0.0):
     if c1.controlMode != c2.controlMode:
         return False
     if c1.controlMode == cffirmware.controlModeLegacy:
-        return (
-            c1.roll == c2.roll
-            and c1.pitch == c2.pitch
-            and c1.yaw == c2.yaw
-            and c1.thrust == c2.thrust
-        )
-    raise NotImplementedError
+        v1, v2 = [(c.roll, c.pitch, c.yaw, c.thrust) for c in [c1, c2]]
+    elif c1.controlMode == cffirmware.controlModeForceTorque:
+        v1, v2 = [(c.torqueX, c.torqueY, c.torqueZ, c.thrustSi) for c in [c1, c2]]
+    else:
+        raise NotImplementedError
+    return np.allclose(v1, v2, rtol=rtol, atol=atol)
 
 
 def zero_inputs():
@@ -135,3 +134,44 @@ def test_gaps_eta_nonzero_error_has_effect():
             assert control_equal(command, command_gaps)
         else:
             assert not control_equal(command, command_gaps)
+
+
+def test_mel_vs_gaps():
+    mel = cffirmware.controllerMellinger_t()
+    lee = cffirmware.controllerLee_t()
+
+    cffirmware.controllerMellingerInit(mel)
+    cffirmware.controllerLeeInit(lee)
+
+    mel.ki_m_xy = 0.0
+    mel.ki_m_z = 0.0
+
+    # introduce some error
+    setpoint, state, sensors = zero_inputs()
+    state.position.x = 0.1
+    step = 0
+
+    ctrl_mel = cffirmware.control_t()
+    ctrl_lee = cffirmware.control_t()
+
+    for i in range(100):
+        cffirmware.controllerMellinger(
+            mel, ctrl_mel, setpoint, sensors, state, step)
+        cffirmware.controllerLee(
+            lee, ctrl_lee, setpoint, sensors, state, step)
+        assert np.allclose(
+            np.array(mel.z_axis_desired),
+            np.array(lee.gaps.debug.z_axis_desired),
+            rtol=1e-3
+        )
+        assert np.allclose(
+            np.array(mel.eR),
+            np.array(lee.gaps.debug.eR),
+            rtol=1e-3
+        )
+        assert np.allclose(
+            np.array(mel.ew),
+            np.array(lee.gaps.debug.ew),
+            rtol=1e-3
+        )
+        assert control_equal(ctrl_mel, ctrl_lee, rtol=1e-3)

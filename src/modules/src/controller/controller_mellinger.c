@@ -68,13 +68,13 @@ static controllerMellinger_t g_self = {
   .i_range_z  = 0.4,
 
   // Attitude
-  .kR_xy = 830.0, // P
+  .kR_xy = 1660.0, // P
   .kw_xy = 237.5, // D
   .ki_m_xy = 0.0, // I
   .i_range_m_xy = 1.0,
 
   // Yaw
-  .kR_z = 147.0, // P
+  .kR_z = 294.0, // P
   .kw_z = 29.7, // D
   .ki_m_z = 0.0, // I
   .i_range_m_z  = 1500,
@@ -288,6 +288,9 @@ void controllerMellinger(controllerMellinger_t* self, control_t *control, const 
   eR.x = (-1 + 2*fsqr(x) + 2*fsqr(y))*y_axis_desired.z + self->z_axis_desired.y - 2*(x*y_axis_desired.x*z + y*y_axis_desired.y*z - x*y*self->z_axis_desired.x + fsqr(x)*self->z_axis_desired.y + fsqr(z)*self->z_axis_desired.y - y*z*self->z_axis_desired.z) +    2*w*(-(y*y_axis_desired.x) - z*self->z_axis_desired.x + x*(y_axis_desired.y + self->z_axis_desired.z));
   eR.y = x_axis_desired.z - self->z_axis_desired.x - 2*(fsqr(x)*x_axis_desired.z + y*(x_axis_desired.z*y - x_axis_desired.y*z) - (fsqr(y) + fsqr(z))*self->z_axis_desired.x + x*(-(x_axis_desired.x*z) + y*self->z_axis_desired.y + z*self->z_axis_desired.z) + w*(x*x_axis_desired.y + z*self->z_axis_desired.y - y*(x_axis_desired.x + self->z_axis_desired.z)));
   eR.z = y_axis_desired.x - 2*(y*(x*x_axis_desired.x + y*y_axis_desired.x - x*y_axis_desired.y) + w*(x*x_axis_desired.z + y*y_axis_desired.z)) + 2*(-(x_axis_desired.z*y) + w*(x_axis_desired.x + y_axis_desired.y) + x*y_axis_desired.z)*z - 2*y_axis_desired.x*fsqr(z) + x_axis_desired.y*(-1 + 2*fsqr(x) + 2*fsqr(z));
+  eR = vscl(0.5f, eR);
+  self->eR = eR;
+
 
   // [ew]
   float err_d_roll = 0;
@@ -300,6 +303,7 @@ void controllerMellinger(controllerMellinger_t* self, control_t *control, const 
   ew.x = radians(setpoint->attitudeRate.roll) - stateAttitudeRateRoll;
   ew.y = radians(setpoint->attitudeRate.pitch) - stateAttitudeRatePitch;
   ew.z = radians(setpoint->attitudeRate.yaw) - stateAttitudeRateYaw;
+  self->ew = ew;
   if (self->prev_omega_roll == self->prev_omega_roll) { /*d part initialized*/
     err_d_roll = ((radians(setpoint->attitudeRate.roll) - self->prev_setpoint_omega_roll) - (stateAttitudeRateRoll - self->prev_omega_roll)) / dt;
     err_d_pitch = (-(radians(setpoint->attitudeRate.pitch) - self->prev_setpoint_omega_pitch) - (stateAttitudeRatePitch - self->prev_omega_pitch)) / dt;
