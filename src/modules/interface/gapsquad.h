@@ -70,6 +70,7 @@ struct GAPS
 	uint8_t max_row;
 	uint8_t max_col;
 	FLOAT sum_cost;
+	Vec z_axis_desired;
 
 	// AdaDelta state
 	FLOAT grad_accum[TDIM];

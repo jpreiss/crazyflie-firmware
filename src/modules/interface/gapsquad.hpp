@@ -265,7 +265,8 @@ static Eigen::Matrix<FLOAT, 1, XDIM> Dthrust_xRpart;
 
 void ctrl(
 	State const &x, Target const &t, Param const &th, // inputs
-	Action &u, Jux &Du_x, Jut &Du_th, // outputs
+	Action &u, Jux &Du_x, Jut &Du_th, // main outputs
+	Vec &z_axis_desired, // debug outputs
 	FLOAT dt // params
 	)
 {
@@ -318,6 +319,7 @@ void ctrl(
 		zgoal = Vec(0, 0, 1);
 		Dzgoal_a.setZero();
 	}
+	z_axis_desired = zgoal;
 
 	Vec const xgoalflat(std::cos(t.y_d), std::sin(t.y_d), 0);
 	Mat Dygoalnn_zgoal, dummy;
@@ -422,7 +424,7 @@ extern "C" bool gaps_step(
 	FLOAT const dt,
 	struct Action *u_out)
 {
-	ctrl(*x, *t, gaps->theta, *u_out, Du_x, Du_t, dt);
+	ctrl(*x, *t, gaps->theta, *u_out, Du_x, Du_t, gaps->z_axis_desired, dt);
 
 	// integrate the ierr right away in case we exit due to being disabled.
 	gaps->ierr += dt * (x->p - t->p_d);
