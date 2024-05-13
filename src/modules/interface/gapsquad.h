@@ -44,6 +44,9 @@ struct Param {
 struct CostParam {
 	FLOAT p; FLOAT v; FLOAT w; FLOAT thrust; FLOAT torque; FLOAT reg_L2;
 };
+struct Debug {
+	Vec z_axis_desired; Vec eR; Vec ew;
+};
 
 enum gaps_optimizer {
 	GAPS_OPT_GRAD = 0,
@@ -70,7 +73,7 @@ struct GAPS
 	uint8_t max_row;
 	uint8_t max_col;
 	FLOAT sum_cost;
-	Vec z_axis_desired;
+	struct Debug debug;
 
 	// AdaDelta state
 	FLOAT grad_accum[TDIM];

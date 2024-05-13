@@ -94,6 +94,11 @@ static controllerLee_t g_self = {
 		// diagnostics
 		.yabsmax = 0.0f,
 		.sum_cost = 0.0f,
+		.debug = {
+			.z_axis_desired = {0, 0, 0},
+			.eR = {0, 0, 0},
+			.ew = {0, 0, 0}
+		},
 
 		// AdaDelta
 		.grad_accum = { 0 },

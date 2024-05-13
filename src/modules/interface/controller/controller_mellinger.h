@@ -77,6 +77,8 @@ typedef struct {
 
     // Logging variables
     struct vec z_axis_desired;
+    struct vec eR;
+    struct vec ew;
 
     float cmd_thrust;
     float cmd_roll;
