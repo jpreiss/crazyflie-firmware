@@ -18,7 +18,8 @@ int main(int argc, char const **argv)
 			Action u;
 			Jux Du_x;
 			Jut Du_th;
-			ctrl(x, t, th, u, Du_x, Du_th);
+			Debug debug;
+			ctrl(x, t, th, u, Du_x, Du_th, debug, dt);
 		}
 	}
 

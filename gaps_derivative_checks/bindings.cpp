@@ -85,11 +85,12 @@ CostParamTuple s2t(CostParam const &cp)
 }
 
 std::tuple<ActionTuple, Jux, Jut>
-ctrl_wrap(StateTuple const &xt, TargetTuple const &tt, ParamTuple const &tht)
+ctrl_wrap(StateTuple const &xt, TargetTuple const &tt, ParamTuple const &tht, FLOAT dt)
 {
 	std::tuple<ActionTuple, Jux, Jut> output;
 	Action u;
-	ctrl(t2s(xt), t2s(tt), t2s(tht), u, std::get<Jux>(output), std::get<Jut>(output));
+	Debug debug;
+	ctrl(t2s(xt), t2s(tt), t2s(tht), u, std::get<Jux>(output), std::get<Jut>(output), debug, dt);
 	std::get<ActionTuple>(output) = s2t(u);
 	return output;
 }
