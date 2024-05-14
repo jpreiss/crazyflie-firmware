@@ -70,11 +70,11 @@ static controllerLee_t g_self = {
 			.kp_z = 39.0f,
 			.kv_xy = 6.25f,
 			.kv_z = 12.5f,
-			.kr_xy = 1660.0f,
-			.kr_z = 294.0f,
-			.kw_xy = 237.5f,
-			.kw_z = 29.7f,
-			.kdw_xy = 2.36f,
+			.kr_xy = 166.0f,
+			.kr_z = 29.4f,
+			.kw_xy = 23.75f,
+			.kw_z = 2.97f,
+			.kdw_xy = 0.236f,
 		},
 		.y = { { 0 } },
 
@@ -210,16 +210,16 @@ void controllerLee(
 		goto fail;
 	}
 
-	g_log.ki_xy = 1000 * self->gaps.theta.ki_xy;
-	g_log.ki_z  = 1000 * self->gaps.theta.ki_z;
-	g_log.kp_xy = 1000 * self->gaps.theta.kp_xy;
-	g_log.kp_z  = 1000 * self->gaps.theta.kp_z;
-	g_log.kv_xy = 1000 * self->gaps.theta.kv_xy;
-	g_log.kv_z  = 1000 * self->gaps.theta.kv_z;
-	g_log.kr_xy = 1000 * self->gaps.theta.kr_xy;
-	g_log.kr_z  = 1000 * self->gaps.theta.kr_z;
-	g_log.kw_xy = 1000 * self->gaps.theta.kw_xy;
-	g_log.kw_z  = 1000 * self->gaps.theta.kw_z;
+	g_log.ki_xy = 100 * self->gaps.theta.ki_xy;
+	g_log.ki_z  = 100 * self->gaps.theta.ki_z;
+	g_log.kp_xy = 100 * self->gaps.theta.kp_xy;
+	g_log.kp_z  = 100 * self->gaps.theta.kp_z;
+	g_log.kv_xy = 100 * self->gaps.theta.kv_xy;
+	g_log.kv_z  = 100 * self->gaps.theta.kv_z;
+	g_log.kr_xy = 100 * self->gaps.theta.kr_xy;
+	g_log.kr_z  = 100 * self->gaps.theta.kr_z;
+	g_log.kw_xy = 100 * self->gaps.theta.kw_xy;
+	g_log.kw_z  = 100 * self->gaps.theta.kw_z;
 
 	// output to the rest of the world: convert from normalized to
 	// mass/inertia-dependent units.

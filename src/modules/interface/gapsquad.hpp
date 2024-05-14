@@ -365,7 +365,7 @@ void ctrl(
 	Vec dwerr = (1.0f / dt) * (ew - x.werr);
 	dwerr[2] = 0.0f;
 
-	Arr3 const dw_raw = -(kr * er) - (kw * ew) - (th.kdw_xy * dwerr);
+	Arr3 const dw_raw = 10 * (-(kr * er) - (kw * ew) - (th.kdw_xy * dwerr));
 	static FLOAT constexpr RP_LIM = 268;
 	static FLOAT constexpr Y_LIM = 56;
 	Arr3 const dw_lims(RP_LIM, RP_LIM, Y_LIM);
@@ -386,14 +386,14 @@ void ctrl(
 
 	Dtorque_x = -(kr * Der_x);
 	Dtorque_x.block<3, 3>(0, 3 + 3 + 3 + 9) -= kw * I;
-	Dtorque_x = Ddw_dwraw * Dtorque_x;
+	Dtorque_x = 10 * Ddw_dwraw * Dtorque_x;
 
 	Dtorque_th = -(kr * Der_th); // indirect part
 	Dtorque_th += (Eigen::Matrix<FLOAT, 3, TDIM>() <<
 		0, 0, 0, 0, 0, 0, -er[0],      0, -ew[0],      0,
 		0, 0, 0, 0, 0, 0, -er[1],      0, -ew[1],      0,
 		0, 0, 0, 0, 0, 0,      0, -er[2],      0, -ew[2]).finished();
-	Dtorque_th = Ddw_dwraw * Dtorque_th;
+	Dtorque_th = 10 * Ddw_dwraw * Dtorque_th;
 
 	Du_x << Dthrust_x, Dtorque_x;
 	Du_th << Dthrust_th, Dtorque_th;
