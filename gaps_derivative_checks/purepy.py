@@ -121,6 +121,7 @@ def dynamics_py(x: State, xd: Target, u: Action, dt: float):
     """Returns: x, Dx_x, Dx_u."""
     # DYNAMICS
     # --------
+    I3 = np.eye(3)
 
     R = x.R.reshape((3, 3)).T
     up = R[:, 2]
@@ -133,12 +134,17 @@ def dynamics_py(x: State, xd: Target, u: Action, dt: float):
 
     acc = u.thrust * up - g
     Dacc_x = u.thrust * Dup_x
+
     #R_t = R @ SO3.exp(SO3.hat(c.dt * x.w))
-    # TODO: correct Jacobian for above. For now, using forward Euler, if we
-    # want to actually integrate the dynamics we must project R_t onto SO(3)
-    # *after* checking derivatives. But I believe it may be too computationally
-    # expensive to run on the Crazyflie anyway.
-    R_t = R + dt * R @ hat(x.w)
+    # TODO: use above instead of second-order approximation.
+    K = hat(x.w)
+    exp_dt_K = I3 + dt * K + (dt ** 2 / 2) * K @ K
+    R_t = R @ exp_dt_K
+    Dhatw2_hatw = np.kron(K.T, I3) + np.kron(I3, K)
+    assert Dhatw2_hatw.shape == (9, 9)
+    Dexp_w = dt * SO3.Dhat_w + (dt ** 2 / 2) * Dhatw2_hatw @ SO3.Dhat_w
+    assert Dexp_w.shape == (9, 3)
+
     x_t = State(
         ierr = x.ierr + dt * (x.p - xd.p_d),
         p = x.p + dt * x.v,
@@ -146,26 +152,21 @@ def dynamics_py(x: State, xd: Target, u: Action, dt: float):
         R = R_t.T.flatten(),
         w = x.w + dt * u.torque,
     )
-    # TODO: This became trivial after we went from angle state to rotation
-    # matrix -- condense some ops.
+
     Dvt_R = dt * Dacc_x[:, 9:-3]
     assert Dvt_R.shape == (3, 9)
 
-    I3 = np.eye(3)
     I9 = np.eye(9)
     Z31 = np.zeros((3, 1))
     Z33 = np.zeros((3, 3))
     Z39 = np.zeros((3, 9))
     Z93 = Z39.T
 
-    DRt_R = np.eye(9) + dt * np.kron(hat(-x.w), I3)
+    DRt_R = np.kron(exp_dt_K.T, I3)
+    assert DRt_R.shape == (9, 9)
 
     Rx, Ry, Rz = (R.T)[:, :, None]
-    DRt_w = dt * np.block([
-        [Z31, -Rz,  Ry],
-        [ Rz, Z31, -Rx],
-        [-Ry,  Rx, Z31],
-    ])
+    DRt_w = np.kron(I3, R) @ Dexp_w
     assert DRt_w.shape == (9, 3)
 
     dt3 = dt * I3
