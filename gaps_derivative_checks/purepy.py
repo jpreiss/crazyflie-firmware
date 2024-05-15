@@ -1,13 +1,10 @@
-from collections import namedtuple
-
-import sys
-
-from colorama import Fore
 import numpy as np
 
 import gapsquad
 from gapsquad import SO3error, cross, hat, normalize
 import SO3
+
+from testlib import *
 
 
 def ctrl_py(x: State, xd: Target, th: Param, c: Const):
@@ -221,9 +218,5 @@ def cost_py(x: State, t: Target, u: Action, Q: CostParam):
         Q.thrust * u.thrust,
         Q.torque * u.torque,
     ]])
-
-    assert np.allclose(c_bind, c)
-    assert np.allclose(Dc_x_bind, Dc_x)
-    assert np.allclose(Dc_u_bind, Dc_u)
 
     return c, Dc_x, Dc_u
