@@ -2,6 +2,9 @@ from collections import namedtuple
 
 import numpy as np
 
+import gapsquad
+import SO3
+
 
 def namedvec(name, fields, sizes):
     """Namedtuple plus helpers for going to/from concatenated arrays."""
@@ -87,3 +90,52 @@ def print_with_highlight(x, mask, dim_str):
         for s, l in zip(row, lens):
             sys.stdout.write(s.ljust(l))
         print()
+
+
+def ctrl_cpp(x: State, xd: Target, th: Param, c: Const):
+    xargs = state2args(x)
+    urets, Jux, Jut = gapsquad.ctrl(xargs, xd, th, c.dt)
+    u = Action(*urets)
+    assert Jux.shape == (Action.size, State.size)
+    assert Jut.shape == (Action.size, Param.size)
+    return u, Jux, Jut
+
+
+def dynamics_cpp(x: State, xd: Target, u: Action, c: Const):
+    xargs = state2args(x)
+    xrets, Jxx, Jxu = gapsquad.dynamics(xargs, xd, u, c.dt)
+    xt = rets2state(xrets)
+    return xt, Jxx, Jxu
+
+
+def cost_cpp(x: State, t: Target, u: Action, Q: CostParam):
+    xargs = state2args(x)
+    c_bind, Dc_x_bind, Dc_u_bind = gapsquad.cost(xargs, t, u, Q)
+    assert Dc_x_bind.shape == (State.size,)
+    assert Dc_u_bind.shape == (Action.size,)
+    # Eigen has no concept of 1D vectors, so pybind11 interprets Nx1 or 1xN
+    # matrices as vectors, but in our case we really want a 1xN matrix so we
+    # don't need separate code to handle derivatives of scalar-valued vs.
+    # vector-valued functions.
+    return c_bind, Dc_x_bind[None, :], Dc_u_bind[None, :]
+
+
+def random_inputs(rng):
+    ierr, p, v, w = rng.normal(size=(4, 3))
+    R = SO3.random(rng, 3)
+    assert np.allclose(np.eye(3), R.T @ R)
+    assert np.isclose(np.linalg.det(R), 1)
+    x = State(ierr=ierr, p=p, v=v, R=R.flatten(), w=w)
+
+    pd, vd, ad, wd = rng.normal(size=(4, 3))
+    yd = rng.normal()
+    xd = Target(p_d=pd, v_d=vd, a_d=ad, y_d=yd, w_d=wd)
+
+    th = Param.from_arr(rng.uniform(0.1, 4, size=Param.size))
+
+    # These CostParams keep the cost output around the same scale as the
+    # ctrl and dynamics outputs. If the costs get bigger our finite
+    # difference error bounds don't apply anymore.
+    cp = CostParam.from_arr(10 ** rng.uniform(-3, -1, size=CostParam.size))
+
+    return x, xd, th, cp
