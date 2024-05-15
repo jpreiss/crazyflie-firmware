@@ -1,3 +1,4 @@
+import matplotlib.pyplot as plt
 import numpy as np
 import scipy as sp
 
@@ -49,15 +50,39 @@ def test_dynamics_freefall():
         assert np.allclose(Rx, R, rtol=1e-3, atol=1e-3)
 
 
+def ctrb(A, B):
+    n, m = B.shape
+    Ak = np.eye(n)
+    G = np.zeros((n, n))
+    mats = []
+    for _ in range(n):
+        mats.append(Ak @ B)
+        Ak = A @ Ak
+    C = np.concatenate(mats, axis=1)
+    assert C.shape == (n, m * n)
+    return C
 
 
-# def test_dynamics_rot():
-#     dt = 1e-2
-#     rng = np.random.default_rng(0)
-#     for i in range(100):
-#         axis = rng.normal(size=3)
-#         axis /= np.linalg.norm(axis)
-#         # make sure we go past a full rotation sometimes
-#         angle = 10 * rng.normal()
-#         R
+def test_linearized_controllability():
+    # check controllability of linearized system
+    dt = 0.1
+    x, xd, th, *_ = default_inputs()
+    u = Action(thrust=9.81, torque=np.zeros(3))
+    _, A, B = dynamics_cpp(x, xd, u, dt)
+    C = ctrb(A, B)
+    U, S, VT = np.linalg.svd(C)
+    sigma_min = 1e-6
+    if np.all(S > sigma_min):
+        return
 
+    fig, ax = plt.subplots()
+    plot_x = np.arange(State.size) + 1
+    for i in range(1, State.size + 1):
+        if S[-i] > sigma_min:
+            break
+        ax.plot(plot_x, U[:, -i], linewidth=0, marker=".", label=str(i))
+    ax.set(xlabel="state index", ylabel="value", xticks=plot_x)
+    ax.grid(True)
+    ax.legend(title="singular vec")
+    fig.show()
+    assert False
