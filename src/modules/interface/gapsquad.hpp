@@ -366,8 +366,8 @@ void ctrl(
 	dwerr[2] = 0.0f;
 
 	Arr3 const dw_raw = 10 * (-(kr * er) - (kw * ew) - (th.kdw_xy * dwerr));
-	static FLOAT constexpr RP_LIM = 268;
-	static FLOAT constexpr Y_LIM = 56;
+	#define RP_LIM 268
+	#define Y_LIM 56
 	Arr3 const dw_lims(RP_LIM, RP_LIM, Y_LIM);
 	Arr3 const dw = dw_lims * (dw_raw / dw_lims).tanh();
 	u.torque = dw.matrix();
