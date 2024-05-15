@@ -44,7 +44,6 @@ Action = namedvec("Action", "thrust torque", "1 3")
 Target = namedvec("Target", "p_d v_d a_d y_d w_d", "3 3 3 1 3")
 Param = namedvec("Param", "ki_xy ki_z kp_xy kp_z kv_xy kv_z kr_xy kr_z kw_xy kw_z", "1 1 1 1 1 1 1 1 1 1")
 CostParam = namedvec("CostParam", "p v w thrust torque reg_L2", "1 1 1 1 1 1")
-Const = namedvec("Const", "g m j dt", "1 1 3 1")
 
 
 def sqnorm(x):
@@ -92,18 +91,18 @@ def print_with_highlight(x, mask, dim_str):
         print()
 
 
-def ctrl_cpp(x: State, xd: Target, th: Param, c: Const):
+def ctrl_cpp(x: State, xd: Target, th: Param, dt: float):
     xargs = state2args(x)
-    urets, Jux, Jut = gapsquad.ctrl(xargs, xd, th, c.dt)
+    urets, Jux, Jut = gapsquad.ctrl(xargs, xd, th, dt)
     u = Action(*urets)
     assert Jux.shape == (Action.size, State.size)
     assert Jut.shape == (Action.size, Param.size)
     return u, Jux, Jut
 
 
-def dynamics_cpp(x: State, xd: Target, u: Action, c: Const):
+def dynamics_cpp(x: State, xd: Target, u: Action, dt: float):
     xargs = state2args(x)
-    xrets, Jxx, Jxu = gapsquad.dynamics(xargs, xd, u, c.dt)
+    xrets, Jxx, Jxu = gapsquad.dynamics(xargs, xd, u, dt)
     xt = rets2state(xrets)
     return xt, Jxx, Jxu
 
@@ -136,6 +135,19 @@ def random_inputs(rng):
     # These CostParams keep the cost output around the same scale as the
     # ctrl and dynamics outputs. If the costs get bigger our finite
     # difference error bounds don't apply anymore.
-    cp = CostParam.from_arr(10 ** rng.uniform(-3, -1, size=CostParam.size))
+    Q = CostParam.from_arr(10 ** rng.uniform(-3, -1, size=CostParam.size))
 
-    return x, xd, th, cp
+    u = Action.from_arr(rng.random(size=4))
+
+    return x, xd, th, Q, u
+
+
+def default_inputs():
+    Z3 = np.zeros(3)
+    I3 = np.eye(3)
+    x = State(ierr=Z3, p=Z3, v=Z3, R=I3.flatten(), w=Z3)
+    xd = Target(p_d=Z3, v_d=Z3, a_d=Z3, y_d=0, w_d=Z3)
+    th = Param.from_arr(np.ones(Param.size))
+    u = Action(thrust=0, torque=Z3)
+    Q = CostParam(p=1, v=1, w=1, thrust=1, torque=1, reg_L2=1)
+    return x, xd, th, Q, u

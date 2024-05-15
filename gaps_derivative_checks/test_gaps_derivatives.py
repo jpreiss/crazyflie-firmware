@@ -50,23 +50,23 @@ cost = cost_cpp
 
 
 def test_gaps_derivatives():
-    const = Const(g=9.81, m=1, j=None, dt=0.1)
+    dt = 0.1
     rng = np.random.default_rng(0)
     for i in range(100):
-        x, xd, th, cp = random_inputs(rng)
+        x, xd, th, cp, _ = random_inputs(rng)
 
-        u, Du_x, Du_th = ctrl(x, xd, th, const)
-        xt, Dx_x, Dx_u = dynamics(x, xd, u, const)
+        u, Du_x, Du_th = ctrl(x, xd, th, dt)
+        xt, Dx_x, Dx_u = dynamics(x, xd, u, dt)
         c, Dc_x, Dc_u = cost(x, xd, u, cp)
         print(f"{x = }\n{xd = }\n{th = }\n{u = }\n{c = }")
 
         def ctrl_x2u(xa):
             x2 = State.from_arr(xa)
-            return ctrl(x2, xd, th, const)[0].to_arr()
+            return ctrl(x2, xd, th, dt)[0].to_arr()
 
         def ctrl_th2u(tha):
             th2 = Param.from_arr(tha)
-            return ctrl(x, xd, th2, const)[0].to_arr()
+            return ctrl(x, xd, th2, dt)[0].to_arr()
 
         print("du/dx")
         finitediff_check(x.to_arr(), Du_x, ctrl_x2u, State.dim_str, Action.dim_str)
@@ -76,11 +76,11 @@ def test_gaps_derivatives():
 
         def dyn_x2x(xa):
             x2 = State.from_arr(xa)
-            return dynamics(x2, xd, u, const)[0].to_arr()
+            return dynamics(x2, xd, u, dt)[0].to_arr()
 
         def dyn_u2x(ua):
             u2 = Action.from_arr(ua)
-            return dynamics(x, xd, u2, const)[0].to_arr()
+            return dynamics(x, xd, u2, dt)[0].to_arr()
 
         print("dx/dx")
         finitediff_check(x.to_arr(), Dx_x, dyn_x2x, State.dim_str, State.dim_str)

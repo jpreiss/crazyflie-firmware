@@ -7,10 +7,10 @@ import SO3
 from testlib import *
 
 
-def ctrl_py(x: State, xd: Target, th: Param, c: Const):
+def ctrl_py(x: State, xd: Target, th: Param, dt: float):
     """Returns: u, Du_x, Du_th."""
 
-    g = np.array([0, 0, c.g])
+    g = np.array([0, 0, 9.81])
 
     # CONTROLLER
 
@@ -117,7 +117,7 @@ def ctrl_py(x: State, xd: Target, th: Param, c: Const):
     return u, Du_x, Du_th
 
 
-def dynamics_py(x: State, xd: Target, u: Action, c: Const):
+def dynamics_py(x: State, xd: Target, u: Action, dt: float):
     """Returns: x, Dx_x, Dx_u."""
     # DYNAMICS
     # --------
@@ -126,7 +126,7 @@ def dynamics_py(x: State, xd: Target, u: Action, c: Const):
     up = R[:, 2]
     Z33 = np.zeros((3, 3))
     Dup_x = np.block([[Z33, Z33, Z33, Z33, Z33, np.eye(3), Z33]])
-    g = np.array([0, 0, c.g])
+    g = np.array([0, 0, 9.81])
 
     # Normally I would use symplectic Euler integration, but plain forward
     # Euler gives simpler Jacobians.
@@ -138,17 +138,17 @@ def dynamics_py(x: State, xd: Target, u: Action, c: Const):
     # want to actually integrate the dynamics we must project R_t onto SO(3)
     # *after* checking derivatives. But I believe it may be too computationally
     # expensive to run on the Crazyflie anyway.
-    R_t = R + c.dt * R @ hat(x.w)
+    R_t = R + dt * R @ hat(x.w)
     x_t = State(
-        ierr = x.ierr + c.dt * (x.p - xd.p_d),
-        p = x.p + c.dt * x.v,
-        v = x.v + c.dt * acc,
+        ierr = x.ierr + dt * (x.p - xd.p_d),
+        p = x.p + dt * x.v,
+        v = x.v + dt * acc,
         R = R_t.T.flatten(),
-        w = x.w + c.dt * u.torque,
+        w = x.w + dt * u.torque,
     )
     # TODO: This became trivial after we went from angle state to rotation
     # matrix -- condense some ops.
-    Dvt_R = c.dt * Dacc_x[:, 9:-3]
+    Dvt_R = dt * Dacc_x[:, 9:-3]
     assert Dvt_R.shape == (3, 9)
 
     I3 = np.eye(3)
@@ -158,17 +158,17 @@ def dynamics_py(x: State, xd: Target, u: Action, c: Const):
     Z39 = np.zeros((3, 9))
     Z93 = Z39.T
 
-    DRt_R = np.eye(9) + c.dt * np.kron(hat(-x.w), I3)
+    DRt_R = np.eye(9) + dt * np.kron(hat(-x.w), I3)
 
     Rx, Ry, Rz = (R.T)[:, :, None]
-    DRt_w = c.dt * np.block([
+    DRt_w = dt * np.block([
         [Z31, -Rz,  Ry],
         [ Rz, Z31, -Rx],
         [-Ry,  Rx, Z31],
     ])
     assert DRt_w.shape == (9, 3)
 
-    dt3 = c.dt * I3
+    dt3 = dt * I3
     Dx_x = np.block([
         [ I3, dt3, Z33,   Z39,   Z33],
         [Z33,  I3, dt3,   Z39,   Z33],
@@ -183,9 +183,9 @@ def dynamics_py(x: State, xd: Target, u: Action, c: Const):
 
     Z91 = np.zeros((9, 1))
     Dx_u = np.block([
-        [             Z31, Z33],
-        [             Z31, Z33],
-        [c.dt * R[:, [2]], Z33],
+        [           Z31, Z33],
+        [           Z31, Z33],
+        [dt * R[:, [2]], Z33],
         [             Z91, Z93],
         [             Z31, dt3],
     ])

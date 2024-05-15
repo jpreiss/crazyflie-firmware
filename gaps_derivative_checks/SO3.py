@@ -1,6 +1,5 @@
 from sympy import *
 import numpy as np
-import scipy as sp
 
 
 def hat(w):
@@ -17,7 +16,14 @@ def vee(skew):
 
 
 def exp(skew):
-    return sp.linalg.expm(skew)
+    w = vee(skew)
+    theta = np.linalg.norm(w)
+    if theta > 1e-8:
+        K = hat(w / theta)
+    else:
+        K = np.zeros((3, 3))
+    R = np.eye(3) + np.sin(theta) * K + (1 - np.cos(theta)) * K @ K
+    return R
 
 
 def project(X):
