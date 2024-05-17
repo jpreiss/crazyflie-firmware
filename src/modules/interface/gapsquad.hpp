@@ -370,6 +370,8 @@ void ctrl(
 	#define Y_LIM 56
 	Arr3 const dw_lims(RP_LIM, RP_LIM, Y_LIM);
 	Arr3 const dw = dw_lims * (dw_raw / dw_lims).tanh();
+	// dw == 0 iff dw_raw == 0, so is correct.
+	debug.dw_squash = (dw_raw / (dw == 0).select(1, dw));
 	u.torque = dw.matrix();
 	Diag const Ddw_dwraw =
 		(dw_raw.array() / dw_lims).cosh().square().inverse().matrix().asDiagonal();

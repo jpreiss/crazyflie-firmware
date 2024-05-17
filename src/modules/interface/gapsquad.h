@@ -46,7 +46,7 @@ struct CostParam {
 	FLOAT p; FLOAT v; FLOAT w; FLOAT thrust; FLOAT torque; FLOAT reg_L2;
 };
 struct Debug {
-	Vec z_axis_desired; Vec eR; Vec ew;
+	Vec z_axis_desired; Vec eR; Vec ew; Vec dw_squash;
 };
 
 enum gaps_optimizer {
