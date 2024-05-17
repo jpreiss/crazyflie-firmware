@@ -84,5 +84,5 @@ def test_linearized_controllability():
     ax.set(xlabel="state index", ylabel="value", xticks=plot_x)
     ax.grid(True)
     ax.legend(title="singular vec")
-    fig.show()
+    fig.savefig('test_gaps_test_linearized_controllability.png')
     assert False

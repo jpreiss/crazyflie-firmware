@@ -165,11 +165,17 @@ void dynamics(
 	// Normally I would use symplectic Euler integration, but plain forward
 	// Euler gives simpler Jacobians.
 
-	Mat hatw = hat(x.w);
-	Mat exp_dt_hatw = I3 + dt * hatw + (dt * dt / 2) * hatw * hatw;
+	// Mat hatw = hat(x.w);
+	// Mat exp_dt_hatw = I3 + dt * hatw + (dt * dt / 2) * hatw * hatw;
 
-	Mat99 Dhatw2_hatw = kroneckerProduct(hatw.transpose(), I3) + kroneckerProduct(I3, hatw);
-	Mat93 Dexp_w = dt * Dhat_w + (dt * dt / 2) * (Dhatw2_hatw * Dhat_w);
+	// Mat99 Dhatw2_hatw = kroneckerProduct(hatw.transpose(), I3) + kroneckerProduct(I3, hatw);
+	// Mat93 Dexp_w = dt * Dhat_w + (dt * dt / 2) * (Dhatw2_hatw * Dhat_w);
+
+	float theta_w = dt * x.w.norm();
+	Mat hatw = dt * hat(x.w);
+	Mat exp_dt_hatw = I3 + std::sin(theta_w) * hatw / theta_w + (1 - std::cos(theta_w)) * hatw * hatw / (theta_w * theta_w);
+	Mat Jacobian_R = I3 - (1 - std::cos(theta_w)) * hatw / (theta_w * theta_w) + (theta_w - std::sin(theta_w)) * hatw * hatw / (theta_w * theta_w * theta_w);
+	Mat93 Dexp_w = Dhat_w * Jacobian_R;
 
 	x_t.ierr = x.ierr + dt * (x.p - t.p_d);
 	x_t.p = x.p + dt * x.v;
