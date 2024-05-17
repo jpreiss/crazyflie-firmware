@@ -2,15 +2,16 @@
 
 #include <stdint.h>
 
-// NOTE: FLOAT must resolve to a floating-point type. Add a `using` before
-// including this header, i.e.
+// NOTE: FLOAT must resolve to a floating-point type. Add a `typedef` (C) or
+// `using` (C++) before including this header, i.e.
 //
 //     using FLOAT = double;
 //     #include "gapsquad.hpp"
 //
 // We parameterize the float type because the finite differences used to check
 // our analytic derivatives cannot be computed precisely enough in single
-// precision. We need double for debugging and single for running on firmware.
+// precision, but the STM32F405 doesn't have double-precision floating point
+// hardware. We need double for debugging and single for running on firmware.
 
 // externally visible types / constants
 #define XDIM (3 + 3 + 3 + 9 + 3)  // dwerr not included - yet !!!

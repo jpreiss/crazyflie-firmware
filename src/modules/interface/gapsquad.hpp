@@ -514,6 +514,7 @@ extern "C" bool gaps_step(
 	}
 
 	// storing strictly for diagnostic purposes, not used in algorithm.
+	// TODO: move to struct Debug.
 	Eigen::Index max_row, max_col;
 	gaps->yabsmax = y.array().abs().maxCoeff(&max_row, &max_col);
 	gaps->max_row = max_row;
