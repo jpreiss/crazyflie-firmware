@@ -5,3 +5,5 @@ venv
 benchmark
 *.dSYM
 *.su
+
+codegen
