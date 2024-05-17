@@ -6,4 +6,5 @@ pandas
 pybind11
 scipy
 seaborn
+symforce
 sympy
