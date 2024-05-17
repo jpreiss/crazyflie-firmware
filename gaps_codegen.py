@@ -2,8 +2,8 @@ import symforce
 import symforce.symbolic as sf
 
 
-OUTDIR_PY = "./test_gaps/codegen"
-OUTDIR_CPP = "./src/modules/interface"
+OUTDIRS = ["./test_gaps/codegen", "./src/modules/interface/codegen"]
+CONFIGS = [symforce.codegen.PythonConfig(), symforce.codegen.CppConfig()]
 
 
 def normalize(x):
@@ -57,23 +57,22 @@ def ctrl_symfn(
         Y_LIM * sf.tanh(torque[2] / Y_LIM),
     ])
 
-    return thrust, torque
+    return sf.Matrix.block_matrix([[sf.Vector1(thrust)], [torque]])
 
 
-# Do the codegen in python (TODO: C++)
-cg = symforce.codegen.Codegen.function(
-    func=ctrl_symfn,
-    config=symforce.codegen.PythonConfig(),
-)
-cg2 = cg.with_jacobians(
-    which_args=["ierr", "p", "v", "R", "w", "theta_pos", "theta_rot"],
-    which_results=range(2),
-    include_results=True,
-    name="ctrl",
-)
-data = cg2.generate_function(output_dir=OUTDIR_PY, skip_directory_nesting=True)
-ctrl_codegen = symforce.codegen.codegen_util.load_generated_function(
-    "ctrl", data.function_dir)
+for outdir, config in zip(OUTDIRS, CONFIGS):
+    cg = symforce.codegen.Codegen.function(
+        config=config,
+        func=ctrl_symfn,
+        output_names=["thrust_torque"],
+    )
+    cg2 = cg.with_linearization(
+        which_args=["ierr", "p", "v", "R", "w", "theta_pos", "theta_rot"],
+        linearization_mode=symforce.codegen.LinearizationMode.STACKED_JACOBIAN,
+        include_result=True,
+        name="ctrl",
+    )
+    data = cg2.generate_function(output_dir=outdir, skip_directory_nesting=True)
 
 
 # Autodiffable fn for dynamics
@@ -96,23 +95,24 @@ def dynamics_symfn(
     Rt = R * expw
     wt = w + dt * torque
 
-    return ierrt, pt, vt, Rt, wt
+    return sf.Matrix.block_matrix([
+        [ierrt], [pt], [vt], [Rt.col(0)], [Rt.col(1)], [Rt.col(2)], [wt]
+    ])
 
 
-# Do the codegen in python (TODO: C++)
-cg = symforce.codegen.Codegen.function(
-    func=dynamics_symfn,
-    config=symforce.codegen.PythonConfig(),
-)
-cg2 = cg.with_jacobians(
-    which_args=["ierr", "p", "v", "R", "w", "thrust", "torque"],
-    which_results=range(5),
-    include_results=True,
-    name="dynamics",
-)
-data = cg2.generate_function(output_dir=OUTDIR_PY, skip_directory_nesting=True)
-dynamics_codegen = symforce.codegen.codegen_util.load_generated_function(
-    "dynamics", data.function_dir)
+for outdir, config in zip(OUTDIRS, CONFIGS):
+    cg = symforce.codegen.Codegen.function(
+        config=config,
+        func=dynamics_symfn,
+        output_names=["ierr_p_v_R_w"],
+    )
+    cg2 = cg.with_linearization(
+        which_args=["ierr", "p", "v", "R", "w", "thrust", "torque"],
+        linearization_mode=symforce.codegen.LinearizationMode.STACKED_JACOBIAN,
+        include_result=True,
+        name="dynamics",
+    )
+    data = cg2.generate_function(output_dir=outdir, skip_directory_nesting=True)
 
 
 def cost_symfn(
@@ -133,22 +133,23 @@ def cost_symfn(
     return c
 
 
-cg = symforce.codegen.Codegen.function(
-    func=cost_symfn,
-    config=symforce.codegen.PythonConfig(),
-)
-cg2 = cg.with_jacobians(
-    which_args=["p", "v", "w", "thrust", "torque"],
-    include_results=True,
-    name="cost",
-)
-data = cg2.generate_function(output_dir=OUTDIR_PY, skip_directory_nesting=True)
-cost_codegen = symforce.codegen.codegen_util.load_generated_function(
-    "cost", data.function_dir)
+for outdir, config in zip(OUTDIRS, CONFIGS):
+    cg = symforce.codegen.Codegen.function(
+        config=config,
+        func=cost_symfn,
+        output_names=["cost"],
+    )
+    cg2 = cg.with_linearization(
+        which_args=["p", "v", "w", "thrust", "torque"],
+        linearization_mode=symforce.codegen.LinearizationMode.STACKED_JACOBIAN,
+        include_result=True,
+        name="cost",
+    )
+    data = cg2.generate_function(output_dir=outdir, skip_directory_nesting=True)
 
 
 # symforce always clobbers it with the most recent function *only*
-with open(OUTDIR_PY + "/__init__.py", "w") as f:
+with open(OUTDIRS[0] + "/__init__.py", "w") as f:
     f.write("""
 from .cost import cost
 from .ctrl import ctrl
