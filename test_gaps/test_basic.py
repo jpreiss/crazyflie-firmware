@@ -75,14 +75,14 @@ def test_linearized_controllability():
     if np.all(S > sigma_min):
         return
 
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(figsize=(8, 4))
     plot_x = np.arange(State.size) + 1
     for i in range(1, State.size + 1):
         if S[-i] > sigma_min:
             break
-        ax.plot(plot_x, U[:, -i], linewidth=0, marker=".", label=str(i))
+        ax.plot(plot_x, U[:, -i], linewidth=0, marker=".", markersize=12, label=str(i))
     ax.set(xlabel="state index", ylabel="value", xticks=plot_x)
-    ax.grid(True)
-    ax.legend(title="singular vec")
-    fig.show()
+    ax.grid(True, color=[0.8, 0.8, 0.8])
+    ax.legend(title="singular vec\n(smallest first)")
+    fig.savefig("controllability_singular_vectors.pdf")
     assert False
