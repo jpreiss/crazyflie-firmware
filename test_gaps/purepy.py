@@ -175,30 +175,57 @@ def dynamics_py(x: State, xd: Target, u: Action, dt: float):
     return x_t, Dx_x, Dx_u
 
 
-def cost_py(x: State, t: Target, u: Action, Q: CostParam):
-    """Returns: c, Dc_x, Dc_u."""
-
-    perr = x.p - t.p_d
-    verr = x.v - t.v_d
-    werr = x.w - t.w_d
+def cost_symfn(
+    p: sf.Vector3, v: sf.Vector3, w: sf.Vector3,
+    p_d: sf.Vector3, v_d: sf.Vector3, w_d: sf.Vector3,
+    thrust: sf.Scalar, torque: sf.Vector3,
+    Qp: sf.Scalar, Qv: sf.Scalar, Qw: sf.Scalar,
+    Qthrust: sf.Scalar, Qtorque: sf.Scalar,
+    ):
 
     c = 0.5 * (
-        Q.p * sqnorm(perr)
-        + Q.v * sqnorm(verr)
-        + Q.w * sqnorm(werr)
-        + Q.thrust * (u.thrust * u.thrust)
-        + Q.torque * sqnorm(u.torque)
+        Qp * (p - p_d).squared_norm()
+        + Qv * (v - v_d).squared_norm()
+        + Qw * (w - w_d).squared_norm()
+        + Qthrust * thrust ** 2
+        + Qtorque * torque.squared_norm()
     )
-    Dc_x = np.block([[
-        np.zeros((1, 3)),
-        Q.p * perr,
-        Q.v * verr,
-        np.zeros((1, 9)),
-        Q.w * werr,
-    ]])
-    Dc_u = np.block([[
-        Q.thrust * u.thrust,
-        Q.torque * u.torque,
-    ]])
+    return c
+
+
+cg = symforce.codegen.Codegen.function(
+    func=cost_symfn,
+    config=symforce.codegen.PythonConfig(),
+)
+cg2 = cg.with_jacobians(
+    which_args=["p", "v", "w", "thrust", "torque"],
+    include_results=True,
+    name="cost",
+)
+data = cg2.generate_function()
+cost_codegen = symforce.codegen.codegen_util.load_generated_function(
+    "cost", data.function_dir)
+
+
+def cost_py(x: State, xd: Target, u: Action, Q: CostParam):
+    """Returns: c, Dc_x, Dc_u."""
+
+    outputs = cost_codegen(
+        x.p, x.v, x.w,
+        xd.p_d, xd.v_d, xd.w_d,
+        u.thrust, u.torque,
+        Q.p, Q.v, Q.w, Q.thrust, Q.torque)
+
+    c = outputs[0]
+    for o in outputs[1:]:
+        assert len(o.shape) == 1
+    J = np.concatenate(outputs[1:])
+    Dc_x = np.zeros((1, 21))
+    # no ierr
+    Dc_x[:, 3:9] = J[0:6]
+    # no rot
+    Dc_x[:, 18:] = J[6:9]
+    Dc_u = J[9:][None, ]
+    assert Dc_u.size == 4
 
     return c, Dc_x, Dc_u
