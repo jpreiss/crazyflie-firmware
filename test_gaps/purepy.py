@@ -75,11 +75,12 @@ cg = symforce.codegen.Codegen.function(
 cg2 = cg.with_jacobians(
     which_args=["ierr", "p", "v", "R", "w", "theta_pos", "theta_rot"],
     which_results=range(2),
-    include_results=True
+    include_results=True,
+    name="ctrl",
 )
 data = cg2.generate_function()
 ctrl_codegen = symforce.codegen.codegen_util.load_generated_function(
-    "ctrl_symfn_with_jacobians012341011", data.function_dir)
+    "ctrl", data.function_dir)
 
 
 def ctrl_py(x: State, xd: Target, th: Param, dt: float):
@@ -141,11 +142,12 @@ cg = symforce.codegen.Codegen.function(
 cg2 = cg.with_jacobians(
     which_args=["ierr", "p", "v", "R", "w", "thrust", "torque"],
     which_results=range(5),
-    include_results=True
+    include_results=True,
+    name="dynamics",
 )
 data = cg2.generate_function()
 dynamics_codegen = symforce.codegen.codegen_util.load_generated_function(
-    "dynamics_symfn_with_jacobians0123467", data.function_dir)
+    "dynamics", data.function_dir)
 
 
 def dynamics_py(x: State, xd: Target, u: Action, dt: float):
