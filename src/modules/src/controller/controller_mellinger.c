@@ -324,8 +324,8 @@ void controllerMellinger(controllerMellinger_t* self, control_t *control, const 
   self->i_error_m_z = clamp(self->i_error_m_z, -self->i_range_m_z, self->i_range_m_z);
 
   // Moment:
-  M.x = -self->kR_xy * eR.x + self->kw_xy * ew.x + self->ki_m_xy * self->i_error_m_x + self->kd_omega_rp * err_d_roll;
-  M.y = -self->kR_xy * eR.y + self->kw_xy * ew.y + self->ki_m_xy * self->i_error_m_y + self->kd_omega_rp * err_d_pitch;
+  M.x = -self->kR_xy * eR.x + self->kw_xy * ew.x + self->ki_m_xy * self->i_error_m_x;
+  M.y = -self->kR_xy * eR.y + self->kw_xy * ew.y + self->ki_m_xy * self->i_error_m_y;
   M.z = -self->kR_z  * eR.z + self->kw_z  * ew.z + self->ki_m_z  * self->i_error_m_z;
 
   M.x *= J[0];
@@ -341,6 +341,11 @@ void controllerMellinger(controllerMellinger_t* self, control_t *control, const 
     control->torqueX = RP_LIM * tanhf(M.x / RP_LIM);
     control->torqueY = RP_LIM * tanhf(M.y / RP_LIM);
     control->torqueZ = Y_LIM * tanhf(M.z / Y_LIM);
+    // HACK - do it after the tanh because that's easier to work with in GAPS,
+    // and we want to continue requiring that GAPS's ctrl is close to
+    // Mellinger.
+    control->torqueX += J[0] * self->kd_omega_rp * err_d_roll;
+    control->torqueY += J[1] * self->kd_omega_rp * err_d_pitch;
   } else {
     control->torqueX = 0;
     control->torqueY = 0;
