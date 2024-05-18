@@ -150,8 +150,9 @@ def test_mel_vs_gaps():
     setpoint, state, sensors = zero_inputs()
     state.position.x = 0.1
     step = 0
+
     w_err = cffirmware.mkvec(0.1, 0.2, 0.3)
-    lee.gaps.prev_w_err = w_err
+    lee.prev_w_err = w_err
     mel.prev_omega_roll = w_err.x
     mel.prev_omega_pitch = w_err.y
 

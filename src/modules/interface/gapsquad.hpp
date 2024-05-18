@@ -265,8 +265,6 @@ extern "C" bool gaps_step(
 	gaps->ierr[1] = clampsym(gaps->ierr[1], (FLOAT)2.0);
 	gaps->ierr[2] = clampsym(gaps->ierr[2], (FLOAT)0.4);
 
-	gaps->prev_w_err = x->w - t->w_d;
-
 	if (!gaps->enable) {
 		return true;
 	}

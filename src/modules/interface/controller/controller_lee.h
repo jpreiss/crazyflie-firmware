@@ -36,6 +36,10 @@ typedef struct controllerLee_s {
     // Inertia matrix (diagonal matrix); kg m^2
     struct vec J;
 
+    // Weird states that are important IRL but not modelable
+    Vec prev_w_err;
+    FLOAT kdw_xy;
+
     struct GAPS gaps;
 } controllerLee_t;
 
