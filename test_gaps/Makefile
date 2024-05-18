@@ -11,7 +11,7 @@ benchmark: $(SRCS)
 		-I$(EIGEN) -I$(EIGEN)/unsupported -I$(MOD_INC) \
 		-o $@ $<
 
-install: bindings
+install: $(SRCS) setup.py pyproject.toml
 	pip install -e .
 
 bindings: $(SRCS) setup.py pyproject.toml
