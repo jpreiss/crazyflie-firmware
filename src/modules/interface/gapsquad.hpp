@@ -25,6 +25,9 @@ reference parameters instead.
 #include <Eigen/KroneckerProduct>
 
 #include "gapsquad.h"
+#include "codegen/cost.h"
+#include "codegen/ctrl.h"
+#include "codegen/dynamics.h"
 
 #ifdef CRAZYFLIE_FW
 	extern "C" {
@@ -151,64 +154,23 @@ void dynamics(
 	State &x_t, Jxx &Dx_x, Jxu &Dx_u // outputs
 	)
 {
-	Vec g(0, 0, GRAV);
-	Mat I3 = Mat::Identity();
-
-	Vec up = x.R.col(2);
-	Vec acc = u.thrust * up - g;
-
-	Eigen::Matrix<FLOAT, 3, XDIM> Dacc_x;
-	Dacc_x.setZero();
-	// I3 wrt Z column of R
-	Dacc_x.block<3, 3>(0, 3 + 3 + 3 + 6) = u.thrust * I3;
-
-	// Normally I would use symplectic Euler integration, but plain forward
-	// Euler gives simpler Jacobians.
-
-	Mat hatw = hat(x.w);
-	Mat exp_dt_hatw = I3 + dt * hatw + (dt * dt / 2) * hatw * hatw;
-
-	Mat99 Dhatw2_hatw = kroneckerProduct(hatw.transpose(), I3) + kroneckerProduct(I3, hatw);
-	Mat93 Dexp_w = dt * Dhat_w + (dt * dt / 2) * (Dhatw2_hatw * Dhat_w);
-
-	x_t.ierr = x.ierr + dt * (x.p - t.p_d);
-	x_t.p = x.p + dt * x.v;
-	x_t.v = x.v + dt * acc;
-	x_t.R = x.R * exp_dt_hatw;
-	x_t.w = x.w + dt * u.torque;
-
-	// TODO: This became trivial after we went from angle state to rotation
-	// matrix -- condense some ops.
-	Mat39 Dvt_R = dt * Dacc_x.block<3, 9>(0, 9);
-
-	Mat99 DRt_R = kroneckerProduct(exp_dt_hatw.transpose(), I3);
-
-	Vec Rx, Ry, Rz;
-	colsplit(x.R, Rx, Ry, Rz);
-
-	Mat93 DRt_w = kroneckerProduct(I3, x.R) * Dexp_w;
-
-	// auto keeps the expression templates, for possible optimization
-	auto Z33 = Mat::Zero();
-	auto Z39 = Mat39::Zero();
-	auto Z93 = Mat93::Zero();
-	// auto Z91 = Eigen::Matrix<FLOAT, 9, 1, Eigen::RowMajor>::Zero();
-	auto dt3 = dt * I3;
-
-	Dx_x <<
-		 I3, dt3, Z33,   Z39,   Z33,
-		Z33,  I3, dt3,   Z39,   Z33,
-		Z33, Z33,  I3, Dvt_R,   Z33,
-		Z93, Z93, Z93, DRt_R, DRt_w,
-		Z33, Z33, Z33,   Z39,    I3;
-	// (Refers to Dx_x construction above.) Skipping Coriolis term that would
-	// make dw'/dw nonzero because it requires system ID of the inertia matrix,
-	// which we can otherwise skip. For the Crazyflie this term can be
-	// neglected as the quad's inertia is very small.
-
-	Dx_u.setZero();
-	Dx_u.block<3, 1>(6, 0) = dt * Rz;
-	Dx_u.block<3, 3>(9 + 9, 1) = dt3;
+	Eigen::Matrix<FLOAT, XDIM, 1> xt;
+	Eigen::Matrix<FLOAT, XDIM, XDIM + UDIM> D;
+	sym::Dynamics<FLOAT>(
+		x.ierr, x.p, x.v, x.R, x.w,
+		t.p_d,
+		u.thrust, u.torque,
+		dt,
+		&xt, &D
+	);
+	using Rmap = Eigen::Map<Eigen::Matrix<FLOAT, 3, 3, Eigen::ColMajor> >;
+	x_t.ierr = xt.head<3>();
+	x_t.p = xt.segment<3>(3);
+	x_t.v = xt.segment<3>(6),
+	x_t.R = Rmap(&xt[9]);
+	x_t.w = xt.tail<3>();
+	Dx_x = D.block<XDIM, XDIM>(0, 0);
+	Dx_u = D.block<XDIM, UDIM>(0, XDIM);
 }
 
 template <typename S, typename T>
@@ -224,44 +186,22 @@ void cost(
 	FLOAT &c, Gcx &Dc_x, Gcu &Dc_u  // outputs
 	)
 {
-	VecT perr = (x.p - t.p_d).transpose();
-	VecT verr = (x.v - t.v_d).transpose();
-	VecT werr = (x.w - t.w_d).transpose();
-
-	// It doesn't make sense to have a cost on the attitude because the target
-	// doesn't include a specific target attitude. The only fully interpretable
-	// errors are tracking (position) and "jitteriness" (omega and/or torque).
-	// Velocity tracking is also marginal to penalize...
-
-	c = (FLOAT)0.5 * (
-		Q.p * perr.squaredNorm()
-		+ Q.v * verr.squaredNorm()
-		+ Q.w * werr.squaredNorm()
-		+ Q.thrust * (u.thrust * u.thrust)
-		+ Q.torque * u.torque.squaredNorm()
+	Eigen::Matrix<FLOAT, 1, 3 + 3 + 3 + 1 + 3> D;
+	//                      p   v   w   th  tq
+	sym::Cost<FLOAT>(
+		x.p, x.v, x.w,
+		t.p_d, t.v_d, t.w_d,
+		u.thrust, u.torque,
+		Q.p, Q.v, Q.w, Q.thrust, Q.torque,
+		&c, &D
 	);
-	Dc_x <<
-		Eigen::Matrix<FLOAT, 1, 3>::Zero(),
-		Q.p * perr,
-		Q.v * verr,
-		Eigen::Matrix<FLOAT, 1, 9>::Zero(),
-		Q.w * werr;
-	Dc_u <<
-		Q.thrust * u.thrust,
-		Q.torque * u.torque.transpose();
+	Dc_x.setZero();
+	Dc_x.segment<6>(3) = D.head<6>();  // p, v
+	Dc_x.tail<3>() = D.segment<3>(6);  // w
+	Dc_u[0] = D[9];                    // thrust
+	Dc_u.tail<3>() = D.tail<3>();      // torque
 }
 
-// spiritually these are function-static to ctrl().
-// see comment for gaps_step().
-static Eigen::Matrix<FLOAT, 3, XDIM> Da_x;
-static Eigen::Matrix<FLOAT, 3, TDIM> Da_th;
-static Eigen::Matrix<FLOAT, 9, 3> DRd_a;
-static Mat39 Der_R, Der_Rd;
-static Eigen::Matrix<FLOAT, 3, XDIM> Der_x;
-static Eigen::Matrix<FLOAT, 3, TDIM> Der_th;
-static Eigen::Matrix<FLOAT, 3, XDIM> Dtorque_x;
-static Eigen::Matrix<FLOAT, 3, TDIM> Dtorque_th;
-static Eigen::Matrix<FLOAT, 1, XDIM> Dthrust_xRpart;
 
 void ctrl(
 	State const &x, Target const &t, Param const &th, // inputs
@@ -270,135 +210,25 @@ void ctrl(
 	FLOAT dt // params
 	)
 {
-	Vec const g(0, 0, GRAV);
-	Mat const I = Mat::Identity();
+	static_assert(TDIM == 6 + 4);
+	Eigen::Matrix<FLOAT, 6, 1> th_pos;
+	th_pos << th.ki_xy, th.ki_z, th.kp_xy, th.kp_z, th.kv_xy, th.kv_z;
+	Eigen::Matrix<FLOAT, 4, 1> th_rot;
+	th_rot << th.kr_xy, th.kr_z, th.kw_xy, th.kw_z;
 
-	Diag const ki(th.ki_xy, th.ki_xy, th.ki_z);
-	Diag const kp(th.kp_xy, th.kp_xy, th.kp_z);
-	Diag const kv(th.kv_xy, th.kv_xy, th.kv_z);
-	Diag const kr(th.kr_xy, th.kr_xy, th.kr_z);
-	Diag const kw(th.kw_xy, th.kw_xy, th.kw_z);
-
-	// position part components
-	Vec const perr = x.p - t.p_d;
-	Vec const verr = x.v - t.v_d;
-	// Parens because Eigen forbids negating diagonal matrices for some reason?
-	Vec const feedback = - (ki * x.ierr) - (kp * perr) - (kv * verr);
-	Vec const a = feedback + t.a_d + g;
-
-	Da_x << -(ki * I), -(kp * I), -(kv * I), Eigen::Matrix<FLOAT, 3, 9 + 3>::Zero();
-
-	Da_th <<
-		-x.ierr[0],          0, -perr[0],        0, -verr[0],        0, 0, 0, 0, 0,
-		-x.ierr[1],          0, -perr[1],        0, -verr[1],        0, 0, 0, 0, 0,
-		         0, -x.ierr[2],        0, -perr[2],        0, -verr[2], 0, 0, 0, 0;
-
-	Vec const Rz = x.R.col(2);
-	u.thrust = a.dot(Rz);
-	VecT const Dthrust_a = Rz.transpose();
-	Dthrust_xRpart <<
-		Eigen::Matrix<FLOAT, 1, 3 + 3 + 3 + 3 + 3>::Zero(), a.transpose(), VecT::Zero();
-	//                          i   p   v  Rx  Ry
-
-	Vec zgoal;
-	Mat Dzgoal_a;
-	// Note this threshold is much higher than necessary for numerical
-	// purposes, but since `a` should be 9.81 for gravity compensation,
-	// magnitude of 0.1 is effectively very close to free fall. (Possibly below
-	// the minimum motor speed for many quads.) We can therefore assume that
-	// the direction of a is not particularly meaningful and may not be stable
-	// over time. In such cases, it is probably not productive to track it.
-	if (a.norm() > 0.1f) {
-		zgoal = normalize(a, Dzgoal_a);
-	}
-	else {
-		// Pos controller wants to free fall. This controller isn't really
-		// designed for such aggressive maneuvers, but it seems reasonable to
-		// fall in a straight and level attitude so all directions of lateral
-		// (x-y) thrust are equally easy to achieve in the future.
-		zgoal = Vec(0, 0, 1);
-		Dzgoal_a.setZero();
-	}
-	debug.z_axis_desired = zgoal;
-
-	Vec const xgoalflat(std::cos(t.y_d), std::sin(t.y_d), 0);
-	Mat Dygoalnn_zgoal, dummy;
-	Vec const ygoalnn = cross(zgoal, xgoalflat, Dygoalnn_zgoal, dummy);
-	Mat Dygoal_ygoalnn;
-	// TODO: handle case where too close to zero.
-	Vec const ygoal = normalize(ygoalnn, Dygoal_ygoalnn);
-	Mat Dygoal_a = Dygoal_ygoalnn * Dygoalnn_zgoal * Dzgoal_a;
-
-	Mat Dxgoal_ygoal, Dxgoal_zgoal;
-	Vec const xgoal = cross(ygoal, zgoal, Dxgoal_ygoal, Dxgoal_zgoal);
-	Mat const Dxgoal_a = Dxgoal_ygoal * Dygoal_a + Dxgoal_zgoal * Dzgoal_a;
-	Mat const Rd = fromcols(xgoal, ygoal, zgoal);
-
-	#ifndef CRAZYFLIE_FW
-	{
-		// extra correctness checks
-		FLOAT norm = xgoal.norm();
-		if (std::abs(norm - 1) > 1e-6) {
-			throw std::runtime_error("xgoal norm too far from 1: is " + std::to_string(norm));
-		}
-		FLOAT det = Rd.determinant();
-		if (std::abs(det - 1) > 1e-6) {
-			throw std::runtime_error("Rd determinant too far from 1: is " + std::to_string(det));
-		}
-		Mat RdTRd = Rd.transpose() * Rd;
-		FLOAT maxerr = (RdTRd - I).array().abs().maxCoeff();
-		if (maxerr > 1e-6) {
-			throw std::runtime_error("Rd is not orthogonal: maxerr is " + std::to_string(maxerr));
-		}
-	}
-	#endif
-
-	DRd_a.block<3, 3>(0, 0) = Dxgoal_a;
-	DRd_a.block<3, 3>(3, 0) = Dygoal_a;
-	DRd_a.block<3, 3>(6, 0) = Dzgoal_a;
-
-	Vec const er = SO3error(x.R, Rd, Der_R, Der_Rd);
-	Vec const ew = x.w - t.w_d;
-	debug.eR = er;
-	debug.ew = ew;
-
-	Vec dwerr = (1.0f / dt) * (ew - x.werr);
-	dwerr[2] = 0.0f;
-
-	Arr3 const dw_raw = 10 * (-(kr * er) - (kw * ew) - (th.kdw_xy * dwerr));
-	#define RP_LIM 268
-	#define Y_LIM 56
-	Arr3 const dw_lims(RP_LIM, RP_LIM, Y_LIM);
-	Arr3 const dw = dw_lims * (dw_raw / dw_lims).tanh();
-	// dw == 0 iff dw_raw == 0, so is correct.
-	debug.dw_squash = (dw_raw / (dw == 0).select(1, dw));
-	u.torque = dw.matrix();
-	Diag const Ddw_dwraw =
-		(dw_raw.array() / dw_lims).cosh().square().inverse().matrix().asDiagonal();
-
-	// controller chain rules
-	auto const Dthrust_x = Dthrust_a * Da_x + Dthrust_xRpart;
-	auto const Dthrust_th = Dthrust_a * Da_th;
-
-	Der_x.setZero();
-	Der_x.block<3, 9>(0, 9) = Der_R;
-	Der_x += Der_Rd * DRd_a * Da_x;
-
-	Der_th = Der_Rd * DRd_a * Da_th;
-
-	Dtorque_x = -(kr * Der_x);
-	Dtorque_x.block<3, 3>(0, 3 + 3 + 3 + 9) -= kw * I;
-	Dtorque_x = 10 * Ddw_dwraw * Dtorque_x;
-
-	Dtorque_th = -(kr * Der_th); // indirect part
-	Dtorque_th += (Eigen::Matrix<FLOAT, 3, TDIM>() <<
-		0, 0, 0, 0, 0, 0, -er[0],      0, -ew[0],      0,
-		0, 0, 0, 0, 0, 0, -er[1],      0, -ew[1],      0,
-		0, 0, 0, 0, 0, 0,      0, -er[2],      0, -ew[2]).finished();
-	Dtorque_th = 10 * Ddw_dwraw * Dtorque_th;
-
-	Du_x << Dthrust_x, Dtorque_x;
-	Du_th << Dthrust_th, Dtorque_th;
+	Eigen::Matrix<FLOAT, UDIM, 1> ua;
+	Eigen::Matrix<FLOAT, UDIM, XDIM + TDIM> D;
+	sym::Ctrl<FLOAT>(
+		x.ierr, x.p, x.v, x.R, x.w,
+		t.p_d, t.v_d, t.a_d, t.y_d, t.w_d,
+		th_pos, th_rot,
+		dt,
+		&ua, &D
+	);
+	u.thrust = ua[0];
+	u.torque = ua.tail<3>();
+	Du_x = D.block<UDIM, XDIM>(0, 0);
+	Du_th = D.block<UDIM, TDIM>(0, XDIM);
 }
 
 // spiritually these are function-static to gaps_step(), but we make them fully
