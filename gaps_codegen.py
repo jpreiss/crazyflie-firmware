@@ -1,9 +1,10 @@
 import symforce
+symforce.set_epsilon_to_invalid()
 import symforce.symbolic as sf
 
 
 def normalize(x):
-    return x / x.norm()
+    return x / x.norm(epsilon=1e-6)
 
 
 def ctrl_symfn(
@@ -29,7 +30,7 @@ def ctrl_symfn(
     Rx, Ry, Rz = R.col(0), R.col(1), R.col(2)
     thrust = a.dot(Rz)
 
-    # TODO: handle a \approx 0 case
+    # TODO: handle a \approx 0 case ?
     zgoal = normalize(a)
     xgoalflat = sf.Vector3([sf.cos(y_d), sf.sin(y_d), 0])
     ygoal = normalize(zgoal.cross(xgoalflat))
@@ -72,7 +73,7 @@ def dynamics_symfn(
     vt = v + dt * acc
 
     # attitude
-    expw = sf.Rot3.from_tangent(dt * w).to_rotation_matrix()
+    expw = sf.Rot3.from_tangent(dt * w, epsilon=1e-6).to_rotation_matrix()
     Rt = R * expw
     wt = w + dt * torque
 
