@@ -5,6 +5,8 @@ import scipy as sp
 from testlib import *
 import SO3
 
+from purepy import dynamics_py
+
 
 Z3 = np.zeros(3)
 I3 = np.eye(3)
@@ -37,7 +39,8 @@ def test_dynamics_freefall():
         x, xd, _, _, u = default_inputs()
         x = x._replace(w=w)
         for _ in range(100):
-            x, _, _ = dynamics_cpp(x, xd, u, dt)
+            print("x =", x)
+            x, _, _ = dynamics_py(x, xd, u, dt)
 
         # rotation should have no effect unless we have thrust
         assert np.allclose(x.v, [0, 0, -9.81])
