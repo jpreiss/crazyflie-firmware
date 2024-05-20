@@ -11,6 +11,10 @@ import SO3
 Z3 = np.zeros(3)
 I3 = np.eye(3)
 
+HI_GAIN_THETA_POS = (1, 1, 10, 10, 5, 5)
+HI_GAIN_THETA_ROT = (10, 2, 2, 0.2)
+HI_GAIN_THETA = tuple(HI_GAIN_THETA_POS + HI_GAIN_THETA_ROT)
+
 
 def test_cost_sanity():
     x, xd, _, Q, u = default_inputs()
@@ -49,7 +53,6 @@ def ctrb(A, B):
     return C
 
 
-@pytest.mark.xfail
 def test_linearized_controllability():
     # check controllability of linearized system
     dt = 0.1
@@ -76,13 +79,28 @@ def test_linearized_controllability():
     assert False, "would have returned if controllable"
 
 
+def test_ctrl_signs():
+    # tests that ctrl wants to point the thrust vector in the correct direction.
+    Z3 = np.zeros(3)
+    x = State(ierr=Z3, p=Z3, v=Z3, logR=Z3, w=Z3)
+    pos_torques = [
+        (( 1,  0, 0), ( 0,  1, 0)),
+        ((-1,  0, 0), ( 0, -1, 0)),
+        (( 0,  1, 0), (-1,  0, 0)),
+        (( 0, -1, 0), ( 1,  0, 0)),
+    ]
+    for pos, torque in pos_torques:
+        target = Target(p_d=pos, v_d=Z3, a_d=Z3, y_d=0, w_d=Z3)
+        u, *_ = ctrl_cpp(x, target, HI_GAIN_THETA, dt=0.1)
+        assert u.thrust > 8
+        assert np.all(np.sign(torque) == np.sign(u.torque))
+
+
+
 def test_stabilizing():
     dt = 1e-2
     # TODO: tune so we don't need 80 seconds - closedloop must be underdamped.
     T = int(80 / dt)
-    theta_pos = [1, 1, 10, 10, 5, 5]
-    theta_rot = [10, 2, 2, 0.2]
-    theta = tuple(theta_pos + theta_rot)
     Z3 = np.zeros(3)
     target = Target(p_d=Z3, v_d=Z3, a_d=Z3, y_d=0, w_d=Z3)
     rng = np.random.default_rng(0)
@@ -90,14 +108,15 @@ def test_stabilizing():
         return (
             np.allclose(x.p, Z3, atol=1e-2)
             and np.allclose(x.v, Z3, atol=1e-3)
-            and np.allclose(x.R.reshape(3, 3).T, np.eye(3), atol=1e-4)
-            and np.allclose(x.w, Z3)
+            and np.allclose(x.logR, Z3, atol=1e-4)
+            and np.allclose(x.w, Z3, atol=1e-4)
         )
     for i in range(10):
         x0, *_ = random_inputs(rng)
         assert not close(x0)
         x = x0
         for t in range(T):
-            u, *_ = ctrl_cpp(x, target, theta, dt)
+            # TODO: tune gains for testing better
+            u, *_ = ctrl_cpp(x, target, np.array(HI_GAIN_THETA)/2, dt)
             x, *_ = dynamics_cpp(x, target, u, dt)
         assert close(x)

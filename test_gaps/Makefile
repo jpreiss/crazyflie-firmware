@@ -9,7 +9,7 @@ BUILD := setup.py pyproject.toml
 all: benchmark bindings
 
 $(GEN): ../gaps_codegen.py
-	cd .. && python gaps_codegen.py
+	cd .. && python3 gaps_codegen.py
 
 benchmark: $(SRCS)
 	$(CXX) \
@@ -20,7 +20,7 @@ benchmark: $(SRCS)
 install: $(SRCS) $(BUILD)
 	pip install -e .
 
-bindings: $(SRCS) $(BUILD) codegen
+bindings: $(SRCS) $(BUILD) $(GEN)
 	mkdir -p gapsquad
 	python3 setup.py build
 
