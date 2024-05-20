@@ -192,7 +192,7 @@ void controllerLee(
 	x.ierr = self->gaps.ierr;
 	x.p = mkvec(state->position.x, state->position.y, state->position.z);
 	x.v = mkvec(state->velocity.x, state->velocity.y, state->velocity.z);
-	x.R = quat2rotmat(mkquat(
+	x.logR = qlog(mkquat(
 		state->attitudeQuaternion.x,
 		state->attitudeQuaternion.y,
 		state->attitudeQuaternion.z,

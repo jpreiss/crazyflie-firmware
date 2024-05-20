@@ -829,6 +829,24 @@ static inline struct quat qslerp(struct quat a, struct quat b, float t)
 			s*a.x + t*b.x, s*a.y + t*b.y, s*a.z + t*b.z, s*a.w + t*b.w);
 	}
 }
+// compute the SO(3) logarithmic map from:
+//
+//     the SO(3) rotation represented by q
+//
+// to
+//
+//     the vector form of its (skew-symmetric) matrix logarithm.
+//
+// Note this is NOT the same as the quaternion logarithm!
+// Code based on the symforce library.
+static inline struct vec qlog(struct quat q) {
+	float w_safe = fminf(1 - 1e-6f, fabsf(q.w));
+	float norm = sqrtf(1 - w_safe * w_safe);
+	float tangent_norm = 2 * acosf(w_safe);
+	float scale = tangent_norm / norm;
+	struct vec xyz_w_positive = quatimagpart(qposreal(q));
+	return vscl(scale, xyz_w_positive);
+}
 
 //
 // conversion to/from raw float and double arrays.
