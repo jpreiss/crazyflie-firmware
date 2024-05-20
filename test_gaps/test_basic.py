@@ -90,3 +90,30 @@ def test_linearized_controllability():
     fig.savefig("controllability_singular_vectors.pdf")
 
     assert False, "would have returned if controllable"
+
+
+def test_stabilizing():
+    dt = 1e-2
+    # TODO: tune so we don't need 80 seconds - closedloop must be underdamped.
+    T = int(80 / dt)
+    theta_pos = [1, 1, 10, 10, 5, 5]
+    theta_rot = [100, 20, 20, 2]
+    theta = tuple(theta_pos + theta_rot)
+    Z3 = np.zeros(3)
+    target = Target(p_d=Z3, v_d=Z3, a_d=Z3, y_d=0, w_d=Z3)
+    rng = np.random.default_rng(0)
+    def close(x):
+        return (
+            np.allclose(x.p, Z3, atol=1e-2)
+            and np.allclose(x.v, Z3, atol=1e-3)
+            and np.allclose(x.R.reshape(3, 3).T, np.eye(3), atol=1e-4)
+            and np.allclose(x.w, Z3)
+        )
+    for i in range(10):
+        x0, *_ = random_inputs(rng)
+        assert not close(x0)
+        x = x0
+        for t in range(T):
+            u, *_ = ctrl_cpp(x, target, theta, dt)
+            x, *_ = dynamics_cpp(x, target, u, dt)
+        assert close(x)
