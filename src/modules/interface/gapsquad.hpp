@@ -165,23 +165,29 @@ void dynamics(
 	// Normally I would use symplectic Euler integration, but plain forward
 	// Euler gives simpler Jacobians.
 
+	double theta_w = x.w.norm();
 	Mat hatw = hat(x.w);
-	// Mat exp_dt_hatw = I3 + dt * hatw + (dt * dt / 2) * hatw * hatw;
 
-	double theta_wt = dt * x.w.norm();
-	Mat hatwt = dt * hatw;
-	Mat exp_dt_hatw = I3;
-	if (theta_wt >= 1e-6) exp_dt_hatw = I3 + std::sin(theta_wt) * hatwt / theta_wt + (1 - std::cos(theta_wt)) * hatwt * hatwt / (theta_wt * theta_wt);
-
-	// std::cout << "exp_dt_hatw: " << exp_dt_hatw << std::endl;
-	
-	// Mat99 Dhatw2_hatw = kroneckerProduct(hatw.transpose(), I3) + kroneckerProduct(I3, hatw);
-	// Mat93 Dexp_w = dt * Dhat_w + (dt * dt / 2) * (Dhatw2_hatw * Dhat_w);
-
-	Mat Jacobian_R = I3;
-	if (theta_wt >= 1e-6) Jacobian_R = I3 - (1 - std::cos(theta_wt)) * hatwt / (theta_wt * theta_wt) + (theta_wt - std::sin(theta_wt)) * hatwt * hatwt / (theta_wt * theta_wt * theta_wt);
-	Mat93 Dexp_w = Dhat_w * Jacobian_R;
-
+	double theta_wt = double(dt) * theta_w;
+	Mat hatwt = double(dt) * hatw;
+	Mat exp_dt_hatw;
+	if (theta_wt < 1e-9) {
+		exp_dt_hatw = I3 + dt * hatw + (dt * dt / 2) * hatw * hatw;
+	}
+	else {
+		exp_dt_hatw = I3 + std::sin(theta_wt) * hatwt / theta_wt + (1 - std::cos(theta_wt)) * hatwt * hatwt / (theta_wt * theta_wt);
+	} 
+	std::cout << "exp_dt_hatw" << exp_dt_hatw << "\n";
+	Mat93 Dexp_w;
+	if (theta_wt < 1e-9) {
+		Mat99 Dhatw2_hatw = kroneckerProduct(hatw.transpose(), I3) + kroneckerProduct(I3, hatw);
+		Dexp_w = dt * Dhat_w + (dt * dt / 2) * (Dhatw2_hatw * Dhat_w);
+		}
+	else {
+		Mat Jacobian_R = I3 - (1 - std::cos(theta_w)) * hatw / (theta_w * theta_w) + (theta_w - std::sin(theta_w)) * hatw * hatw / (theta_w * theta_w * theta_w);
+		Dexp_w = dt * Dhat_w * Jacobian_R;
+	} 
+	std::cout << "Dexp_w" << Dexp_w << "\n";
 	x_t.ierr = x.ierr + dt * (x.p - t.p_d);
 	x_t.p = x.p + dt * x.v;
 	x_t.v = x.v + dt * acc;
