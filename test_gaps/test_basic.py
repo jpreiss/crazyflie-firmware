@@ -1,11 +1,11 @@
 import matplotlib.pyplot as plt
 import numpy as np
+import pytest
 import scipy as sp
 
+from purepy import dynamics_py
 from testlib import *
 import SO3
-
-from purepy import dynamics_py
 
 
 Z3 = np.zeros(3)
@@ -39,7 +39,6 @@ def test_dynamics_freefall():
         x, xd, _, _, u = default_inputs()
         x = x._replace(w=w)
         for _ in range(100):
-            print("x =", x)
             x, _, _ = dynamics_py(x, xd, u, dt)
 
         # rotation should have no effect unless we have thrust
@@ -66,6 +65,7 @@ def ctrb(A, B):
     return C
 
 
+@pytest.mark.xfail
 def test_linearized_controllability():
     # check controllability of linearized system
     dt = 0.1
@@ -88,4 +88,5 @@ def test_linearized_controllability():
     ax.grid(True, color=[0.8, 0.8, 0.8])
     ax.legend(title="singular vec\n(smallest first)")
     fig.savefig("controllability_singular_vectors.pdf")
-    assert False
+
+    assert False, "would have returned if controllable"

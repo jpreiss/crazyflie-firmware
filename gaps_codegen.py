@@ -106,6 +106,7 @@ def main():
         symforce.codegen.PythonConfig(),
         symforce.codegen.CppConfig(),
     ]
+    # Can comment out on Linux. Was causing problems on Mac.
     CONFIGS[1].render_template_config.autoformat = False
 
     for outdir, config in zip(OUTDIRS, CONFIGS):

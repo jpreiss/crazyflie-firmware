@@ -4,6 +4,7 @@ matplotlib
 numpy
 pandas
 pybind11
+pytest
 scipy
 seaborn
 symforce
