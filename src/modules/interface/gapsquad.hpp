@@ -56,98 +56,6 @@ using VecT = Eigen::Matrix<FLOAT, 1, 3>;
 using Diag = Eigen::DiagonalMatrix<FLOAT, 3>;
 using Arr3 = Eigen::Array<FLOAT, 3, 1>;
 
-void colsplit(Mat const &m, Vec &x, Vec &y, Vec &z)
-{
-	x = m.col(0);
-	y = m.col(1);
-	z = m.col(2);
-}
-
-Mat fromcols(Vec const &a, Vec const &b, Vec const &c)
-{
-	Mat m;
-	m.col(0) = a;
-	m.col(1) = b;
-	m.col(2) = c;
-	return m;
-}
-
-/*
-Returns error on Lie algebra, plus Jacobians (3 x 9).
-
-Note this error starts *decreasing* as the angle exceeds 90 degrees, so it is
-nonsensical. Also it has a negative second derivative so it really only makes
-sense for small angles like 45 degrees or less (see [1] for details).
-
-However, we use it here because its Jacobian is so simple.
-
-[1] Globally-Attractive Logarithmic Geometric Control of a Quadrotor for
-Aggressive Trajectory Tracking. Jacob Johnson and Randal Beard.
-https://arxiv.org/abs/2109.07025
-*/
-Vec SO3error(Mat const &R, Mat const &Rd, Mat39 &JR, Mat39 &JRd)
-{
-	Mat errmat = 0.5 * (Rd.transpose() * R - R.transpose() * Rd);
-	Vec err(errmat(2, 1), errmat(0, 2), errmat(1, 0));
-	Vec Rx, Ry, Rz;
-	colsplit(R, Rx, Ry, Rz);
-	Vec Rdx, Rdy, Rdz;
-	colsplit(Rd, Rdx, Rdy, Rdz);
-	VecT Z = VecT::Zero();
-	JR = 0.5 * (Mat39() <<
-		               Z,  Rdz.transpose(), -Rdy.transpose(),
-		-Rdz.transpose(),                Z,  Rdx.transpose(),
-		 Rdy.transpose(), -Rdx.transpose(),               Z).finished();
-	JRd = 0.5 * (Mat39() <<
-		              Z, -Rz.transpose(),  Ry.transpose(),
-		 Rz.transpose(),               Z, -Rx.transpose(),
-		-Ry.transpose(),  Rx.transpose(),              Z).finished();
-	return err;
-}
-
-Mat hat(Vec const &w)
-{
-	FLOAT x = w[0], y = w[1], z = w[2];
-	Mat m = (Mat() <<
-		 0, -z,  y,
-		 z,  0, -x,
-		-y,  x,  0).finished();
-	return m;
-}
-
-static Mat93 const Dhat_w = (Mat93() <<
-	 0,  0,  0,
-	 0,  0,  1,
-	 0, -1,  0,
-	 0,  0, -1,
-	 0,  0,  0,
-	 1,  0,  0,
-	 0,  1,  0,
-	-1,  0,  0,
-	 0,  0,  0).finished();
-
-Vec normalize(Vec const &v, Mat &J)
-{
-	FLOAT vn = (FLOAT)1.0 / v.norm();
-	FLOAT vn3 = vn * vn * vn;
-	J = vn * Mat::Identity() - vn3 * v * v.transpose();
-	return vn * v;
-}
-
-Vec cross(Vec const &a, Vec const &b, Mat &Ja, Mat &Jb)
-{
-	FLOAT ax = a[0], ay = a[1], az = a[2];
-	FLOAT bx = b[0], by = b[1], bz = b[2];
-	Vec x(
-		ay * bz - az * by,
-		az * bx - ax * bz,
-		ax * by - ay * bx
-	);
-	Ja = -hat(b);
-	Jb = hat(a);
-	return x;
-}
-
 
 void dynamics(
 	State const &x, Target const &t, Action const &u, FLOAT const dt, // inputs
@@ -157,17 +65,17 @@ void dynamics(
 	Eigen::Matrix<FLOAT, XDIM, 1> xt;
 	Eigen::Matrix<FLOAT, XDIM, XDIM + UDIM> D;
 	sym::Dynamics<FLOAT>(
-		x.ierr, x.p, x.v, x.R, x.w,
+		x.ierr, x.p, x.v, x.logR, x.w,
 		t.p_d,
 		u.thrust, u.torque,
 		dt,
 		&xt, &D
 	);
-	using Rmap = Eigen::Map<Eigen::Matrix<FLOAT, 3, 3, Eigen::ColMajor> >;
+	//using Rmap = Eigen::Map<Eigen::Matrix<FLOAT, 3, 3, Eigen::ColMajor> >;
 	x_t.ierr = xt.head<3>();
 	x_t.p = xt.segment<3>(3);
 	x_t.v = xt.segment<3>(6),
-	x_t.R = Rmap(&xt[9]);
+	x_t.logR = xt.segment<3>(9);
 	x_t.w = xt.tail<3>();
 	Dx_x = D.block<XDIM, XDIM>(0, 0);
 	Dx_u = D.block<XDIM, UDIM>(0, XDIM);
@@ -219,7 +127,7 @@ void ctrl(
 	Eigen::Matrix<FLOAT, UDIM, 1> ua;
 	Eigen::Matrix<FLOAT, UDIM, XDIM + TDIM> D;
 	sym::Ctrl<FLOAT>(
-		x.ierr, x.p, x.v, x.R, x.w,
+		x.ierr, x.p, x.v, x.logR, x.w,
 		t.p_d, t.v_d, t.a_d, t.y_d, t.w_d,
 		th_pos, th_rot,
 		dt,
@@ -313,35 +221,6 @@ extern "C" bool gaps_step(
 	auto product = Dx_x + Dx_u * Du_x;
 	// std::cout << "product eigvals:" << product.eigenvalues() << "\n";
 	y = gaps->damping * product * y + Dx_u * Du_t;
-	// enforce that the R component of y is within the tangent space of R
-	auto y_R = y.block<9, TDIM>(9, 0);
-
-	// project the R components of y onto the tangent space of current R
-	for (int i = 0; i < TDIM; ++i) {
-		Eigen::Matrix<FLOAT, 9, 1> y_R_i = y_R.col(i);
-
-		// y_R_i_M is analogous to R^T since we store concatenated cols but Mat is row-major
-		Eigen::Map<Mat> y_R_i_M(y_R_i.data());
-
-		// move from tangent space of R to tangent space of identity
-		Mat in_tangent = xnext.R.transpose() * y_R_i_M.transpose();
-
-		// enforce to be in so(3) Lie algebra
-		Mat skew_part = 0.5 * (in_tangent - in_tangent.transpose());
-
-		if (!allclose(skew_part, -skew_part.transpose())) {
-			DEBUG_PRINT("skew projection failed.\n");
-		}
-
-		// go back to tangent space of R
-		y_R_i_M = (xnext.R * skew_part).transpose();
-
-		// FLOAT relative = (y_R_i - y_R.col(i)).norm() / y_R.col(i).norm();
-		// DEBUG_PRINT("skew proj relative %f\n", (double)relative);
-
-		// remember y_R_i_M was a mapped view onto y_R
-		y_R.col(i) = y_R_i;
-	}
 
 	// storing strictly for diagnostic purposes, not used in algorithm.
 	// TODO: move to struct Debug.

@@ -7,7 +7,7 @@ using FLOAT = double;
 #include "gapsquad.hpp"
 
 
-using StateTuple = std::tuple<Vec, Vec, Vec, Mat, Vec>;
+using StateTuple = std::tuple<Vec, Vec, Vec, Vec, Vec>;
 using ActionTuple = std::tuple<FLOAT, Vec>;
 using TargetTuple = std::tuple<Vec, Vec, Vec, FLOAT, Vec>;
 using ParamTuple = std::tuple<
@@ -22,12 +22,12 @@ using CostParamTuple = std::tuple<FLOAT, FLOAT, FLOAT, FLOAT, FLOAT, FLOAT>;
 State t2s(StateTuple const &st)
 {
 	State s;
-	std::tie(s.ierr, s.p, s.v, s.R, s.w) = st;
+	std::tie(s.ierr, s.p, s.v, s.logR, s.w) = st;
 	return s;
 }
 StateTuple s2t(State const &s)
 {
-	return std::make_tuple(s.ierr, s.p, s.v, s.R, s.w);
+	return std::make_tuple(s.ierr, s.p, s.v, s.logR, s.w);
 }
 
 Target t2s(TargetTuple const &tt)
@@ -121,8 +121,8 @@ PYBIND11_MODULE(gapsquad, m) {
 	m.def("ctrl", &ctrl_wrap);
 	m.def("dynamics", &dynamics_wrap);
 	m.def("cost", &cost_wrap);
-	m.def("SO3error", &SO3error);
-	m.def("cross", &cross);
-	m.def("hat", &hat);
-	m.def("normalize", &normalize);
+	//m.def("SO3error", &SO3error);
+	//m.def("cross", &cross);
+	//m.def("hat", &hat);
+	//m.def("normalize", &normalize);
 }

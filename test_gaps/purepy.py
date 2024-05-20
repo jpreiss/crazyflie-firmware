@@ -3,7 +3,7 @@ import itertools as it
 import numpy as np
 
 import gapsquad
-from gapsquad import SO3error, cross, hat, normalize
+#from gapsquad import SO3error, cross, hat, normalize
 import SO3
 
 import symforce
@@ -22,16 +22,15 @@ def normalize(x):
 def ctrl_py(x: State, xd: Target, th: Param, dt: float):
     """Returns: u, Du_x, Du_th."""
 
-    R = x.R.reshape(3, 3).T
     u_a, D = codegen.ctrl(
-        x.ierr, x.p, x.v, R, x.w,
+        x.ierr, x.p, x.v, x.logR, x.w,
         xd.p_d, xd.v_d, xd.a_d, xd.y_d, xd.w_d,
         th.to_arr()[:6], th.to_arr()[6:],
         dt
     )
     u = Action.from_arr(u_a)
-    Du_x = D[:, :21]
-    Du_th = D[:, 21:]
+    Du_x = D[:, :15]
+    Du_th = D[:, 15:]
     assert Du_th.shape[-1] == 10
     return u, Du_x, Du_th
 
@@ -39,13 +38,12 @@ def ctrl_py(x: State, xd: Target, th: Param, dt: float):
 def dynamics_py(x: State, xd: Target, u: Action, dt: float):
     """Returns: x, Dx_x, Dx_u."""
 
-    R = x.R.reshape(3, 3).T
     x_t_a, D = codegen.dynamics(
-        x.ierr, x.p, x.v, R, x.w, xd.p_d, u.thrust, u.torque, dt)
+        x.ierr, x.p, x.v, x.logR, x.w, xd.p_d, u.thrust, u.torque, dt)
 
     x_t = State.from_arr(x_t_a)
-    Dx_x = D[:, :21]
-    Dx_u = D[:, 21:]
+    Dx_x = D[:, :15]
+    Dx_u = D[:, 15:]
     assert Dx_u.shape[-1] == 4
     return x_t, Dx_x, Dx_u
 

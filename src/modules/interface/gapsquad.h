@@ -14,7 +14,7 @@
 // hardware. We need double for debugging and single for running on firmware.
 
 // externally visible types / constants
-#define XDIM (3 + 3 + 3 + 9 + 3)  // dwerr not included - yet !!!
+#define XDIM (3 + 3 + 3 + 3 + 3)  // dwerr not included - yet !!!
 #define UDIM (1 + 3)
 // 5 params, each with xy and z variants
 #define TDIM (2 * 5)
@@ -22,12 +22,10 @@
 #ifdef __cplusplus
 	#include <Eigen/Dense>
 	using Vec = Eigen::Matrix<FLOAT, 3, 1>;
-	using Mat = Eigen::Matrix<FLOAT, 3, 3, Eigen::RowMajor>;
 	#define EXTERN_C extern "C"
 #else
 	#include "math3d.h"
 	typedef struct vec Vec;
-	typedef struct mat33 Mat;
 	#define EXTERN_C
 	//typedef FLOAT[XDIM][XDIM] Jxx;
 	//typedef FLOAT[XDIM][UDIM] Jxu;
@@ -35,7 +33,7 @@
 	//typedef FLOAT[UDIM][XDIM] Jux;
 #endif
 
-struct State { Vec ierr; Vec p; Vec v; Mat R; Vec w; };
+struct State { Vec ierr; Vec p; Vec v; Vec logR; Vec w; };
 struct Action { FLOAT thrust; Vec torque; };
 struct Target { Vec p_d; Vec v_d; Vec a_d; FLOAT y_d; Vec w_d; };
 struct Param {

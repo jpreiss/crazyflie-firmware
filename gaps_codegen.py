@@ -7,8 +7,12 @@ def normalize(x):
     return x / x.norm(epsilon=1e-6)
 
 
+def bracket(x, y):
+    return x.cross(y) - y.cross(x)
+
+
 def ctrl_symfn(
-    ierr: sf.Vector3, p: sf.Vector3, v: sf.Vector3, R: sf.Matrix33, w: sf.Vector3,
+    ierr: sf.Vector3, p: sf.Vector3, v: sf.Vector3, logR: sf.Vector3, w: sf.Vector3,
     p_d: sf.Vector3, v_d: sf.Vector3, a_d: sf.Vector3, y_d: sf.Scalar, w_d: sf.Vector3,
     theta_pos: sf.Vector6, theta_rot: sf.Vector4,
     dt: sf.Scalar,
@@ -27,19 +31,15 @@ def ctrl_symfn(
     feedback = - ki * ierr - kp * perr - kv * verr
     a = feedback + a_d + sf.Vector3([0, 0, 9.81])
 
-    Rx, Ry, Rz = R.col(0), R.col(1), R.col(2)
-    thrust = a.dot(Rz)
+    #Rx, Ry, Rz = R.col(0), R.col(1), R.col(2)
+    #thrust = a.dot(Rz)
+    thrust = a.norm(epsilon=1e-6)
 
     # TODO: handle a \approx 0 case ?
     zgoal = normalize(a)
-    xgoalflat = sf.Vector3([sf.cos(y_d), sf.sin(y_d), 0])
-    ygoal = normalize(zgoal.cross(xgoalflat))
-    xgoal = ygoal.cross(zgoal)
-    Rd = sf.Matrix33.column_stack(xgoal, ygoal, zgoal)
+    logRgoal = sf.Vector3((0, 0, 1)).cross(zgoal)
+    er = logR - logRgoal + 0.5 * bracket(logR, -logRgoal)
 
-    eRm = 0.5 * (Rd.T * R - R.T * Rd)
-    # TODO: switch to log map
-    er = sf.Vector3([eRm[2, 1], eRm[0, 2], eRm[1, 0]])
     # TODO: rotate w_d from desired attitude to current attitude?
     ew = w - w_d
     torque = -kr * er - kw * ew
@@ -59,13 +59,13 @@ def ctrl_symfn(
 
 # Autodiffable fn for dynamics
 def dynamics_symfn(
-    ierr: sf.Vector3, p: sf.Vector3, v: sf.Vector3, R: sf.Matrix33, w: sf.Vector3,
+    ierr: sf.Vector3, p: sf.Vector3, v: sf.Vector3, logR: sf.Vector3, w: sf.Vector3,
     p_d: sf.Vector3,
     thrust: sf.Scalar, torque: sf.Vector3,
     dt: sf.Scalar,
     ):
     # position
-    up = R[:, 2]
+    up = sf.Rot3.from_tangent(logR, epsilon=1e-6) * sf.Vector3((0, 0, 1))
     gvec = sf.Vector3([0, 0, 9.81])
     acc = thrust * up - gvec
     ierrt = ierr + dt * (p - p_d)
@@ -73,12 +73,11 @@ def dynamics_symfn(
     vt = v + dt * acc
 
     # attitude
-    expw = sf.Rot3.from_tangent(dt * w, epsilon=1e-6).to_rotation_matrix()
-    Rt = R * expw
+    logRt = logR + dt * torque + 0.5 * bracket(logR, dt * torque)
     wt = w + dt * torque
 
     return sf.Matrix.block_matrix([
-        [ierrt], [pt], [vt], [Rt.col(0)], [Rt.col(1)], [Rt.col(2)], [wt]
+        [ierrt], [pt], [vt], [logRt], [wt]
     ])
 
 
@@ -116,7 +115,7 @@ def main():
             output_names=["thrust_torque"],
         )
         cg2 = cg.with_linearization(
-            which_args=["ierr", "p", "v", "R", "w", "theta_pos", "theta_rot"],
+            which_args=["ierr", "p", "v", "logR", "w", "theta_pos", "theta_rot"],
             linearization_mode=symforce.codegen.LinearizationMode.STACKED_JACOBIAN,
             include_result=True,
             name="ctrl",
@@ -128,10 +127,10 @@ def main():
         cg = symforce.codegen.Codegen.function(
             config=config,
             func=dynamics_symfn,
-            output_names=["ierr_p_v_R_w"],
+            output_names=["ierr_p_v_logR_w"],
         )
         cg2 = cg.with_linearization(
-            which_args=["ierr", "p", "v", "R", "w", "thrust", "torque"],
+            which_args=["ierr", "p", "v", "logR", "w", "thrust", "torque"],
             linearization_mode=symforce.codegen.LinearizationMode.STACKED_JACOBIAN,
             include_result=True,
             name="dynamics",

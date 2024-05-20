@@ -39,7 +39,7 @@ def namedvec(name, fields, sizes):
     )
 
 
-State = namedvec("State", "ierr p v R w", "3 3 3 9 3")
+State = namedvec("State", "ierr p v logR w", "3 3 3 3 3")
 Action = namedvec("Action", "thrust torque", "1 3")
 Target = namedvec("Target", "p_d v_d a_d y_d w_d", "3 3 3 1 3")
 Param = namedvec("Param", "ki_xy ki_z kp_xy kp_z kv_xy kv_z kr_xy kr_z kw_xy kw_z", "1 1 1 1 1 1 1 1 1 1")
@@ -48,24 +48,6 @@ CostParam = namedvec("CostParam", "p v w thrust torque reg_L2", "1 1 1 1 1 1")
 
 def sqnorm(x):
     return np.sum(x ** 2)
-
-
-# utilities since our Eigen fns take 3x3 matrix, not flat 9x1.
-def state2args(x: State):
-    xargs = [*x]
-    for i in range(len(xargs)):
-        if xargs[i].shape == (9,):
-            xargs[i] = xargs[i].reshape(3, 3).T
-    return xargs
-
-def rets2state(xrets):
-    xrets = list(xrets)
-    for i in range(len(xrets)):
-        if xrets[i].shape == (3, 3):
-            assert xrets[i].flags["C"]
-            assert not xrets[i].flags["F"]
-            xrets[i] = xrets[i].T.reshape(9)
-    return State(*xrets)
 
 
 def print_with_highlight(x, mask, dim_str):
@@ -92,8 +74,7 @@ def print_with_highlight(x, mask, dim_str):
 
 
 def ctrl_cpp(x: State, xd: Target, th: Param, dt: float):
-    xargs = state2args(x)
-    urets, Jux, Jut = gapsquad.ctrl(xargs, xd, th, dt)
+    urets, Jux, Jut = gapsquad.ctrl(x, xd, th, dt)
     u = Action(*urets)
     assert Jux.shape == (Action.size, State.size)
     assert Jut.shape == (Action.size, Param.size)
@@ -101,15 +82,13 @@ def ctrl_cpp(x: State, xd: Target, th: Param, dt: float):
 
 
 def dynamics_cpp(x: State, xd: Target, u: Action, dt: float):
-    xargs = state2args(x)
-    xrets, Jxx, Jxu = gapsquad.dynamics(xargs, xd, u, dt)
-    xt = rets2state(xrets)
+    xtrets, Jxx, Jxu = gapsquad.dynamics(x, xd, u, dt)
+    xt = State(*xtrets)
     return xt, Jxx, Jxu
 
 
 def cost_cpp(x: State, t: Target, u: Action, Q: CostParam):
-    xargs = state2args(x)
-    c_bind, Dc_x_bind, Dc_u_bind = gapsquad.cost(xargs, t, u, Q)
+    c_bind, Dc_x_bind, Dc_u_bind = gapsquad.cost(x, t, u, Q)
     assert Dc_x_bind.shape == (State.size,)
     assert Dc_u_bind.shape == (Action.size,)
     # Eigen has no concept of 1D vectors, so pybind11 interprets Nx1 or 1xN
@@ -120,11 +99,8 @@ def cost_cpp(x: State, t: Target, u: Action, Q: CostParam):
 
 
 def random_inputs(rng):
-    ierr, p, v, w = rng.normal(size=(4, 3))
-    R = SO3.random(rng, 3)
-    assert np.allclose(np.eye(3), R.T @ R)
-    assert np.isclose(np.linalg.det(R), 1)
-    x = State(ierr=ierr, p=p, v=v, R=R.flatten(), w=w)
+    ierr, p, v, logR, w = rng.normal(size=(5, 3))
+    x = State(ierr=ierr, p=p, v=v, logR=logR, w=w)
 
     pd, vd, ad, wd = rng.normal(size=(4, 3))
     yd = rng.normal()
@@ -144,8 +120,7 @@ def random_inputs(rng):
 
 def default_inputs():
     Z3 = np.zeros(3)
-    I3 = np.eye(3)
-    x = State(ierr=Z3, p=Z3, v=Z3, R=I3.flatten(), w=Z3)
+    x = State(ierr=Z3, p=Z3, v=Z3, logR=Z3, w=Z3)
     xd = Target(p_d=Z3, v_d=Z3, a_d=Z3, y_d=0, w_d=Z3)
     th = Param.from_arr(np.ones(Param.size))
     u = Action(thrust=0, torque=Z3)
