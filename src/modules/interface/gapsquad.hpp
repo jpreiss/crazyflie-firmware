@@ -177,7 +177,7 @@ void dynamics(
 	else {
 		exp_dt_hatw = I3 + std::sin(theta_wt) * hatwt / theta_wt + (1 - std::cos(theta_wt)) * hatwt * hatwt / (theta_wt * theta_wt);
 	} 
-	std::cout << "exp_dt_hatw" << exp_dt_hatw << "\n";
+	// std::cout << "exp_dt_hatw" << exp_dt_hatw << "\n";
 	Mat93 Dexp_w;
 	if (theta_wt < 1e-9) {
 		Mat99 Dhatw2_hatw = kroneckerProduct(hatw.transpose(), I3) + kroneckerProduct(I3, hatw);
@@ -187,7 +187,7 @@ void dynamics(
 		Mat Jacobian_R = I3 - (1 - std::cos(theta_w)) * hatw / (theta_w * theta_w) + (theta_w - std::sin(theta_w)) * hatw * hatw / (theta_w * theta_w * theta_w);
 		Dexp_w = dt * Dhat_w * Jacobian_R;
 	} 
-	std::cout << "Dexp_w" << Dexp_w << "\n";
+	// std::cout << "Dexp_w" << Dexp_w << "\n";
 	x_t.ierr = x.ierr + dt * (x.p - t.p_d);
 	x_t.p = x.p + dt * x.v;
 	x_t.v = x.v + dt * acc;
