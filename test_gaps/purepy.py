@@ -58,11 +58,11 @@ def cost_py(x: State, xd: Target, u: Action, Q: CostParam):
         Q.p, Q.v, Q.w, Q.thrust, Q.torque)
 
     assert len(D.shape) == 1
-    Dc_x = np.zeros((1, 21))
+    Dc_x = np.zeros((1, 15))
     # no ierr
     Dc_x[:, 3:9] = D[0:6]
     # no rot
-    Dc_x[:, 18:] = D[6:9]
+    Dc_x[:, 12:] = D[6:9]
     Dc_u = D[None, 9:]
     assert Dc_u.shape[-1] == 4
     return c, Dc_x, Dc_u

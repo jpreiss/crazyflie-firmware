@@ -32,9 +32,7 @@ def ctrl_symfn(
     a = feedback + a_d + sf.Vector3([0, 0, 9.81])
 
     Rz = sf.Rot3.from_tangent(logR, epsilon=1e-6) * sf.Vector3((0, 0, 1))
-    #Rx, Ry, Rz = R.col(0), R.col(1), R.col(2)
     thrust = a.dot(Rz)
-    #thrust = a.norm(epsilon=1e-6)
 
     # TODO: handle a \approx 0 case ?
     zgoal = normalize(a)
