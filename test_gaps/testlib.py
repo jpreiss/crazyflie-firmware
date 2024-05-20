@@ -1,7 +1,7 @@
 from collections import namedtuple
-
+from colorama import Fore
+import sys
 import numpy as np
-
 import gapsquad
 import SO3
 

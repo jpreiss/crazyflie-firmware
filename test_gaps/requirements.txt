@@ -1,5 +1,5 @@
 colorama
-eigenpip
+# eigenpip
 matplotlib
 numpy
 pandas
