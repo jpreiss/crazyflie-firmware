@@ -2,9 +2,10 @@ import symforce
 symforce.set_epsilon_to_invalid()
 import symforce.symbolic as sf
 
+EPS = 1e-6
 
 def normalize(x):
-    return x / x.norm(epsilon=1e-6)
+    return x / x.norm(epsilon=EPS)
 
 
 def bracket(x, y):
@@ -31,7 +32,7 @@ def ctrl_symfn(
     feedback = - ki * ierr - kp * perr - kv * verr
     a = feedback + a_d + sf.Vector3([0, 0, 9.81])
 
-    Rz = sf.Rot3.from_tangent(logR, epsilon=1e-6) * sf.Vector3((0, 0, 1))
+    Rz = sf.Rot3.from_tangent(logR, epsilon=EPS) * sf.Vector3((0, 0, 1))
     thrust = a.dot(Rz)
 
     # TODO: handle a \approx 0 case ?
@@ -64,7 +65,7 @@ def dynamics_symfn(
     dt: sf.Scalar,
     ):
     # position
-    up = sf.Rot3.from_tangent(logR, epsilon=1e-6) * sf.Vector3((0, 0, 1))
+    up = sf.Rot3.from_tangent(logR, epsilon=EPS) * sf.Vector3((0, 0, 1))
     gvec = sf.Vector3([0, 0, 9.81])
     acc = thrust * up - gvec
     ierrt = ierr + dt * (p - p_d)
