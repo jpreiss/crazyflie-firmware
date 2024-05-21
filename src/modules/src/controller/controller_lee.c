@@ -147,6 +147,17 @@ void controllerLee(
 		return;
 	}
 
+	g_log.ki_xy = 100 * self->gaps.theta.ki_xy;
+	g_log.ki_z  = 100 * self->gaps.theta.ki_z;
+	g_log.kp_xy = 100 * self->gaps.theta.kp_xy;
+	g_log.kp_z  = 100 * self->gaps.theta.kp_z;
+	g_log.kv_xy = 100 * self->gaps.theta.kv_xy;
+	g_log.kv_z  = 100 * self->gaps.theta.kv_z;
+	g_log.kr_xy = 100 * self->gaps.theta.kr_xy;
+	g_log.kr_z  = 100 * self->gaps.theta.kr_z;
+	g_log.kw_xy = 100 * self->gaps.theta.kw_xy;
+	g_log.kw_z  = 100 * self->gaps.theta.kw_z;
+
 	static struct State x;
 	static struct Target target;
 	static struct Action u;
@@ -218,17 +229,6 @@ void controllerLee(
 	dw_err.z = 0.0f;
 	u.torque = vsub(u.torque, vscl(self->kdw_xy, dw_err));
 	self->prev_w_err = w_err;
-
-	g_log.ki_xy = 100 * self->gaps.theta.ki_xy;
-	g_log.ki_z  = 100 * self->gaps.theta.ki_z;
-	g_log.kp_xy = 100 * self->gaps.theta.kp_xy;
-	g_log.kp_z  = 100 * self->gaps.theta.kp_z;
-	g_log.kv_xy = 100 * self->gaps.theta.kv_xy;
-	g_log.kv_z  = 100 * self->gaps.theta.kv_z;
-	g_log.kr_xy = 100 * self->gaps.theta.kr_xy;
-	g_log.kr_z  = 100 * self->gaps.theta.kr_z;
-	g_log.kw_xy = 100 * self->gaps.theta.kw_xy;
-	g_log.kw_z  = 100 * self->gaps.theta.kw_z;
 
 	// output to the rest of the world: convert from normalized to
 	// mass/inertia-dependent units.
