@@ -2,6 +2,7 @@
 
 import numpy as np
 import cffirmware
+from cffirmware import *
 
 def test_that_vec_is_converted_to_numpy_array():
     # Fixture
@@ -37,3 +38,14 @@ def test_shortest_signed_angle_radians():
         # Assert
         expected = np.arctan2(np.sin(goal - start), np.cos(goal - start))
         assert np.allclose(expected, actual)
+
+
+def test_quat_log():
+    rng = np.random.default_rng(0)
+    for i in range(1000):
+        # avoid singularity
+        angle = rng.uniform(0, 3.14)
+        axis = vnormalize(mkvec(*rng.normal(size=3)))
+        q = qaxisangle(axis, angle)
+        log = qlog(q)
+        assert np.allclose(log, angle * axis, atol=1e-6, rtol=1e-4)
