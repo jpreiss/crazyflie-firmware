@@ -49,6 +49,8 @@ FLOAT const GRAV = 9.81;
 using Mat39 = Eigen::Matrix<FLOAT, 3, 9>;
 using Mat93 = Eigen::Matrix<FLOAT, 9, 3>;
 using Mat99 = Eigen::Matrix<FLOAT, 9, 9>;
+using Mat91 = Eigen::Matrix<FLOAT, 9, 1>;
+
 using VecT = Eigen::Matrix<FLOAT, 1, 3>;
 using Diag = Eigen::DiagonalMatrix<FLOAT, 3>;
 using Arr3 = Eigen::Array<FLOAT, 3, 1>;
@@ -139,16 +141,31 @@ static Mat hatw2_w3 = (Mat() <<
 	 1,  0,  0,
 	 0,  0,  0).finished();
 
+Mat91 vectorization(Mat const &m)
+{
+	Mat91 v;
+	v << m(0, 0), m(1, 0), m(2, 0), m(0, 1), m(1, 1), m(2, 1), m(0, 2), m(1, 2), m(2, 2);
+	return v;
+}
+
 Mat93 Dexp_w_derive(FLOAT const theta, Vec const &w, Mat const hatw)
 
 {
 	Mat93 Dexp_w;
-	Dexp_w.block<3, 3> (0, 0) = (std::cos(theta) * theta - std::sin(theta)) / (theta * theta * theta) * w[0] * hatw + std::sin(theta) / theta * hatw2_w1
+	Mat temp;
+	
+	temp = (std::cos(theta) * theta - std::sin(theta)) / (theta * theta * theta) * w[0] * hatw + std::sin(theta) / theta * hatw2_w1
 	+ (theta * std::sin(theta) + 2 * std::cos(theta) - 2) / (theta * theta * theta * theta) * hatw * hatw * w[0] + (1 - std::cos(theta)) / (theta * theta) * (hatw * hatw2_w1 + hatw2_w1 * hatw);
-	Dexp_w.block<3, 3> (3, 0) = (std::cos(theta) * theta - std::sin(theta)) / (theta * theta * theta) * w[1] * hatw + std::sin(theta) / theta * hatw2_w2
+	Dexp_w.block<9, 1> (0, 0) = vectorization(temp);
+	
+	temp = (std::cos(theta) * theta - std::sin(theta)) / (theta * theta * theta) * w[1] * hatw + std::sin(theta) / theta * hatw2_w2
 	+ (theta * std::sin(theta) + 2 * std::cos(theta) - 2) / (theta * theta * theta * theta) * hatw * hatw * w[1] + (1 - std::cos(theta)) / (theta * theta) * (hatw * hatw2_w2 + hatw2_w2 * hatw);
-	Dexp_w.block<3, 3> (6, 0) = (std::cos(theta) * theta - std::sin(theta)) / (theta * theta * theta) * w[2] * hatw + std::sin(theta) / theta * hatw2_w3
+	Dexp_w.block<9, 1> (0, 1) = vectorization(temp);
+	
+	temp = (std::cos(theta) * theta - std::sin(theta)) / (theta * theta * theta) * w[2] * hatw + std::sin(theta) / theta * hatw2_w3
 	+ (theta * std::sin(theta) + 2 * std::cos(theta) - 2) / (theta * theta * theta * theta) * hatw * hatw * w[2] + (1 - std::cos(theta)) / (theta * theta) * (hatw * hatw2_w3 + hatw2_w3 * hatw);
+	Dexp_w.block<9, 1> (0, 2) = vectorization(temp);
+
 	return Dexp_w;
 }
 
