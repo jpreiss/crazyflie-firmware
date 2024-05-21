@@ -112,16 +112,40 @@ Mat hat(Vec const &w)
 	return m;
 }
 
+// static Mat93 const Dhat_w = (Mat93() <<
+// 	 0,  0,  0,
+// 	 0,  0,  1,
+// 	 0, -1,  0,
+// 	 0,  0, -1,
+// 	 0,  0,  0,
+// 	 1,  0,  0,
+// 	 0,  1,  0,
+// 	-1,  0,  0,
+// 	 0,  0,  0).finished();
+
 static Mat93 const Dhat_w = (Mat93() <<
 	 0,  0,  0,
-	 0,  0,  1,
-	 0, -1,  0,
 	 0,  0, -1,
-	 0,  0,  0,
-	 1,  0,  0,
 	 0,  1,  0,
+	 0,  0,  1,
+	 0,  0,  0,
 	-1,  0,  0,
+	 0, -1,  0,
+	 1,  0,  0,
 	 0,  0,  0).finished();
+
+Mat93 Dexp_w_derive(FLOAT const theta, Vec const &w, Mat const hatw)
+
+{
+	Mat93 Dexp_w;
+	Dexp_w.block<3, 3> (0, 0) = (std::cos(theta) * theta - std::sin(theta)) / theta * w[0] * hatw + std::sin(theta) / theta * Dhat_w.block<3, 3> (0, 0) 
+	+ (theta * std::sin(theta) + 2 * std::cos(theta) - 2) / (theta * theta) * hatw * hatw * w[0] + 2 * (1 - std::cos(theta)) / (theta * theta) * hatw * Dhat_w.block<3, 3> (0, 0);
+	Dexp_w.block<3, 3> (3, 0) = (std::cos(theta) * theta - std::sin(theta)) / theta * w[1] * hatw + std::sin(theta) / theta * Dhat_w.block<3, 3> (3, 0) 
+	+ (theta * std::sin(theta) + 2 * std::cos(theta) - 2) / (theta * theta) * hatw * hatw * w[1] + 2 * (1 - std::cos(theta)) / (theta * theta) * hatw * Dhat_w.block<3, 3> (3, 0);
+	Dexp_w.block<3, 3> (6, 0) = (std::cos(theta) * theta - std::sin(theta)) / theta * w[2] * hatw + std::sin(theta) / theta * Dhat_w.block<3, 3> (6, 0) 
+	+ (theta * std::sin(theta) + 2 * std::cos(theta) - 2) / (theta * theta) * hatw * hatw * w[2] + 2 * (1 - std::cos(theta)) / (theta * theta) * hatw * Dhat_w.block<3, 3> (6, 0);
+	return Dexp_w;
+}
 
 Vec normalize(Vec const &v, Mat &J)
 {
@@ -165,27 +189,26 @@ void dynamics(
 	// Normally I would use symplectic Euler integration, but plain forward
 	// Euler gives simpler Jacobians.
 
-	double theta_w = x.w.norm();
+	float theta_w = x.w.norm();
 	Mat hatw = hat(x.w);
 
-	double theta_wt = double(dt) * theta_w;
-	Mat hatwt = double(dt) * hatw;
+	float theta_wt = dt * theta_w;
+	Mat hatwt = dt * hatw;
 	Mat exp_dt_hatw;
-	if (theta_wt < 1e-9) {
+	if (double(theta_wt) < 1e-9) {
 		exp_dt_hatw = I3 + dt * hatw + (dt * dt / 2) * hatw * hatw;
 	}
 	else {
 		exp_dt_hatw = I3 + std::sin(theta_wt) * hatwt / theta_wt + (1 - std::cos(theta_wt)) * hatwt * hatwt / (theta_wt * theta_wt);
 	} 
 	// std::cout << "exp_dt_hatw" << exp_dt_hatw << "\n";
-	Mat93 Dexp_w;
-	if (theta_wt < 1e-9) {
+	Mat93 Dexp_wt;
+	if (double(theta_wt) < 1e-9) {
 		Mat99 Dhatw2_hatw = kroneckerProduct(hatw.transpose(), I3) + kroneckerProduct(I3, hatw);
-		Dexp_w = dt * Dhat_w + (dt * dt / 2) * (Dhatw2_hatw * Dhat_w);
+		Dexp_wt = dt * Dhat_w + (dt * dt / 2) * (Dhatw2_hatw * Dhat_w);
 		}
 	else {
-		Mat Jacobian_R = I3 - (1 - std::cos(theta_w)) * hatw / (theta_w * theta_w) + (theta_w - std::sin(theta_w)) * hatw * hatw / (theta_w * theta_w * theta_w);
-		Dexp_w = dt * Dhat_w * Jacobian_R;
+		Dexp_wt = dt * Dexp_w_derive(theta_w, x.w, hatw);
 	} 
 	// std::cout << "Dexp_w" << Dexp_w << "\n";
 	x_t.ierr = x.ierr + dt * (x.p - t.p_d);
@@ -203,7 +226,7 @@ void dynamics(
 	Vec Rx, Ry, Rz;
 	colsplit(x.R, Rx, Ry, Rz);
 
-	Mat93 DRt_w = kroneckerProduct(I3, x.R) * Dexp_w;
+	Mat93 DRt_w = kroneckerProduct(I3, x.R) * Dexp_wt;
 
 	// auto keeps the expression templates, for possible optimization
 	auto Z33 = Mat::Zero();
