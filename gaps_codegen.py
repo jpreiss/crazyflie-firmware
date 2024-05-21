@@ -37,8 +37,11 @@ def ctrl_symfn(
 
     # TODO: handle a \approx 0 case ?
     zgoal = normalize(a)
-    logRgoal = sf.Vector3((0, 0, 1)).cross(zgoal)
-    er = logR - logRgoal + 0.5 * bracket(logR, -logRgoal)
+    e_z = sf.Vector3((0, 0, 1))
+    Rgoal = sf.Rot3.from_two_unit_vectors(e_z, zgoal, epsilon=EPS)
+    R = sf.Rot3.from_tangent(logR, epsilon=EPS)
+    er = (R * Rgoal.inverse()).to_tangent(epsilon=EPS)
+    er = sf.Vector3(er)
 
     # TODO: rotate w_d from desired attitude to current attitude?
     ew = w - w_d
@@ -73,7 +76,9 @@ def dynamics_symfn(
     vt = v + dt * acc
 
     # attitude
-    logRt = logR + dt * w + 0.5 * bracket(logR, dt * w)
+    R = sf.Rot3.from_tangent(logR, epsilon=EPS)
+    Rt = R * sf.Rot3.from_tangent(dt * w, epsilon=EPS)
+    logRt = sf.Vector3(Rt.to_tangent(epsilon=EPS))
     wt = w + dt * torque
 
     return sf.Matrix.block_matrix([
