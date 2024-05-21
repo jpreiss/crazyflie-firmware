@@ -24,7 +24,10 @@ def test_cost_sanity():
 
 def test_dynamics_freefall():
     rng = np.random.default_rng(0)
-    omegas = [Z3] + [rng.normal(size=3) for _ in range(100)]
+    omegas = [Z3] + [rng.normal(size=3) / 2 for _ in range(100)]
+    norms = np.linalg.norm(omegas, axis=1)
+    # this would cause wraparound
+    assert not np.any(norms > 3.14)
     dt = 0.01
 
     for w in omegas:
@@ -32,7 +35,7 @@ def test_dynamics_freefall():
         x = x._replace(w=w)
         for _ in range(100):
             x, _, _ = dynamics_cpp(x, xd, u, dt)
-            print(x.logR)
+            #print(x.logR)
 
         # rotation should have no effect unless we have thrust
         assert np.allclose(x.v, [0, 0, -9.81])

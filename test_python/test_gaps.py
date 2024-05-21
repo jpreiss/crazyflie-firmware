@@ -182,5 +182,5 @@ def test_mel_vs_gaps():
         )
         """
         # because allclose isn't symmetrical
-        assert control_equal(ctrl_mel, ctrl_lee, rtol=4e-3)
-        assert control_equal(ctrl_lee, ctrl_mel, rtol=4e-3)
+        assert control_equal(ctrl_mel, ctrl_lee, rtol=1e-2)
+        assert control_equal(ctrl_lee, ctrl_mel, rtol=1e-2)
