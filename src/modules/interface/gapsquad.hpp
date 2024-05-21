@@ -112,24 +112,29 @@ Mat hat(Vec const &w)
 	return m;
 }
 
-// static Mat93 const Dhat_w = (Mat93() <<
-// 	 0,  0,  0,
-// 	 0,  0,  1,
-// 	 0, -1,  0,
-// 	 0,  0, -1,
-// 	 0,  0,  0,
-// 	 1,  0,  0,
-// 	 0,  1,  0,
-// 	-1,  0,  0,
-// 	 0,  0,  0).finished();
-
 static Mat93 const Dhat_w = (Mat93() <<
 	 0,  0,  0,
+	 0,  0,  1,
+	 0, -1,  0,
 	 0,  0, -1,
+	 0,  0,  0,
+	 1,  0,  0,
 	 0,  1,  0,
+	-1,  0,  0,
+	 0,  0,  0).finished();
+
+
+static Mat hatw2_w1 = (Mat() <<
+	 0,  0,  0,
+	 0,  0, -1,
+	 0,  1,  0).finished();
+
+static Mat hatw2_w2 = (Mat() <<
 	 0,  0,  1,
 	 0,  0,  0,
-	-1,  0,  0,
+	-1,  0,  0).finished();
+
+static Mat hatw2_w3 = (Mat() <<
 	 0, -1,  0,
 	 1,  0,  0,
 	 0,  0,  0).finished();
@@ -138,12 +143,12 @@ Mat93 Dexp_w_derive(FLOAT const theta, Vec const &w, Mat const hatw)
 
 {
 	Mat93 Dexp_w;
-	Dexp_w.block<3, 3> (0, 0) = (std::cos(theta) * theta - std::sin(theta)) / theta * w[0] * hatw + std::sin(theta) / theta * Dhat_w.block<3, 3> (0, 0) 
-	+ (theta * std::sin(theta) + 2 * std::cos(theta) - 2) / (theta * theta) * hatw * hatw * w[0] + 2 * (1 - std::cos(theta)) / (theta * theta) * hatw * Dhat_w.block<3, 3> (0, 0);
-	Dexp_w.block<3, 3> (3, 0) = (std::cos(theta) * theta - std::sin(theta)) / theta * w[1] * hatw + std::sin(theta) / theta * Dhat_w.block<3, 3> (3, 0) 
-	+ (theta * std::sin(theta) + 2 * std::cos(theta) - 2) / (theta * theta) * hatw * hatw * w[1] + 2 * (1 - std::cos(theta)) / (theta * theta) * hatw * Dhat_w.block<3, 3> (3, 0);
-	Dexp_w.block<3, 3> (6, 0) = (std::cos(theta) * theta - std::sin(theta)) / theta * w[2] * hatw + std::sin(theta) / theta * Dhat_w.block<3, 3> (6, 0) 
-	+ (theta * std::sin(theta) + 2 * std::cos(theta) - 2) / (theta * theta) * hatw * hatw * w[2] + 2 * (1 - std::cos(theta)) / (theta * theta) * hatw * Dhat_w.block<3, 3> (6, 0);
+	Dexp_w.block<3, 3> (0, 0) = (std::cos(theta) * theta - std::sin(theta)) / (theta * theta * theta) * w[0] * hatw + std::sin(theta) / theta * hatw2_w1
+	+ (theta * std::sin(theta) + 2 * std::cos(theta) - 2) / (theta * theta * theta * theta) * hatw * hatw * w[0] + (1 - std::cos(theta)) / (theta * theta) * (hatw * hatw2_w1 + hatw2_w1 * hatw);
+	Dexp_w.block<3, 3> (3, 0) = (std::cos(theta) * theta - std::sin(theta)) / (theta * theta * theta) * w[1] * hatw + std::sin(theta) / theta * hatw2_w2
+	+ (theta * std::sin(theta) + 2 * std::cos(theta) - 2) / (theta * theta * theta * theta) * hatw * hatw * w[1] + (1 - std::cos(theta)) / (theta * theta) * (hatw * hatw2_w2 + hatw2_w2 * hatw);
+	Dexp_w.block<3, 3> (6, 0) = (std::cos(theta) * theta - std::sin(theta)) / (theta * theta * theta) * w[2] * hatw + std::sin(theta) / theta * hatw2_w3
+	+ (theta * std::sin(theta) + 2 * std::cos(theta) - 2) / (theta * theta * theta * theta) * hatw * hatw * w[2] + (1 - std::cos(theta)) / (theta * theta) * (hatw * hatw2_w3 + hatw2_w3 * hatw);
 	return Dexp_w;
 }
 
