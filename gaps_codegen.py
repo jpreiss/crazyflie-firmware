@@ -8,8 +8,8 @@ def normalize(x):
     return x / x.norm(epsilon=EPS)
 
 
-def bracket(x, y):
-    return x.cross(y) - y.cross(x)
+def softclip(x, absmax):
+    return absmax * sf.tanh(x / absmax)
 
 
 def ctrl_symfn(
@@ -52,9 +52,9 @@ def ctrl_symfn(
     RP_LIM = 268
     Y_LIM = 56
     torque = sf.Vector3([
-        RP_LIM * sf.tanh(torque[0] / RP_LIM),
-        RP_LIM * sf.tanh(torque[1] / RP_LIM),
-        Y_LIM * sf.tanh(torque[2] / Y_LIM),
+        softclip(torque[0], RP_LIM),
+        softclip(torque[1], RP_LIM),
+        softclip(torque[2], Y_LIM),
     ])
 
     return sf.Matrix.block_matrix([[sf.Vector1(thrust)], [torque]])
