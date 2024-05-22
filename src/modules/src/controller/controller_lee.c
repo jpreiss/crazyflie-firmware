@@ -67,16 +67,16 @@ static controllerLee_t g_self = {
 			0.0f, 0.0f, 0.0f
 		},
 		.theta = {
-			.ki_xy = 1.56f,
-			.ki_z = 1.56f,
-			.kp_xy = 12.5f,
-			.kp_z = 39.0f,
-			.kv_xy = 6.25f,
-			.kv_z = 12.5f,
-			.kr_xy = 166.0f,
-			.kr_z = 29.4f,
-			.kw_xy = 23.75f,
-			.kw_z = 2.97f,
+			.ki_xy = logf(1.56f),
+			.ki_z  = logf(1.56f),
+			.kp_xy = logf(12.5f),
+			.kp_z  = logf(39.0f),
+			.kv_xy = logf(6.25f),
+			.kv_z  = logf(12.5f),
+			.kr_xy = logf(1660.0f),
+			.kr_z  = logf(294.0f),
+			.kw_xy = logf(237.5f),
+			.kw_z  = logf(29.7f),
 		},
 		.y = { { 0 } },
 
@@ -147,16 +147,17 @@ void controllerLee(
 		return;
 	}
 
-	g_log.ki_xy = 100 * self->gaps.theta.ki_xy;
-	g_log.ki_z  = 100 * self->gaps.theta.ki_z;
-	g_log.kp_xy = 100 * self->gaps.theta.kp_xy;
-	g_log.kp_z  = 100 * self->gaps.theta.kp_z;
-	g_log.kv_xy = 100 * self->gaps.theta.kv_xy;
-	g_log.kv_z  = 100 * self->gaps.theta.kv_z;
-	g_log.kr_xy = 100 * self->gaps.theta.kr_xy;
-	g_log.kr_z  = 100 * self->gaps.theta.kr_z;
-	g_log.kw_xy = 100 * self->gaps.theta.kw_xy;
-	g_log.kw_z  = 100 * self->gaps.theta.kw_z;
+	float const FIXPT = 1 << 12;
+	g_log.ki_xy = self->gaps.theta.ki_xy * FIXPT;
+	g_log.ki_z  = self->gaps.theta.ki_z  * FIXPT;
+	g_log.kp_xy = self->gaps.theta.kp_xy * FIXPT;
+	g_log.kp_z  = self->gaps.theta.kp_z  * FIXPT;
+	g_log.kv_xy = self->gaps.theta.kv_xy * FIXPT;
+	g_log.kv_z  = self->gaps.theta.kv_z  * FIXPT;
+	g_log.kr_xy = self->gaps.theta.kr_xy * FIXPT;
+	g_log.kr_z  = self->gaps.theta.kr_z  * FIXPT;
+	g_log.kw_xy = self->gaps.theta.kw_xy * FIXPT;
+	g_log.kw_z  = self->gaps.theta.kw_z  * FIXPT;
 
 	static struct State x;
 	static struct Target target;

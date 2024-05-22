@@ -108,7 +108,7 @@ def random_inputs(rng):
     yd = rng.normal()
     xd = Target(p_d=pd, v_d=vd, a_d=ad, y_d=yd, w_d=wd)
 
-    th = Param.from_arr(rng.uniform(0.1, 4, size=Param.size))
+    th = Param.from_arr(np.log(rng.uniform(0.1, 4, size=Param.size)))
 
     # These CostParams keep the cost output around the same scale as the
     # ctrl and dynamics outputs. If the costs get bigger our finite
@@ -124,7 +124,7 @@ def default_inputs():
     Z3 = np.zeros(3)
     x = State(ierr=Z3, p=Z3, v=Z3, logR=Z3, w=Z3)
     xd = Target(p_d=Z3, v_d=Z3, a_d=Z3, y_d=0, w_d=Z3)
-    th = Param.from_arr(np.ones(Param.size))
+    th = Param.from_arr(np.zeros(Param.size))
     u = Action(thrust=0, torque=Z3)
     Q = CostParam(p=1, v=1, w=1, thrust=1, torque=1, reg_L2=1)
     return x, xd, th, Q, u

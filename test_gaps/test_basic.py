@@ -11,9 +11,9 @@ import SO3
 Z3 = np.zeros(3)
 I3 = np.eye(3)
 
-HI_GAIN_THETA_POS = (1, 1, 10, 10, 5, 5)
-HI_GAIN_THETA_ROT = (10, 2, 2, 0.2)
-HI_GAIN_THETA = tuple(HI_GAIN_THETA_POS + HI_GAIN_THETA_ROT)
+HI_GAIN_THETA_POS = np.log((1, 1, 10, 10, 5, 5))
+HI_GAIN_THETA_ROT = np.log((100, 20, 20, 2))
+HI_GAIN_THETA = np.concatenate([HI_GAIN_THETA_POS, HI_GAIN_THETA_ROT])
 
 
 def test_cost_sanity():
@@ -120,6 +120,6 @@ def test_stabilizing():
         x = x0
         for t in range(T):
             # TODO: tune gains for testing better
-            u, *_ = ctrl_cpp(x, target, np.array(HI_GAIN_THETA)/2, dt)
+            u, *_ = ctrl_cpp(x, target, HI_GAIN_THETA - np.log(2), dt)
             x, *_ = dynamics_cpp(x, target, u, dt)
         assert close(x)
