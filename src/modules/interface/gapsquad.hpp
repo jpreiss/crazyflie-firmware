@@ -222,12 +222,13 @@ extern "C" bool gaps_step(
 	// std::cout << "product eigvals:" << product.eigenvalues() << "\n";
 	y = gaps->damping * product * y + Dx_u * Du_t;
 
-	// storing strictly for diagnostic purposes, not used in algorithm.
+	// Storing strictly for diagnostic purposes, not used in algorithm.
+	// Stored in 1-based indexing so zero can serve as emptiness sentinel.
 	// TODO: move to struct Debug.
 	Eigen::Index max_row, max_col;
 	gaps->yabsmax = y.array().abs().maxCoeff(&max_row, &max_col);
-	gaps->max_row = max_row;
-	gaps->max_col = max_col;
+	gaps->max_row = max_row + 1;
+	gaps->max_col = max_col + 1;
 
 	return true;
 }

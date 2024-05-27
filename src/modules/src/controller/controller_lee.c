@@ -96,6 +96,8 @@ static controllerLee_t g_self = {
 
 		// diagnostics
 		.yabsmax = 0.0f,
+		.max_row = -1,
+		.max_col = -1,
 		.sum_cost = 0.0f,
 		.debug = {
 			.z_axis_desired = {0, 0, 0},
@@ -317,8 +319,9 @@ LOG_GROUP_START(gaps6DOF)
 	LOG_ADD(LOG_UINT16, kw_xy, &g_log.kw_xy)
 	LOG_ADD(LOG_UINT16, kw_z,  &g_log.kw_z)
 	LOG_ADD(LOG_FLOAT, yabsmax, &g_self.gaps.yabsmax)
-	LOG_ADD(LOG_UINT8, max_row, &g_self.gaps.max_row)
-	LOG_ADD(LOG_UINT8, max_col, &g_self.gaps.max_col)
+	LOG_ADD(LOG_FLOAT, sum_cost, &g_self.gaps.sum_cost)
+	LOG_ADD(LOG_INT8, max_row, &g_self.gaps.max_row)
+	LOG_ADD(LOG_INT8, max_col, &g_self.gaps.max_col)
 	LOG_ADD(LOG_FLOAT, ix, &g_self.gaps.ierr.x)
 	LOG_ADD(LOG_FLOAT, iy, &g_self.gaps.ierr.y)
 	LOG_ADD(LOG_FLOAT, iz, &g_self.gaps.ierr.z)

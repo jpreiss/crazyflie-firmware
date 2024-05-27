@@ -68,8 +68,8 @@ struct GAPS
 
 	// diagnostics
 	FLOAT yabsmax;
-	uint8_t max_row;
-	uint8_t max_col;
+	int8_t max_row;
+	int8_t max_col;
 	FLOAT sum_cost;
 	struct Debug debug;
 
