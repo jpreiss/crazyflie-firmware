@@ -1,3 +1,6 @@
+# meld's 3 way merge detritus
+*.orig
+
 build_info.json
 
 ^bin/dep/all
