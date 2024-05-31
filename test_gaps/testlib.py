@@ -43,7 +43,7 @@ def namedvec(name, fields, sizes):
 
 State = namedvec("State", "ierr p v logR w", "3 3 3 3 3")
 Action = namedvec("Action", "thrust torque", "1 3")
-Target = namedvec("Target", "p_d v_d a_d y_d w_d", "3 3 3 1 3")
+Target = namedvec("Target", "p_d v_d a_d w_d", "3 3 3 3")
 Param = namedvec("Param", "ki_xy ki_z kp_xy kp_z kv_xy kv_z kr_xy kr_z kw_xy kw_z", "1 1 1 1 1 1 1 1 1 1")
 CostParam = namedvec("CostParam", "p v w thrust torque reg_L2", "1 1 1 1 1 1")
 
@@ -106,7 +106,7 @@ def random_inputs(rng):
 
     pd, vd, ad, wd = rng.normal(size=(4, 3))
     yd = rng.normal()
-    xd = Target(p_d=pd, v_d=vd, a_d=ad, y_d=yd, w_d=wd)
+    xd = Target(p_d=pd, v_d=vd, a_d=ad, w_d=wd)
 
     th = Param.from_arr(np.log(rng.uniform(0.1, 4, size=Param.size)))
 
@@ -123,7 +123,7 @@ def random_inputs(rng):
 def default_inputs():
     Z3 = np.zeros(3)
     x = State(ierr=Z3, p=Z3, v=Z3, logR=Z3, w=Z3)
-    xd = Target(p_d=Z3, v_d=Z3, a_d=Z3, y_d=0, w_d=Z3)
+    xd = Target(p_d=Z3, v_d=Z3, a_d=Z3, w_d=Z3)
     th = Param.from_arr(np.zeros(Param.size))
     u = Action(thrust=0, torque=Z3)
     Q = CostParam(p=1, v=1, w=1, thrust=1, torque=1, reg_L2=1)

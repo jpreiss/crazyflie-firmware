@@ -24,7 +24,7 @@ def ctrl_py(x: State, xd: Target, th: Param, dt: float):
 
     u_a, D = codegen.ctrl(
         x.ierr, x.p, x.v, x.logR, x.w,
-        xd.p_d, xd.v_d, xd.a_d, xd.y_d, xd.w_d,
+        xd.p_d, xd.v_d, xd.a_d, xd.w_d,
         th.to_arr()[:6], th.to_arr()[6:],
         dt
     )

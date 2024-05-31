@@ -129,7 +129,8 @@ void ctrl(
 	Eigen::Matrix<FLOAT, UDIM, XDIM + TDIM> D;
 	sym::Ctrl<FLOAT>(
 		x.ierr, x.p, x.v, x.logR, x.w,
-		t.p_d, t.v_d, t.a_d, t.y_d, t.w_d,
+		t.p_d, t.v_d, t.a_d,
+		t.w_d,
 		th_pos, th_rot,
 		dt,
 		&ua, &D

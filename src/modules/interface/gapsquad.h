@@ -35,7 +35,7 @@
 
 struct State { Vec ierr; Vec p; Vec v; Vec logR; Vec w; };
 struct Action { FLOAT thrust; Vec torque; };
-struct Target { Vec p_d; Vec v_d; Vec a_d; FLOAT y_d; Vec w_d; };
+struct Target { Vec p_d; Vec v_d; Vec a_d; Vec w_d; };
 struct Param {
 	FLOAT ki_xy; FLOAT ki_z; FLOAT kp_xy; FLOAT kp_z; FLOAT kv_xy; FLOAT kv_z; // position gains
 	FLOAT kr_xy; FLOAT kr_z; FLOAT kw_xy; FLOAT kw_z; // attitude gains

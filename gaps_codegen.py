@@ -14,7 +14,7 @@ def softclip(x, absmax):
 
 def ctrl_symfn(
     ierr: sf.Vector3, p: sf.Vector3, v: sf.Vector3, logR: sf.Vector3, w: sf.Vector3,
-    p_d: sf.Vector3, v_d: sf.Vector3, a_d: sf.Vector3, y_d: sf.Scalar, w_d: sf.Vector3,
+    p_d: sf.Vector3, v_d: sf.Vector3, a_d: sf.Vector3, w_d: sf.Vector3,
     theta_pos: sf.Vector6, theta_rot: sf.Vector4,
     dt: sf.Scalar,
     ):

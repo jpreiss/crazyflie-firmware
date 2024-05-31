@@ -93,7 +93,7 @@ def test_ctrl_signs():
         (( 0, -1, 0), ( 1,  0, 0)),
     ]
     for pos, torque in pos_torques:
-        target = Target(p_d=pos, v_d=Z3, a_d=Z3, y_d=0, w_d=Z3)
+        target = Target(p_d=pos, v_d=Z3, a_d=Z3, w_d=Z3)
         u, *_ = ctrl_cpp(x, target, HI_GAIN_THETA, dt=0.1)
         assert u.thrust > 8
         assert np.all(np.sign(torque) == np.sign(u.torque))
@@ -105,7 +105,7 @@ def test_stabilizing():
     # TODO: tune so we don't need 80 seconds - closedloop must be underdamped.
     T = int(80 / dt)
     Z3 = np.zeros(3)
-    target = Target(p_d=Z3, v_d=Z3, a_d=Z3, y_d=0, w_d=Z3)
+    target = Target(p_d=Z3, v_d=Z3, a_d=Z3, w_d=Z3)
     rng = np.random.default_rng(0)
     def close(x):
         return (

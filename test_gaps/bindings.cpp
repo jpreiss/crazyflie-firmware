@@ -9,7 +9,7 @@ using FLOAT = double;
 
 using StateTuple = std::tuple<Vec, Vec, Vec, Vec, Vec>;
 using ActionTuple = std::tuple<FLOAT, Vec>;
-using TargetTuple = std::tuple<Vec, Vec, Vec, FLOAT, Vec>;
+using TargetTuple = std::tuple<Vec, Vec, Vec, Vec>;
 using ParamTuple = std::tuple<
 	FLOAT, FLOAT, FLOAT, FLOAT, FLOAT, FLOAT, // position gains
 	FLOAT, FLOAT, FLOAT, FLOAT // attitude gains
@@ -33,12 +33,12 @@ StateTuple s2t(State const &s)
 Target t2s(TargetTuple const &tt)
 {
 	Target t;
-	std::tie(t.p_d, t.v_d, t.a_d, t.y_d, t.w_d) = tt;
+	std::tie(t.p_d, t.v_d, t.a_d, t.w_d) = tt;
 	return t;
 }
 TargetTuple s2t(Target const &t)
 {
-	return std::make_tuple(t.p_d, t.v_d, t.a_d, t.y_d, t.w_d);
+	return std::make_tuple(t.p_d, t.v_d, t.a_d, t.w_d);
 }
 
 Action t2s(ActionTuple const &at)

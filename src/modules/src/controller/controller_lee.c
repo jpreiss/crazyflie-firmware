@@ -173,21 +173,8 @@ void controllerLee(
 	static struct Target target;
 	static struct Action u;
 
-	if (set->mode.yaw == modeAbs) {
-		target.y_d = radians(set->attitude.yaw);
-	}
-	else if (set->mode.quat == modeAbs) {
-		struct quat setpoint_quat = mkquat(
-			set->attitudeQuaternion.x,
-			set->attitudeQuaternion.y,
-			set->attitudeQuaternion.z,
-			set->attitudeQuaternion.w
-		);
-		target.y_d = quat2rpy(setpoint_quat).z;
-	}
-	else {
+	if (set->mode.yaw != modeAbs && set->mode.quat != modeAbs) {
 		// This happens routinely, i.e. after startup on ground.
-		// DEBUG_PRINT("fail due to unsupported setpoint attitude mode\n");
 		goto fail;
 	}
 
