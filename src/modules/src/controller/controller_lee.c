@@ -83,11 +83,12 @@ static controllerLee_t g_self = {
 		// main params
 		.cost_param = {
 			.p = 1.0f,
-			.v = 0.01f,
-			.w = 0.01f,
-			.thrust = 0.01f,
-			.torque = 0.01f,
-			.reg_L2 = 1e-6
+			// default to 0 regularization because it's easy to add too much!
+			.v = 0,
+			.w = 0,
+			.thrust = 0,
+			.torque = 0,
+			.reg_L2 = 0,
 		},
 		.eta = 0.0f,
 		.damping = 0.9999f,
@@ -100,6 +101,13 @@ static controllerLee_t g_self = {
 			.ep_len = ATTITUDE_RATE * 1, // TODO: tune episode length
 			.cost_accum = 0,
 			.ep_step = ATTITUDE_RATE * 1,
+		},
+
+		.actor_critic = {
+			.init = false,
+			// other states will be lazy-initialized by actor-critic algo.
+			.critic_rate = 0.0f,
+			.gamma = 0.9999f,
 		},
 
 		// diagnostics
@@ -283,8 +291,12 @@ PARAM_GROUP_START(gaps6DOF)
 	PARAM_ADD(PARAM_FLOAT, damping, &g_self.gaps.damping)
 	PARAM_ADD(PARAM_FLOAT, ad_decay, &g_self.gaps.ad_decay)
 	PARAM_ADD(PARAM_FLOAT, ad_eps, &g_self.gaps.ad_eps)
+	// single-point PG stuff
 	PARAM_ADD(PARAM_UINT32, sp_ep_len, &g_self.gaps.single_point.ep_len)
 	PARAM_ADD(PARAM_FLOAT, sp_radius, &g_self.gaps.single_point.radius)
+	// actor-critic stuff
+	PARAM_ADD(PARAM_FLOAT, ac_gamma, &g_self.gaps.actor_critic.gamma)
+	PARAM_ADD(PARAM_FLOAT, ac_rate, &g_self.gaps.actor_critic.critic_rate)
 
 	// the controller params (GAPS's theta, for initialization)
 	PARAM_ADD(PARAM_FLOAT, ki_xy, &g_self.gaps.theta.ki_xy)

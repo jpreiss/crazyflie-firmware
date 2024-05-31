@@ -184,3 +184,46 @@ def test_mel_vs_gaps():
         # because allclose isn't symmetrical
         assert control_equal(ctrl_mel, ctrl_lee, rtol=1e-2)
         assert control_equal(ctrl_lee, ctrl_mel, rtol=1e-2)
+
+
+def test_gaps_VI():
+    lee = cffirmware.controllerLee_t()
+    cffirmware.controllerLeeInit(lee)
+    gaps = lee.gaps
+    ac = gaps.actor_critic
+
+    theta_init = cffirmware.Param(gaps.theta)
+    assert theta_init == gaps.theta  # test copy ctor and eq op
+
+    # init
+    assert ac.init == False
+
+    # introduce some error
+    setpoint, state, sensors = zero_inputs()
+    state.position.z = 0.1
+    state.velocity.z = 0.1
+
+    # VI
+    gaps.enable = True
+    gaps.optimizer = cffirmware.GAPS_OPT_ACTORCRITIC
+    gaps.eta = 1e-2
+    ac.critic_rate = 1e-1
+
+    ctrl_lee = cffirmware.control_t()
+    step = 0
+    for i in range(500):
+        #print(f"before step {i}:")
+        #print(f"{theta_init = }")
+        print(f"{gaps.theta = }")
+        print("V diag:", np.diag(ac.V))
+        cffirmware.controllerLee(
+            lee, ctrl_lee, setpoint, sensors, state, step)
+        assert not np.any(np.isnan(ac.V.flat))
+
+    # sanity
+    assert not np.allclose(ac.V, 0)
+    assert ac.V[2, 2] > 0
+    print("V diag:", np.diag(ac.V))
+
+    assert not (gaps.theta == theta_init) # didn't impl neq yet
+    assert gaps.theta.kp_z > theta_init.kp_z

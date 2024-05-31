@@ -4,6 +4,18 @@
 // ignore GNU specific compiler attributes
 #define __attribute__(x)
 
+
+#define COPY_CTOR(structname) \
+structname(struct structname const *x) { \
+    struct structname *y = malloc(sizeof(struct structname)); \
+    *y = *x; \
+    return y; \
+} \
+~structname() { \
+    free($self); \
+} \
+
+
 %{
 #define SWIG_FILE_WITH_INIT
 #include "math3d.h"
@@ -121,7 +133,6 @@ float GAPS_y_elt(struct GAPS const *g, int i, int j)
     return g->y[i][j];
 }
 
-
 float gaps_grads_elt(struct gaps const *g, int i)
 {
     return g->grad_accum[i];
@@ -131,6 +142,12 @@ float gaps_updates_elt(struct gaps const *g, int i)
 {
     return g->update_accum[i];
 }
+
+float actorcritic_v_elt(struct ActorCriticLSVI const *ac, int i, int j)
+{
+    return ac->V[i][j];
+}
+
 %}
 
 %extend gaps {
@@ -161,19 +178,51 @@ float gaps_updates_elt(struct gaps const *g, int i)
     %}
 };
 
+%extend Param {
+    COPY_CTOR(Param)
+
+    %pythoncode %{
+        def __eq__(a, b):
+            return (
+                a.ki_xy == b.ki_xy and
+                a.ki_z == b.ki_z and
+                a.kp_xy == b.kp_xy and
+                a.kp_z == b.kp_z and
+                a.kv_xy == b.kv_xy and
+                a.kv_z == b.kv_z and
+                a.kr_xy == b.kr_xy and
+                a.kr_z == b.kr_z and
+                a.kw_xy == b.kw_xy and
+                a.kw_z == b.kw_z
+            )
+
+        def __repr__(self):
+
+            strs = []
+            for k in "ipvrw":
+                for ax in ["xy", "z"]:
+                    key = f"k{k}_{ax}"
+                    val = getattr(self, key)
+                    strs.append(f"{key}={val:.3f}")
+            return "Param(" + ", ".join(strs) + ")"
+    %}
+};
+
+%extend ActorCriticLSVI {
+    %pythoncode %{
+        @property
+        def V(self):
+            return np.array([
+                [actorcritic_v_elt(self, i, j) for i in range(_cffirmware.XDIM)]
+                for j in range(_cffirmware.XDIM)
+            ])
+    %}
+};
+
 %pythoncode %{
 import numpy as np
 %}
 
-#define COPY_CTOR(structname) \
-structname(struct structname const *x) { \
-    struct structname *y = malloc(sizeof(struct structname)); \
-    *y = *x; \
-    return y; \
-} \
-~structname() { \
-    free($self); \
-} \
 
 %extend vec {
     COPY_CTOR(vec)
@@ -214,6 +263,11 @@ structname(struct structname const *x) { \
 
         def __sub__(self, other):
             return _cffirmware.vsub(self, other)
+
+
+        # Logical operator overloads.
+        def __eq__(a, b):
+            return (a.x, a.y, a.z) == (b.x, b.y, b.z)
     %}
 };
 

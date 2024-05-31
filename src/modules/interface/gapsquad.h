@@ -51,6 +51,7 @@ enum gaps_optimizer {
 	GAPS_OPT_GRAD = 0,
 	GAPS_OPT_ADADELTA = 1,
 	GAPS_OPT_SINGLEPOINT = 2,
+	GAPS_OPT_ACTORCRITIC = 3,
 };
 
 struct SinglePointGrad
@@ -61,7 +62,20 @@ struct SinglePointGrad
 	uint32_t ep_step;
 	// params. note: uses same eta as gaps
 	uint32_t ep_len;
-	float radius;
+	FLOAT radius;
+};
+
+struct ActorCriticLSVI
+{
+	// state
+	bool init;
+	FLOAT V[XDIM][XDIM];
+	struct State xerrprev;
+	FLOAT vprev;
+	FLOAT costprev;
+	// params. uses main gaps eta for policy.
+	FLOAT critic_rate;
+	FLOAT gamma;
 };
 
 struct GAPS
@@ -78,8 +92,9 @@ struct GAPS
 	uint8_t enable;
 	uint8_t optimizer;
 
-	// Single-point policy gradient estimator (baseline)
+	// Baselines
 	struct SinglePointGrad single_point;
+	struct ActorCriticLSVI actor_critic;
 
 	// diagnostics
 	FLOAT yabsmax;

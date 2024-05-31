@@ -41,6 +41,12 @@ reference parameters instead.
 
 using Theta = Eigen::Array<FLOAT, TDIM, 1>;
 using MapTheta = Eigen::Map<Theta>;
+using X = Eigen::Matrix<FLOAT, XDIM, 1>;
+static_assert(sizeof(X) == sizeof(State));
+using MapX = Eigen::Map<X>;
+using U = Eigen::Matrix<FLOAT, UDIM, 1>;
+static_assert(sizeof(U) == sizeof(Action));
+using MapU = Eigen::Map<U>;
 using GapsY = Eigen::Matrix<FLOAT, XDIM, TDIM, Eigen::RowMajor>;
 using Jxx = Eigen::Matrix<FLOAT, XDIM, XDIM, Eigen::RowMajor>;
 using Jxu = Eigen::Matrix<FLOAT, XDIM, UDIM, Eigen::RowMajor>;
@@ -63,7 +69,7 @@ void dynamics(
 	State &x_t, Jxx &Dx_x, Jxu &Dx_u // outputs
 	)
 {
-	Eigen::Matrix<FLOAT, XDIM, 1> xt;
+	X xt;
 	Eigen::Matrix<FLOAT, XDIM, XDIM + UDIM> D;
 	sym::Dynamics<FLOAT>(
 		x.ierr, x.p, x.v, x.logR, x.w,
@@ -195,6 +201,62 @@ Theta single_point_update(SinglePointGrad &sp, FLOAT eta, FLOAT cost)
 	return Theta::Zero();
 }
 
+static void actor_critic_update(
+	GAPS &gaps, State const &x, Target const &t, FLOAT cost,
+	Jxx const &Dx_x, Jxu const &Dx_u, Jux const &Du_x, Jut const &Du_t, Gcx const &Dc_x, Gcu const &Dc_u
+)
+{
+	ActorCriticLSVI &ac = gaps.actor_critic;
+
+	// value is quadratic form in state error, not state
+	State xerr_s = x;
+	xerr_s.p -= t.p_d;
+	xerr_s.v -= t.v_d;
+	xerr_s.logR.setZero();
+	xerr_s.w -= t.w_d;
+
+	MapX xerr((FLOAT *)&xerr_s);
+	MapX xerrprev((FLOAT *)&ac.xerrprev);
+
+	Eigen::Map<Jxx> V(ac.V[0]);
+
+	if (!ac.init) {
+		V.setZero();
+		ac.xerrprev = xerr_s;
+		ac.costprev = cost;
+		ac.vprev = 0;
+		ac.init = true;
+		return;
+	}
+
+	// critic update
+	// Least-Squares Value Iteration update, i.e. gradient descent w.r.t. phi on
+	// 1/2 ( V_phi_fixed(x') + r(x, u) - V_phi(x) )^2
+	FLOAT actual = ac.costprev + ac.gamma * xerr.transpose() * V * xerr;
+	auto DV_xerrprev = xerrprev * xerrprev.transpose();
+	V += ac.critic_rate * (actual - ac.vprev) * DV_xerrprev;
+
+	// actor update
+	auto Dv_x = (2 * V * xerr).transpose();
+	auto Dq_u = Dv_x * Dx_u + Dc_u;
+	auto Dq_t = Dq_u * Du_t;
+	/*
+	std::cout << "xerr = " << xerr << "\n";
+	std::cout << "Dv_x = " << Dv_x << "\n";
+	std::cout << "Dx_u = " << Dx_u << "\n";
+	std::cout << "Dc_u = " << Dc_u << "\n";
+	std::cout << "Dq_u = " << Dq_u << "\n";
+	std::cout << "Du_t = " << Du_t << "\n";
+	std::cout << "Dq_t = " << Dq_t << "\n";
+	std::cout << " eta = " << gaps.eta << "\n";
+	*/
+
+	MapTheta((FLOAT *)&gaps.theta) -= gaps.eta * Dq_t.array();
+
+	ac.xerrprev = xerr_s;
+	ac.costprev = cost;
+}
+
 
 extern "C" bool gaps_step(
 	struct GAPS *gaps,
@@ -206,6 +268,7 @@ extern "C" bool gaps_step(
 	gaps_optimizer const opt = (gaps_optimizer)gaps->optimizer;
 
 	ctrl(*x, *t, gaps->theta, *u_out, Du_x, Du_t, gaps->debug, dt);
+	// std::cout << "u = " << MapU((FLOAT *)u_out) << "\n";
 
 	// integrate the ierr right away in case we exit due to being disabled.
 	gaps->ierr += dt * (x->p - t->p_d);
@@ -229,6 +292,14 @@ extern "C" bool gaps_step(
 	}
 	
 	dynamics(*x, *t, *u_out, dt, xnext, Dx_x, Dx_u);
+
+	if (opt == GAPS_OPT_ACTORCRITIC) {
+		actor_critic_update(
+			*gaps, *x, *t, stage_cost,
+			Dx_x, Dx_u, Du_x, Du_t, Dc_x, Dc_u
+		);
+		return true;
+	}
 
 	// 1) compute the gradient
 	Eigen::Map<GapsY> y(gaps->y[0]);
