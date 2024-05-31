@@ -215,8 +215,7 @@ extern "C" bool gaps_step(
 	}
 
 	// GAPS 3) update the state
-	// projection
-	theta = theta.max(0.0f);
+	// no projection due to log-space
 	// dynamic programming (with slight damping)
 	auto product = Dx_x + Dx_u * Du_x;
 	// std::cout << "product eigvals:" << product.eigenvalues() << "\n";

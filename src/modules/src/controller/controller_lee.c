@@ -35,18 +35,18 @@ SOFTWARE.
 #define FLOAT float
 #include "gapsquad.h"
 
-// fixed-point x1000, for logging
+// fixed-point x (1 << 11), for logging
 static struct {
-	uint16_t ki_xy;
-	uint16_t ki_z;
-	uint16_t kp_xy;
-	uint16_t kp_z;
-	uint16_t kv_xy;
-	uint16_t kv_z;
-	uint16_t kr_xy;
-	uint16_t kr_z;
-	uint16_t kw_xy;
-	uint16_t kw_z;
+	int16_t ki_xy;
+	int16_t ki_z;
+	int16_t kp_xy;
+	int16_t kp_z;
+	int16_t kv_xy;
+	int16_t kv_z;
+	int16_t kr_xy;
+	int16_t kr_z;
+	int16_t kw_xy;
+	int16_t kw_z;
 } g_log;
 
 static controllerLee_t g_self = {
@@ -149,7 +149,7 @@ void controllerLee(
 		return;
 	}
 
-	float const FIXPT = 1 << 12;
+	float const FIXPT = 1 << 11;
 	g_log.ki_xy = self->gaps.theta.ki_xy * FIXPT;
 	g_log.ki_z  = self->gaps.theta.ki_z  * FIXPT;
 	g_log.kp_xy = self->gaps.theta.kp_xy * FIXPT;
@@ -308,16 +308,16 @@ PARAM_GROUP_STOP(gaps6DOF)
 
 
 LOG_GROUP_START(gaps6DOF)
-	LOG_ADD(LOG_UINT16, ki_xy, &g_log.ki_xy)
-	LOG_ADD(LOG_UINT16, ki_z,  &g_log.ki_z)
-	LOG_ADD(LOG_UINT16, kp_xy, &g_log.kp_xy)
-	LOG_ADD(LOG_UINT16, kp_z,  &g_log.kp_z)
-	LOG_ADD(LOG_UINT16, kv_xy, &g_log.kv_xy)
-	LOG_ADD(LOG_UINT16, kv_z,  &g_log.kv_z)
-	LOG_ADD(LOG_UINT16, kr_xy, &g_log.kr_xy)
-	LOG_ADD(LOG_UINT16, kr_z,  &g_log.kr_z)
-	LOG_ADD(LOG_UINT16, kw_xy, &g_log.kw_xy)
-	LOG_ADD(LOG_UINT16, kw_z,  &g_log.kw_z)
+	LOG_ADD(LOG_INT16, ki_xy, &g_log.ki_xy)
+	LOG_ADD(LOG_INT16, ki_z,  &g_log.ki_z)
+	LOG_ADD(LOG_INT16, kp_xy, &g_log.kp_xy)
+	LOG_ADD(LOG_INT16, kp_z,  &g_log.kp_z)
+	LOG_ADD(LOG_INT16, kv_xy, &g_log.kv_xy)
+	LOG_ADD(LOG_INT16, kv_z,  &g_log.kv_z)
+	LOG_ADD(LOG_INT16, kr_xy, &g_log.kr_xy)
+	LOG_ADD(LOG_INT16, kr_z,  &g_log.kr_z)
+	LOG_ADD(LOG_INT16, kw_xy, &g_log.kw_xy)
+	LOG_ADD(LOG_INT16, kw_z,  &g_log.kw_z)
 	LOG_ADD(LOG_FLOAT, yabsmax, &g_self.gaps.yabsmax)
 	LOG_ADD(LOG_FLOAT, sum_cost, &g_self.gaps.sum_cost)
 	LOG_ADD(LOG_INT8, max_row, &g_self.gaps.max_row)
