@@ -40,6 +40,7 @@ reference parameters instead.
 #endif
 
 using Theta = Eigen::Array<FLOAT, TDIM, 1>;
+using MapTheta = Eigen::Map<Theta>;
 using GapsY = Eigen::Matrix<FLOAT, XDIM, TDIM, Eigen::RowMajor>;
 using Jxx = Eigen::Matrix<FLOAT, XDIM, XDIM, Eigen::RowMajor>;
 using Jxu = Eigen::Matrix<FLOAT, XDIM, UDIM, Eigen::RowMajor>;
@@ -158,6 +159,42 @@ T clampsym(T const &x, T const &absmax)
 	return x;
 }
 
+static Theta random_spherical()
+{
+	// central limit theorem - approx normal RV by sum of uniform RVs.
+	// Eigen doesn't have normal RVs.
+	Theta th = Theta::Random() + Theta::Random() + Theta::Random() + Theta::Random();
+	th /= th.matrix().norm();
+	return th;
+}
+
+
+Theta single_point_update(SinglePointGrad &sp, FLOAT eta, FLOAT cost)
+{
+	sp.cost_accum += cost;
+	++sp.ep_step;
+	if (sp.ep_step >= sp.ep_len) {
+		DEBUG_PRINT("Single point update.\n");
+		// use priveleged knowledge that tracking error with detuned parameters
+		// on the aggressive diagonal figure-8 is around 15cm on average.
+		sp.cost_accum -= (FLOAT)(0.15 * 0.15) * sp.ep_len;
+		MapTheta perturbation(sp.perturbation);
+		// "undo" the initial perturbation
+		Theta update = -perturbation;
+		// do the gradient descent approximation
+		update -= eta * (TDIM / sp.radius) * sp.cost_accum * perturbation;
+		// sample a new perturbation
+		perturbation = sp.radius * random_spherical();
+		// enact the new perturbation on the live parameters
+		update += perturbation;
+		sp.ep_step = 0;
+		sp.cost_accum = 0;
+		return update;
+	}
+	return Theta::Zero();
+}
+
+
 extern "C" bool gaps_step(
 	struct GAPS *gaps,
 	struct State const *x,
@@ -165,6 +202,8 @@ extern "C" bool gaps_step(
 	FLOAT const dt,
 	struct Action *u_out)
 {
+	gaps_optimizer const opt = (gaps_optimizer)gaps->optimizer;
+
 	ctrl(*x, *t, gaps->theta, *u_out, Du_x, Du_t, gaps->debug, dt);
 
 	// integrate the ierr right away in case we exit due to being disabled.
@@ -173,27 +212,30 @@ extern "C" bool gaps_step(
 	gaps->ierr[1] = clampsym(gaps->ierr[1], (FLOAT)2.0);
 	gaps->ierr[2] = clampsym(gaps->ierr[2], (FLOAT)0.4);
 
-	if (!gaps->enable) {
-		return true;
-	}
-
-	dynamics(*x, *t, *u_out, dt, xnext, Dx_x, Dx_u);
-
 	FLOAT stage_cost;
 	cost(*x, *t, *u_out, gaps->cost_param, stage_cost, Dc_x, Dc_u);
 	gaps->sum_cost += dt * stage_cost;
 
-	using MapTheta = Eigen::Map<Theta>;
+	if (!gaps->enable) {
+		return true;
+	}
+
+	MapTheta theta((FLOAT *)&gaps->theta);
+
+	if (opt == GAPS_OPT_SINGLEPOINT) {
+		theta += single_point_update(gaps->single_point, gaps->eta, stage_cost);
+		return true;
+	}
+	
+	dynamics(*x, *t, *u_out, dt, xnext, Dx_x, Dx_u);
 
 	// 1) compute the gradient
 	Eigen::Map<GapsY> y(gaps->y[0]);
 	Theta grad = (Dc_x * y + Dc_u * Du_t).array();
-	MapTheta theta((FLOAT *)&gaps->theta);
 	// regularization
 	grad += gaps->cost_param.reg_L2 * theta;
 
 	// 2) run the optimizer
-	gaps_optimizer const opt = (gaps_optimizer)gaps->optimizer;
 	if (opt == GAPS_OPT_GRAD) {
 		theta -= gaps->eta * grad;
 	}

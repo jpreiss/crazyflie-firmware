@@ -50,6 +50,18 @@ struct Debug {
 enum gaps_optimizer {
 	GAPS_OPT_GRAD = 0,
 	GAPS_OPT_ADADELTA = 1,
+	GAPS_OPT_SINGLEPOINT = 2,
+};
+
+struct SinglePointGrad
+{
+	// state
+	FLOAT perturbation[TDIM];
+	FLOAT cost_accum;
+	uint32_t ep_step;
+	// params. note: uses same eta as gaps
+	uint32_t ep_len;
+	float radius;
 };
 
 struct GAPS
@@ -65,6 +77,9 @@ struct GAPS
 	FLOAT damping;
 	uint8_t enable;
 	uint8_t optimizer;
+
+	// Single-point policy gradient estimator (baseline)
+	struct SinglePointGrad single_point;
 
 	// diagnostics
 	FLOAT yabsmax;

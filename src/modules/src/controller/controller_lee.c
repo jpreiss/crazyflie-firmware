@@ -94,6 +94,14 @@ static controllerLee_t g_self = {
 		.enable = false,
 		.optimizer = GAPS_OPT_GRAD,
 
+		.single_point = {
+			.perturbation = { 0 },
+			.radius = 1e-1,
+			.ep_len = ATTITUDE_RATE * 1, // TODO: tune episode length
+			.cost_accum = 0,
+			.ep_step = ATTITUDE_RATE * 1,
+		},
+
 		// diagnostics
 		.yabsmax = 0.0f,
 		.max_row = -1,
@@ -288,6 +296,8 @@ PARAM_GROUP_START(gaps6DOF)
 	PARAM_ADD(PARAM_FLOAT, damping, &g_self.gaps.damping)
 	PARAM_ADD(PARAM_FLOAT, ad_decay, &g_self.gaps.ad_decay)
 	PARAM_ADD(PARAM_FLOAT, ad_eps, &g_self.gaps.ad_eps)
+	PARAM_ADD(PARAM_UINT32, sp_ep_len, &g_self.gaps.single_point.ep_len)
+	PARAM_ADD(PARAM_FLOAT, sp_radius, &g_self.gaps.single_point.radius)
 
 	// the controller params (GAPS's theta, for initialization)
 	PARAM_ADD(PARAM_FLOAT, ki_xy, &g_self.gaps.theta.ki_xy)
