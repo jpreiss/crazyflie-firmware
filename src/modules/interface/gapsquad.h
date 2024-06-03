@@ -52,6 +52,15 @@ enum gaps_optimizer {
 	GAPS_OPT_ADADELTA = 1,
 	GAPS_OPT_SINGLEPOINT = 2,
 	GAPS_OPT_ACTORCRITIC = 3,
+	GAPS_OPT_EPISODIC_GRAD = 4,
+};
+
+struct EpisodicGrad
+{
+	FLOAT grad_accum[TDIM];
+	uint32_t ep_step;
+	// params. note: uses same eta and y as gaps
+	uint32_t ep_len;
 };
 
 struct SinglePointGrad
@@ -71,7 +80,7 @@ struct ActorCriticLSVI
 	bool init;
 	FLOAT V[XDIM][XDIM];
 	FLOAT Vtarget[XDIM][XDIM];
-	State xerrprev;
+	struct State xerrprev;
 	FLOAT vprev;
 	FLOAT costprev;
 	FLOAT Dc_t_prev[TDIM];
@@ -96,9 +105,10 @@ struct GAPS
 	uint8_t enable;
 	uint8_t optimizer;
 
-	// Baselines
+	// baselines
 	struct SinglePointGrad single_point;
 	struct ActorCriticLSVI actor_critic;
+	struct EpisodicGrad episodic_grad;
 
 	// diagnostics
 	FLOAT yabsmax;

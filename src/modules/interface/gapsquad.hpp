@@ -339,6 +339,19 @@ extern "C" bool gaps_step(
 		ad_updates = decay * ad_updates + (1.0f - decay) * update.square();
 		theta += gaps->eta * update;
 	}
+	else if (opt == GAPS_OPT_EPISODIC_GRAD) {
+		EpisodicGrad &eg = gaps->episodic_grad;
+		MapTheta accum(eg.grad_accum);
+		accum += grad;
+		++eg.ep_step;
+		if (eg.ep_step >= eg.ep_len) {
+			DEBUG_PRINT("Episodic grad update.\n");
+			theta -= gaps->eta * accum;
+			accum.setZero();
+			y.setZero();
+			eg.ep_step = 0;
+		}
+	}
 	else {
 		return false;
 	}
