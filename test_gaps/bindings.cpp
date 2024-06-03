@@ -126,6 +126,14 @@ namespace ac {
 	{
 		Eigen::Map<Jxx>(&ac->V[0][0]) = V;
 	}
+	Jxx get_Vtarget(ActorCriticLSVI const *ac)
+	{
+		return Eigen::Map<Jxx const>(&ac->Vtarget[0][0]);
+	}
+	void set_Vtarget(ActorCriticLSVI *ac, Jxx Vtarget)
+	{
+		Eigen::Map<Jxx>(&ac->Vtarget[0][0]) = Vtarget;
+	}
 	StateTuple get_xerrprev(ActorCriticLSVI const *ac)
 	{
 		return s2t(ac->xerrprev);
@@ -163,10 +171,12 @@ PYBIND11_MODULE(gapsquad, m) {
 		.def(py::init<>())
 		.def("update", &ac::update_wrap)
 		.def_property("V", &ac::get_V, &ac::set_V)
+		.def_property("Vtarget", &ac::get_Vtarget, &ac::set_Vtarget)
 		.def_property_readonly("xerrprev", &ac::get_xerrprev)
 		.def_readwrite("init", &ActorCriticLSVI::init)
 		.def_readwrite("vprev", &ActorCriticLSVI::vprev)
 		.def_readwrite("costprev", &ActorCriticLSVI::costprev)
 		.def_readwrite("critic_rate", &ActorCriticLSVI::critic_rate)
+		.def_readwrite("target_rate", &ActorCriticLSVI::target_rate)
 		.def_readwrite("gamma", &ActorCriticLSVI::gamma);
 }

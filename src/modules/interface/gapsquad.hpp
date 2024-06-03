@@ -225,11 +225,13 @@ static void actor_critic_update(
 	MapX xerrprev((FLOAT *)&ac.xerrprev);
 
 	Eigen::Map<Jxx> V(ac.V[0]);
+	Eigen::Map<Jxx> Vtarget(ac.Vtarget[0]);
 	Eigen::Map<GapsY> Dx_t_prev(ac.Dx_t_prev[0]);
 	MapTheta Dc_t_prev(ac.Dc_t_prev);
 
 	if (!ac.init) {
 		V.setZero();
+		Vtarget = V;
 		ac.xerrprev = xerr_s;
 		ac.costprev = cost;
 		ac.vprev = 0;
@@ -242,16 +244,16 @@ static void actor_critic_update(
 	// critic update
 	// Least-Squares Value Iteration update, i.e. gradient descent w.r.t. phi on
 	// 1/2 ( V_phi_fixed(x') + r(x, u) - V_phi(x) )^2
-	FLOAT Vx = xerr.transpose() * V * xerr;
+	FLOAT Vx = xerr.transpose() * Vtarget * xerr;
 	FLOAT actual = ac.costprev + ac.gamma * Vx;
 	auto xxT = xerrprev * xerrprev.transpose();
 	V += ac.critic_rate * (actual - ac.vprev) * xxT;
+	Vtarget += ac.target_rate * (V - Vtarget);
 
 	// actor update
 	auto Dv_x = (2 * V * xerr).transpose();
 	auto Dq_t = Dv_x * Dx_t_prev + Dc_t_prev.matrix().transpose();
 	/*
-	std::cout << "xerr = " << xerr << "\n";
 	std::cout << "Dv_x = " << Dv_x << "\n";
 	std::cout << "Dx_u = " << Dx_u << "\n";
 	std::cout << "Dc_u = " << Dc_u << "\n";
@@ -263,7 +265,7 @@ static void actor_critic_update(
 	MapTheta((FLOAT *)&theta) -= eta * Dq_t.array();
 
 	ac.xerrprev = xerr_s;
-	ac.vprev = Vx;
+	ac.vprev = xerr.transpose() * V * xerr;
 	ac.costprev = cost;
 	Dc_t_prev = Dc_u * Du_t;
 	Dx_t_prev = Dx_u * Du_t;

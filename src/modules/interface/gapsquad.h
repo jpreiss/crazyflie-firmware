@@ -70,6 +70,7 @@ struct ActorCriticLSVI
 	// state
 	bool init;
 	FLOAT V[XDIM][XDIM];
+	FLOAT Vtarget[XDIM][XDIM];
 	State xerrprev;
 	FLOAT vprev;
 	FLOAT costprev;
@@ -77,6 +78,7 @@ struct ActorCriticLSVI
 	FLOAT Dx_t_prev[XDIM][TDIM];
 	// params. uses main gaps eta for policy.
 	FLOAT critic_rate;
+	FLOAT target_rate;
 	FLOAT gamma;
 };
 
