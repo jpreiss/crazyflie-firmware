@@ -181,6 +181,11 @@ float actorcritic_v_elt(struct ActorCriticLSVI const *ac, int i, int j)
 %extend Param {
     COPY_CTOR(Param)
 
+    ptrdiff_t address() const
+    {
+        return $self;
+    }
+
     %pythoncode %{
         def __eq__(a, b):
             return (
@@ -205,6 +210,13 @@ float actorcritic_v_elt(struct ActorCriticLSVI const *ac, int i, int j)
                     val = getattr(self, key)
                     strs.append(f"{key}={val:.3f}")
             return "Param(" + ", ".join(strs) + ")"
+
+        def array(self):
+            ptr = ctypes.cast(self.address(), ctypes.POINTER(ctypes.c_float))
+            arr = np.ctypeslib.as_array(ptr, shape=(10,))
+            assert arr[0] == self.ki_xy
+            assert arr[-1] == self.kw_z
+            return arr
     %}
 };
 
@@ -221,6 +233,7 @@ float actorcritic_v_elt(struct ActorCriticLSVI const *ac, int i, int j)
 
 %pythoncode %{
 import numpy as np
+import ctypes
 %}
 
 

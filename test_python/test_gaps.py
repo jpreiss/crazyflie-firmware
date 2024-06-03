@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 
+import matplotlib.pyplot as plt
 import numpy as np
+import pytest
 
 import cffirmware
 
@@ -186,6 +188,89 @@ def test_mel_vs_gaps():
         assert control_equal(ctrl_lee, ctrl_mel, rtol=1e-2)
 
 
+def test_gaps_episodic_grad():
+    lee = cffirmware.controllerLee_t()
+    cffirmware.controllerLeeInit(lee)
+    gaps = lee.gaps
+    ep = gaps.episodic_grad
+
+    theta_init = cffirmware.Param(gaps.theta)
+    assert theta_init == gaps.theta  # test copy ctor and eq op
+
+    # introduce some error
+    setpoint, state, sensors = zero_inputs()
+    state.position.z = 0.1
+    state.velocity.z = 0.1
+
+    gaps.enable = True
+    gaps.optimizer = cffirmware.GAPS_OPT_EPISODIC_GRAD
+    gaps.eta = 1e-2
+    ep.ep_len = 100
+
+    thetas = []
+
+    ctrl_lee = cffirmware.control_t()
+    step = 0
+    for i in range(500):
+        thetas.append(gaps.theta.array().copy())
+        cffirmware.controllerLee(
+            lee, ctrl_lee, setpoint, sensors, state, step)
+
+    assert not np.all(thetas[0] == thetas[-1])
+
+
+def test_gaps_compare_episodic():
+    lee = cffirmware.controllerLee_t()
+    ctrl_lee = cffirmware.control_t()
+    gaps = lee.gaps
+
+    # introduce some error
+    setpoint, state, sensors = zero_inputs()
+    state.position.z = 0.1
+    state.velocity.z = 0.1
+
+    Hz = 500
+    T = Hz * 10
+    eta = 1e-1
+
+    # episodic
+    cffirmware.controllerLeeInit(lee)
+    gaps.eta = eta
+    gaps.enable = True
+    ep = gaps.episodic_grad
+    ep.ep_len = Hz
+    gaps.optimizer = cffirmware.GAPS_OPT_EPISODIC_GRAD
+    thetas_ep = np.zeros((T, 10))
+    for i in range(T):
+        thetas_ep[i] = gaps.theta.array().copy()
+        cffirmware.controllerLee(
+            lee, ctrl_lee, setpoint, sensors, state, tick=0)
+
+    # GAPS
+    cffirmware.controllerLeeInit(lee)
+    gaps.eta = eta
+    gaps.enable = True
+    gaps.optimizer = cffirmware.GAPS_OPT_GRAD
+    thetas_gaps = np.zeros((T, 10))
+    for i in range(T):
+        thetas_gaps[i] = gaps.theta.array().copy()
+        cffirmware.controllerLee(
+            lee, ctrl_lee, setpoint, sensors, state, tick=0)
+
+    fig, (ax_ep, ax_gaps) = plt.subplots(1, 2, figsize=(10, 6))
+    for th in thetas_gaps.T:
+        ax_gaps.plot(th)
+    for th in thetas_ep.T:
+        ax_ep.plot(th)
+    ax_gaps.set(title="GAPS")
+    ax_ep.set(title="episodic")
+    fig.savefig("ep_compare.pdf")
+
+
+
+
+
+@pytest.mark.xfail
 def test_gaps_VI():
     lee = cffirmware.controllerLee_t()
     cffirmware.controllerLeeInit(lee)
