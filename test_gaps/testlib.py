@@ -120,11 +120,25 @@ def random_inputs(rng):
     return x, xd, th, Q, u
 
 
-def default_inputs():
+def default_inputs(detune=1.0):
     Z3 = np.zeros(3)
     x = State(ierr=Z3, p=Z3, v=Z3, logR=Z3, w=Z3)
     xd = Target(p_d=Z3, v_d=Z3, a_d=Z3, w_d=Z3)
-    th = Param.from_arr(np.zeros(Param.size))
+    # initially I tested with simpler params, but once you start testing closed
+    # loop, gotta be careful!
+    th = Param(
+        ki_xy=np.log(1.56),
+        ki_z =np.log(1.56),
+        kp_xy=np.log(12.5),
+        kp_z =np.log(39.0),
+        kv_xy=np.log(6.25),
+        kv_z =np.log(12.5),
+        kr_xy=np.log(1660.0),
+        kr_z =np.log(294.0),
+        kw_xy=np.log(237.5),
+        kw_z =np.log(29.7),
+    )
+    th = Param.from_arr(th.to_arr() + np.log(detune))
     u = Action(thrust=0, torque=Z3)
     Q = CostParam(p=1, v=0, w=0, thrust=0, torque=0, reg_L2=0)
     return x, xd, th, Q, u
