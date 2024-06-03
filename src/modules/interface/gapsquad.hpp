@@ -96,7 +96,11 @@ bool allclose(S &&s, T &&t, FLOAT atol=1e-8, FLOAT rtol=1e-5)
 	return (a < allowed).all();
 }
 
-void cost(
+// pybind11 can't modify python's immutable primitives (e.g. floats) by
+// reference, so we return `c`. previously it was only an output mutable
+// reference for consistency with other outputs. other callers besides pybind11
+// still use the output ref, so for now we can have both.
+float cost(
 	State const &x, Target const &t, Action const &u, CostParam const &Q,  // inputs
 	FLOAT &c, Gcx &Dc_x, Gcu &Dc_u  // outputs
 	)
@@ -115,6 +119,7 @@ void cost(
 	Dc_x.tail<3>() = D.segment<3>(6);  // w
 	Dc_u[0] = D[9];                    // thrust
 	Dc_u.tail<3>() = D.tail<3>();      // torque
+	return c;
 }
 
 
@@ -202,12 +207,13 @@ Theta single_point_update(SinglePointGrad &sp, FLOAT eta, FLOAT cost)
 }
 
 static void actor_critic_update(
-	GAPS &gaps, State const &x, Target const &t, FLOAT cost,
-	Jxx const &Dx_x, Jxu const &Dx_u, Jux const &Du_x, Jut const &Du_t, Gcx const &Dc_x, Gcu const &Dc_u
+	ActorCriticLSVI &ac, Param &theta, FLOAT eta,
+	State const &x, Target const &t, FLOAT const cost,
+	Jxx const &Dx_x, Jxu const &Dx_u,
+	Jux const &Du_x, Jut const &Du_t,
+	Gcx const &Dc_x, Gcu const &Dc_u
 )
 {
-	ActorCriticLSVI &ac = gaps.actor_critic;
-
 	// value is quadratic form in state error, not state
 	State xerr_s = x;
 	xerr_s.p -= t.p_d;
@@ -232,7 +238,8 @@ static void actor_critic_update(
 	// critic update
 	// Least-Squares Value Iteration update, i.e. gradient descent w.r.t. phi on
 	// 1/2 ( V_phi_fixed(x') + r(x, u) - V_phi(x) )^2
-	FLOAT actual = ac.costprev + ac.gamma * xerr.transpose() * V * xerr;
+	FLOAT Vx = xerr.transpose() * V * xerr;
+	FLOAT actual = ac.costprev + ac.gamma * Vx;
 	auto DV_xerrprev = xerrprev * xerrprev.transpose();
 	V += ac.critic_rate * (actual - ac.vprev) * DV_xerrprev;
 
@@ -251,9 +258,10 @@ static void actor_critic_update(
 	std::cout << " eta = " << gaps.eta << "\n";
 	*/
 
-	MapTheta((FLOAT *)&gaps.theta) -= gaps.eta * Dq_t.array();
+	MapTheta((FLOAT *)&theta) -= eta * Dq_t.array();
 
 	ac.xerrprev = xerr_s;
+	ac.vprev = Vx;
 	ac.costprev = cost;
 }
 
@@ -295,7 +303,8 @@ extern "C" bool gaps_step(
 
 	if (opt == GAPS_OPT_ACTORCRITIC) {
 		actor_critic_update(
-			*gaps, *x, *t, stage_cost,
+			gaps->actor_critic, gaps->theta, gaps->eta,
+			*x, *t, stage_cost,
 			Dx_x, Dx_u, Du_x, Du_t, Dc_x, Dc_u
 		);
 		return true;
