@@ -18,9 +18,9 @@ def namedvec(name, fields, sizes):
     base = namedtuple(name, fields)
 
     def to_arr(self):
-        for v in [*self]:
-            assert isinstance(v, np.ndarray) or isinstance(v, float)
-        return np.block([*self])
+        #for v in [*self]:
+            #assert isinstance(v, np.ndarray) or isinstance(v, float)
+        return np.concatenate([np.atleast_1d(x) for x in self])
 
     @classmethod
     def from_arr(cls, arr):
@@ -126,5 +126,5 @@ def default_inputs():
     xd = Target(p_d=Z3, v_d=Z3, a_d=Z3, w_d=Z3)
     th = Param.from_arr(np.zeros(Param.size))
     u = Action(thrust=0, torque=Z3)
-    Q = CostParam(p=1, v=1, w=1, thrust=1, torque=1, reg_L2=1)
+    Q = CostParam(p=1, v=0, w=0, thrust=0, torque=0, reg_L2=0)
     return x, xd, th, Q, u
