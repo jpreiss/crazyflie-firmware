@@ -112,6 +112,12 @@ static controllerLee_t g_self = {
 			.gamma = 0.9999f,
 		},
 
+		.episodic_grad = {
+			.grad_accum = { 0 },
+			.ep_step = 0,
+			.ep_len = ATTITUDE_RATE * 1,
+		},
+
 		// diagnostics
 		.yabsmax = 0.0f,
 		.max_row = -1,
@@ -300,6 +306,8 @@ PARAM_GROUP_START(gaps6DOF)
 	// actor-critic stuff
 	PARAM_ADD(PARAM_FLOAT, ac_gamma, &g_self.gaps.actor_critic.gamma)
 	PARAM_ADD(PARAM_FLOAT, ac_rate, &g_self.gaps.actor_critic.critic_rate)
+	// episodic PG stuff
+	PARAM_ADD(PARAM_UINT32, ep_len, &g_self.gaps.episodic_grad.ep_len)
 
 	// the controller params (GAPS's theta, for initialization)
 	PARAM_ADD(PARAM_FLOAT, ki_xy, &g_self.gaps.theta.ki_xy)
