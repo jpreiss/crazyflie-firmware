@@ -19,8 +19,8 @@ def ctrl_symfn(
     dt: sf.Scalar,
     ):
 
-    ki_xy, ki_z, kp_xy, kp_z, kv_xy, kv_z = map(sf.exp, theta_pos)
-    kr_xy, kr_z, kw_xy, kw_z = map(sf.exp, theta_rot)
+    ki_xy, ki_z, kp_xy, kp_z, kv_xy, kv_z = theta_pos
+    kr_xy, kr_z, kw_xy, kw_z = theta_rot
     ki = sf.Matrix.diag([ki_xy, ki_xy, ki_z])
     kp = sf.Matrix.diag([kp_xy, kp_xy, kp_z])
     kv = sf.Matrix.diag([kv_xy, kv_xy, kv_z])

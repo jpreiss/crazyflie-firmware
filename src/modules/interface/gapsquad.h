@@ -53,6 +53,12 @@ enum gaps_optimizer {
 	GAPS_OPT_SINGLEPOINT = 2,
 	GAPS_OPT_ACTORCRITIC = 3,
 	GAPS_OPT_EPISODIC_GRAD = 4,
+	GAPS_OPT_MIRROR = 5,
+};
+
+enum gaps_gradmode {
+	GAPS_GRAD_STANDARD = 0,
+	GAPS_GRAD_LOGPARAM = 1,
 };
 
 struct EpisodicGrad
@@ -104,6 +110,7 @@ struct GAPS
 	FLOAT damping;
 	uint8_t enable;
 	uint8_t optimizer;
+	uint8_t gradmode;
 
 	// baselines
 	struct SinglePointGrad single_point;

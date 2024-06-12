@@ -94,6 +94,7 @@ static controllerLee_t g_self = {
 		.damping = 0.9999f,
 		.enable = false,
 		.optimizer = GAPS_OPT_GRAD,
+		.gradmode = GAPS_GRAD_LOGPARAM,
 
 		.single_point = {
 			.perturbation = { 0 },
@@ -281,6 +282,7 @@ PARAM_GROUP_START(gaps6DOF)
 	// the GAPS params
 	PARAM_ADD(PARAM_UINT8, enable, &g_self.gaps.enable)
 	PARAM_ADD(PARAM_UINT8, optimizer, &g_self.gaps.optimizer)
+	PARAM_ADD(PARAM_UINT8, gradmode, &g_self.gaps.gradmode)
 	PARAM_ADD(PARAM_FLOAT, Qp, &g_self.gaps.cost_param.p)
 	PARAM_ADD(PARAM_FLOAT, Qv, &g_self.gaps.cost_param.v)
 	PARAM_ADD(PARAM_FLOAT, Qw, &g_self.gaps.cost_param.w)
