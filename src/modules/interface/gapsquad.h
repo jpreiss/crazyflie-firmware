@@ -74,6 +74,7 @@ struct SinglePointGrad
 	// state
 	FLOAT perturbation[TDIM];
 	FLOAT cost_accum;
+	FLOAT prev_cost;
 	uint32_t ep_step;
 	// params. note: uses same eta as gaps
 	uint32_t ep_len;

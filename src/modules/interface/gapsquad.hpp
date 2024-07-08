@@ -174,11 +174,14 @@ T clampsym(T const &x, T const &absmax)
 
 static Theta random_spherical()
 {
-	// central limit theorem - approx normal RV by sum of uniform RVs.
+	// central limit theorem - approx normal RV by sum of uniform([-1, 1]) RVs.
 	// Eigen doesn't have normal RVs.
 	Theta th = Theta::Random() + Theta::Random() + Theta::Random() + Theta::Random();
 	th /= th.matrix().norm();
-	return th;
+	// Dividing by the norm gives us a RV with covariance 1/sqrt(TDIM) * I.
+	// Scale up to have identity covariance. Note this means our "radius" is
+	// not really a radius since it's applied elementwise.
+	return std::sqrt<FLOAT>(TDIM) * th;
 }
 
 
@@ -188,19 +191,18 @@ Theta single_point_update(SinglePointGrad &sp, FLOAT eta, FLOAT cost)
 	++sp.ep_step;
 	if (sp.ep_step >= sp.ep_len) {
 		DEBUG_PRINT("Single point update.\n");
-		// use priveleged knowledge that tracking error with detuned parameters
-		// on the aggressive diagonal figure-8 is around 15cm on average.
-		sp.cost_accum -= (FLOAT)(0.15 * 0.15) * sp.ep_len;
+		FLOAT cost_diff = sp.cost_accum - sp.prev_cost;
 		MapTheta perturbation(sp.perturbation);
-		// "undo" the initial perturbation
+		// "Undo" the initial perturbation.
 		Theta update = -perturbation;
-		// do the gradient descent approximation
-		update -= eta * (TDIM / sp.radius) * sp.cost_accum * perturbation;
-		// sample a new perturbation
+		// Do the approximate gradient descent step.
+		update -= eta * (1 / sp.radius) * cost_diff * perturbation;
+		// Sample a new perturbation.
 		perturbation = sp.radius * random_spherical();
-		// enact the new perturbation on the live parameters
+		// Enact the new perturbation.
 		update += perturbation;
 		sp.ep_step = 0;
+		sp.prev_cost = sp.cost_accum;
 		sp.cost_accum = 0;
 		return update;
 	}

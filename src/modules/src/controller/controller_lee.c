@@ -101,6 +101,7 @@ static controllerLee_t g_self = {
 			.radius = 1e-1,
 			.ep_len = ATTITUDE_RATE * 1, // TODO: tune episode length
 			.cost_accum = 0,
+			.prev_cost = 0,
 			.ep_step = ATTITUDE_RATE * 1,
 		},
 
