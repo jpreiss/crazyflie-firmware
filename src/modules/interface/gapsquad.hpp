@@ -162,7 +162,6 @@ static Jxx Dx_x;
 static Jxu Dx_u;
 static Gcx Dc_x;
 static Gcu Dc_u;
-static Theta exp_theta;
 
 template <typename T>
 T clampsym(T const &x, T const &absmax)
@@ -283,19 +282,9 @@ extern "C" bool gaps_step(
 	struct Action *u_out)
 {
 	gaps_optimizer const opt = (gaps_optimizer)gaps->optimizer;
-	gaps_gradmode const gradmode = (gaps_gradmode)gaps->gradmode;
-	MapTheta theta((FLOAT *)&gaps->theta);
 
-	// theta is always stored in log coordinates, but gradmode determines
-	// whether or not we take derivatives through exp.
-	exp_theta = theta.exp();
-
-	ctrl(*x, *t, exp_theta, *u_out, Du_x, Du_t, gaps->debug, dt);
+	ctrl(*x, *t, gaps->theta, *u_out, Du_x, Du_t, gaps->debug, dt);
 	// std::cout << "u = " << MapU((FLOAT *)u_out) << "\n";
-
-	if (gradmode == GAPS_GRAD_LOGPARAM) {
-		Du_t = Du_t * exp_theta.asDiagonal();
-	}
 
 	// integrate the ierr right away in case we exit due to being disabled.
 	gaps->ierr += dt * (x->p - t->p_d);
@@ -311,6 +300,7 @@ extern "C" bool gaps_step(
 		return true;
 	}
 
+	MapTheta theta((FLOAT *)&gaps->theta);
 
 	if (opt == GAPS_OPT_SINGLEPOINT) {
 		theta += single_point_update(gaps->single_point, gaps->eta, stage_cost);
@@ -331,21 +321,14 @@ extern "C" bool gaps_step(
 	// 1) compute the gradient
 	Eigen::Map<GapsY> y(gaps->y[0]);
 	Theta grad = ((Dc_x + Dc_u * Du_x) * y + Dc_u * Du_t).array();
-	// regularization. TODO: account for gradmode?
+	// regularization. TODO: account for log coordinates?
 	grad += gaps->cost_param.reg_L2 * theta;
 
 	// 2) run the optimizer
-	if (opt == GAPS_OPT_GRAD && gradmode == GAPS_GRAD_LOGPARAM) {
+	if (opt == GAPS_OPT_GRAD) {
 		theta -= gaps->eta * grad;
 	}
-	else if (opt == GAPS_OPT_GRAD && gradmode == GAPS_GRAD_STANDARD) {
-		theta = (exp_theta - gaps->eta * grad).log();
-	}
-	else if (opt == GAPS_OPT_MIRROR && gradmode == GAPS_GRAD_STANDARD) {
-		theta -= gaps->eta * grad;
-	}
-	else if (opt == GAPS_OPT_ADADELTA && gradmode == GAPS_GRAD_STANDARD) {
-		// TODO: allow GAPS_GRAD_LOGPARAM?
+	else if (opt == GAPS_OPT_ADADELTA) {
 		// AdaDelta dynamics - notation follows paper
 		FLOAT const decay = gaps->ad_decay;
 		MapTheta ad_grads(gaps->grad_accum);
@@ -358,8 +341,7 @@ extern "C" bool gaps_step(
 		ad_updates = decay * ad_updates + (1.0f - decay) * update.square();
 		theta += gaps->eta * update;
 	}
-	else if (opt == GAPS_OPT_EPISODIC_GRAD && gradmode == GAPS_GRAD_STANDARD) {
-		// TODO: allow GAPS_GRAD_LOGPARAM?
+	else if (opt == GAPS_OPT_EPISODIC_GRAD) {
 		EpisodicGrad &eg = gaps->episodic_grad;
 		MapTheta accum(eg.grad_accum);
 		accum += grad;

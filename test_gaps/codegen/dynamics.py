@@ -38,7 +38,7 @@ def dynamics(ierr, p, v, logR, w, p_d, thrust, torque, dt):
                   thrust (1), torque (3)
     """
 
-    # Total ops: 716
+    # Total ops: 714
 
     # Input arrays
     if ierr.shape == (3,):
@@ -92,63 +92,63 @@ def dynamics(ierr, p, v, logR, w, p_d, thrust, torque, dt):
             )
         )
 
-    # Intermediate terms (240)
+    # Intermediate terms (234)
     _tmp0 = logR[0, 0] ** 2
     _tmp1 = logR[2, 0] ** 2
     _tmp2 = logR[1, 0] ** 2
     _tmp3 = _tmp0 + _tmp1 + _tmp2 + 1.0e-12
     _tmp4 = 1 / _tmp3
-    _tmp5 = _tmp4 * logR[2, 0]
-    _tmp6 = math.sqrt(_tmp3)
-    _tmp7 = (1.0 / 2.0) * _tmp6
-    _tmp8 = math.sin(_tmp7)
-    _tmp9 = _tmp8**2
+    _tmp5 = math.sqrt(_tmp3)
+    _tmp6 = (1.0 / 2.0) * _tmp5
+    _tmp7 = math.sin(_tmp6)
+    _tmp8 = _tmp7**2
+    _tmp9 = _tmp4 * _tmp8
     _tmp10 = 2 * _tmp9
-    _tmp11 = _tmp10 * _tmp5
-    _tmp12 = 1 / _tmp6
-    _tmp13 = _tmp12 * _tmp8
-    _tmp14 = math.cos(_tmp7)
+    _tmp11 = _tmp10 * logR[2, 0]
+    _tmp12 = 1 / _tmp5
+    _tmp13 = _tmp12 * _tmp7
+    _tmp14 = math.cos(_tmp6)
     _tmp15 = 2 * _tmp14
     _tmp16 = _tmp13 * _tmp15
     _tmp17 = dt * (_tmp11 * logR[0, 0] + _tmp16 * logR[1, 0])
-    _tmp18 = _tmp4 * logR[1, 0]
-    _tmp19 = _tmp18 * _tmp9
-    _tmp20 = 2 * _tmp19
-    _tmp21 = dt * (-_tmp16 * logR[0, 0] + _tmp20 * logR[2, 0])
-    _tmp22 = _tmp2 * _tmp4
-    _tmp23 = _tmp22 * _tmp9
-    _tmp24 = _tmp0 * _tmp4
-    _tmp25 = _tmp24 * _tmp9
-    _tmp26 = -2 * _tmp23 - 2 * _tmp25 + 1
-    _tmp27 = w[2, 0] ** 2
-    _tmp28 = dt**2
-    _tmp29 = w[1, 0] ** 2
-    _tmp30 = w[0, 0] ** 2
-    _tmp31 = _tmp27 * _tmp28 + _tmp28 * _tmp29 + _tmp28 * _tmp30 + 1.0e-12
-    _tmp32 = math.sqrt(_tmp31)
-    _tmp33 = (1.0 / 2.0) * _tmp32
-    _tmp34 = math.sin(_tmp33)
-    _tmp35 = _tmp14 * _tmp34
-    _tmp36 = 1 / _tmp32
-    _tmp37 = _tmp36 * dt
-    _tmp38 = _tmp35 * _tmp37
-    _tmp39 = _tmp38 * w[0, 0]
-    _tmp40 = _tmp34 * _tmp37
-    _tmp41 = _tmp13 * _tmp40
-    _tmp42 = _tmp41 * w[2, 0]
-    _tmp43 = _tmp41 * w[1, 0]
-    _tmp44 = _tmp43 * logR[2, 0]
-    _tmp45 = math.cos(_tmp33)
-    _tmp46 = _tmp45 * _tmp8
-    _tmp47 = _tmp12 * _tmp46
-    _tmp48 = _tmp47 * logR[0, 0]
-    _tmp49 = _tmp39 + _tmp42 * logR[1, 0] - _tmp44 + _tmp48
-    _tmp50 = _tmp14 * _tmp45
-    _tmp51 = _tmp43 * logR[1, 0]
-    _tmp52 = _tmp41 * logR[0, 0]
-    _tmp53 = _tmp52 * w[0, 0]
-    _tmp54 = _tmp42 * logR[2, 0] + _tmp51 + _tmp53
-    _tmp55 = _tmp50 - _tmp54
+    _tmp18 = _tmp10 * logR[1, 0]
+    _tmp19 = dt * (-_tmp16 * logR[0, 0] + _tmp18 * logR[2, 0])
+    _tmp20 = _tmp2 * _tmp9
+    _tmp21 = _tmp0 * _tmp9
+    _tmp22 = -2 * _tmp20 - 2 * _tmp21 + 1
+    _tmp23 = w[2, 0] ** 2
+    _tmp24 = dt**2
+    _tmp25 = w[1, 0] ** 2
+    _tmp26 = w[0, 0] ** 2
+    _tmp27 = _tmp23 * _tmp24 + _tmp24 * _tmp25 + _tmp24 * _tmp26 + 1.0e-12
+    _tmp28 = math.sqrt(_tmp27)
+    _tmp29 = 1 / _tmp28
+    _tmp30 = (1.0 / 2.0) * _tmp28
+    _tmp31 = math.sin(_tmp30)
+    _tmp32 = _tmp14 * _tmp31
+    _tmp33 = _tmp29 * _tmp32
+    _tmp34 = _tmp33 * dt
+    _tmp35 = _tmp34 * w[0, 0]
+    _tmp36 = _tmp29 * dt
+    _tmp37 = _tmp13 * _tmp31
+    _tmp38 = _tmp37 * w[2, 0]
+    _tmp39 = _tmp36 * _tmp38
+    _tmp40 = _tmp39 * logR[1, 0]
+    _tmp41 = _tmp36 * _tmp37
+    _tmp42 = _tmp41 * logR[2, 0]
+    _tmp43 = _tmp42 * w[1, 0]
+    _tmp44 = math.cos(_tmp30)
+    _tmp45 = _tmp44 * _tmp7
+    _tmp46 = _tmp12 * _tmp45
+    _tmp47 = _tmp46 * logR[0, 0]
+    _tmp48 = _tmp35 + _tmp40 - _tmp43 + _tmp47
+    _tmp49 = _tmp14 * _tmp44
+    _tmp50 = _tmp39 * logR[2, 0]
+    _tmp51 = _tmp41 * logR[1, 0]
+    _tmp52 = _tmp51 * w[1, 0]
+    _tmp53 = _tmp41 * w[0, 0]
+    _tmp54 = _tmp50 + _tmp52 + _tmp53 * logR[0, 0]
+    _tmp55 = _tmp49 - _tmp54
     _tmp56 = abs(_tmp55)
     _tmp57 = min(0.999999, _tmp56)
     _tmp58 = 1 - _tmp57**2
@@ -157,210 +157,204 @@ def dynamics(ierr, p, v, logR, w, p_d, thrust, torque, dt):
     _tmp61 = 2 * min(0, _tmp60) + 1
     _tmp62 = 2 * _tmp61
     _tmp63 = _tmp59 * _tmp62 / math.sqrt(_tmp58)
-    _tmp64 = _tmp38 * w[1, 0]
-    _tmp65 = _tmp41 * w[0, 0]
-    _tmp66 = _tmp65 * logR[2, 0]
-    _tmp67 = _tmp47 * logR[1, 0]
-    _tmp68 = -_tmp42 * logR[0, 0] + _tmp64 + _tmp66 + _tmp67
-    _tmp69 = _tmp41 * logR[1, 0]
-    _tmp70 = _tmp69 * w[0, 0]
-    _tmp71 = _tmp47 * logR[2, 0]
-    _tmp72 = _tmp38 * w[2, 0]
-    _tmp73 = _tmp43 * logR[0, 0]
-    _tmp74 = -_tmp70 + _tmp71 + _tmp72 + _tmp73
-    _tmp75 = _tmp3 ** (-3.0 / 2.0)
-    _tmp76 = _tmp75 * _tmp8
-    _tmp77 = _tmp15 * _tmp76
-    _tmp78 = _tmp0 * _tmp77
-    _tmp79 = _tmp78 * logR[2, 0]
-    _tmp80 = _tmp14**2
-    _tmp81 = _tmp18 * _tmp80
-    _tmp82 = _tmp81 * logR[0, 0]
-    _tmp83 = _tmp19 * logR[0, 0]
-    _tmp84 = 4 * _tmp9
-    _tmp85 = _tmp84 / _tmp3**2
-    _tmp86 = _tmp85 * logR[2, 0]
-    _tmp87 = _tmp0 * _tmp86
-    _tmp88 = logR[0, 0] * logR[1, 0]
-    _tmp89 = _tmp77 * _tmp88
-    _tmp90 = dt * thrust
-    _tmp91 = -_tmp86 * _tmp88 + _tmp89 * logR[2, 0]
-    _tmp92 = _tmp2 * _tmp85
-    _tmp93 = logR[0, 0] ** 3
-    _tmp94 = _tmp4 * logR[0, 0]
-    _tmp95 = _tmp2 * _tmp77
-    _tmp96 = (1.0 / 2.0) * _tmp48
-    _tmp97 = _tmp5 * logR[0, 0]
-    _tmp98 = (1.0 / 2.0) * _tmp72
-    _tmp99 = _tmp97 * _tmp98
-    _tmp100 = logR[0, 0] * logR[2, 0]
-    _tmp101 = _tmp40 * _tmp76
-    _tmp102 = _tmp101 * w[2, 0]
-    _tmp103 = _tmp100 * _tmp102
-    _tmp104 = (1.0 / 2.0) * _tmp39
-    _tmp105 = _tmp101 * w[0, 0]
-    _tmp106 = _tmp101 * w[1, 0]
-    _tmp107 = (1.0 / 2.0) * logR[0, 0]
-    _tmp108 = _tmp107 * _tmp18
-    _tmp109 = -_tmp106 * _tmp88 + _tmp108 * _tmp64
-    _tmp110 = -_tmp0 * _tmp105 - _tmp103 + _tmp104 * _tmp24 + _tmp109 + _tmp65 + _tmp96 + _tmp99
-    _tmp111 = -_tmp50 + _tmp54
-    _tmp112 = abs(_tmp111)
-    _tmp113 = min(0.999999, _tmp112)
-    _tmp114 = 1 - _tmp113**2
-    _tmp115 = ((0.0 if 0.999999 - _tmp112 == 0 else math.copysign(1, 0.999999 - _tmp112)) + 1) * (
-        0.0 if _tmp111 == 0 else math.copysign(1, _tmp111)
+    _tmp64 = _tmp34 * w[1, 0]
+    _tmp65 = _tmp39 * logR[0, 0]
+    _tmp66 = _tmp46 * logR[1, 0]
+    _tmp67 = _tmp53 * logR[2, 0] + _tmp64 - _tmp65 + _tmp66
+    _tmp68 = _tmp46 * logR[2, 0]
+    _tmp69 = _tmp34 * w[2, 0]
+    _tmp70 = _tmp41 * logR[0, 0]
+    _tmp71 = _tmp70 * w[1, 0]
+    _tmp72 = -_tmp53 * logR[1, 0] + _tmp68 + _tmp69 + _tmp71
+    _tmp73 = _tmp3 ** (-3.0 / 2.0)
+    _tmp74 = _tmp7 * _tmp73
+    _tmp75 = _tmp15 * _tmp74
+    _tmp76 = _tmp0 * _tmp75
+    _tmp77 = _tmp76 * logR[2, 0]
+    _tmp78 = _tmp14**2 * _tmp4
+    _tmp79 = logR[0, 0] * logR[1, 0]
+    _tmp80 = _tmp78 * _tmp79
+    _tmp81 = _tmp79 * _tmp9
+    _tmp82 = 4 * _tmp8 / _tmp3**2
+    _tmp83 = _tmp82 * logR[2, 0]
+    _tmp84 = _tmp0 * _tmp83
+    _tmp85 = _tmp75 * _tmp79
+    _tmp86 = dt * thrust
+    _tmp87 = -_tmp79 * _tmp83 + _tmp85 * logR[2, 0]
+    _tmp88 = _tmp2 * _tmp82
+    _tmp89 = logR[0, 0] ** 3
+    _tmp90 = 4 * _tmp9
+    _tmp91 = _tmp2 * _tmp75
+    _tmp92 = _tmp48 * _tmp61
+    _tmp93 = (1.0 / 2.0) * _tmp47
+    _tmp94 = logR[0, 0] * logR[2, 0]
+    _tmp95 = (1.0 / 2.0) * _tmp4
+    _tmp96 = _tmp69 * _tmp95
+    _tmp97 = _tmp94 * _tmp96
+    _tmp98 = _tmp31 * _tmp36 * _tmp74
+    _tmp99 = _tmp98 * w[2, 0]
+    _tmp100 = _tmp94 * _tmp99
+    _tmp101 = _tmp35 * _tmp95
+    _tmp102 = _tmp98 * w[0, 0]
+    _tmp103 = _tmp98 * w[1, 0]
+    _tmp104 = _tmp64 * _tmp95
+    _tmp105 = -_tmp103 * _tmp79 + _tmp104 * _tmp79
+    _tmp106 = _tmp0 * _tmp101 - _tmp0 * _tmp102 - _tmp100 + _tmp105 + _tmp53 + _tmp93 + _tmp97
+    _tmp107 = -_tmp49 + _tmp54
+    _tmp108 = abs(_tmp107)
+    _tmp109 = min(0.999999, _tmp108)
+    _tmp110 = 1 - _tmp109**2
+    _tmp111 = ((0.0 if 0.999999 - _tmp108 == 0 else math.copysign(1, 0.999999 - _tmp108)) + 1) * (
+        0.0 if _tmp107 == 0 else math.copysign(1, _tmp107)
     )
-    _tmp116 = _tmp115 / _tmp114
-    _tmp117 = _tmp49 * _tmp61
-    _tmp118 = _tmp116 * _tmp117
-    _tmp119 = _tmp102 * _tmp88
-    _tmp120 = _tmp100 * _tmp106
-    _tmp121 = (1.0 / 2.0) * _tmp50
-    _tmp122 = _tmp46 * _tmp75
-    _tmp123 = _tmp108 * _tmp72
-    _tmp124 = (1.0 / 2.0) * _tmp64
-    _tmp125 = _tmp124 * _tmp97
-    _tmp126 = math.acos(_tmp113)
-    _tmp127 = _tmp126 * _tmp62 / math.sqrt(_tmp114)
-    _tmp128 = _tmp113 * _tmp115 * _tmp126 / _tmp114 ** (3.0 / 2.0)
-    _tmp129 = _tmp110 * _tmp128
-    _tmp130 = _tmp61 * _tmp68
-    _tmp131 = _tmp116 * _tmp130
-    _tmp132 = _tmp0 * _tmp101
-    _tmp133 = _tmp121 * _tmp18
-    _tmp134 = -_tmp122 * _tmp88 + _tmp133 * logR[0, 0]
-    _tmp135 = -_tmp100 * _tmp105 + _tmp104 * _tmp97
-    _tmp136 = _tmp105 * _tmp88
-    _tmp137 = (1.0 / 2.0) * w[2, 0]
-    _tmp138 = _tmp104 * _tmp18
-    _tmp139 = _tmp138 * logR[0, 0]
-    _tmp140 = _tmp122 * logR[2, 0]
-    _tmp141 = _tmp121 * _tmp97 - _tmp140 * logR[0, 0]
-    _tmp142 = _tmp61 * _tmp74
-    _tmp143 = _tmp116 * _tmp142
-    _tmp144 = _tmp92 * logR[2, 0]
-    _tmp145 = _tmp95 * logR[2, 0]
-    _tmp146 = _tmp85 * logR[1, 0]
-    _tmp147 = logR[1, 0] ** 3
-    _tmp148 = (1.0 / 2.0) * _tmp67
-    _tmp149 = logR[1, 0] * logR[2, 0]
-    _tmp150 = _tmp18 * logR[2, 0]
-    _tmp151 = -_tmp102 * _tmp149 + _tmp150 * _tmp98
-    _tmp152 = -_tmp106 * _tmp2 + _tmp124 * _tmp22 - _tmp136 + _tmp139 + _tmp148 + _tmp151 + _tmp43
-    _tmp153 = _tmp128 * _tmp152
-    _tmp154 = _tmp124 * _tmp150
-    _tmp155 = _tmp106 * _tmp149
-    _tmp156 = _tmp105 * _tmp149
-    _tmp157 = _tmp138 * logR[2, 0]
-    _tmp158 = _tmp133 * logR[2, 0] - _tmp140 * logR[1, 0]
-    _tmp159 = _tmp1 * logR[0, 0]
-    _tmp160 = _tmp77 * logR[1, 0]
-    _tmp161 = _tmp1 * _tmp4
-    _tmp162 = (1.0 / 2.0) * _tmp71
-    _tmp163 = -_tmp1 * _tmp102 + _tmp135 + _tmp154 - _tmp155 + _tmp161 * _tmp98 + _tmp162 + _tmp42
-    _tmp164 = _tmp116 * _tmp163
-    _tmp165 = _tmp128 * _tmp163
-    _tmp166 = _tmp41 * logR[2, 0]
-    _tmp167 = _tmp28 * _tmp36
-    _tmp168 = _tmp167 * _tmp35
-    _tmp169 = (1.0 / 2.0) * _tmp168
-    _tmp170 = 1 / _tmp31
-    _tmp171 = dt**3
-    _tmp172 = _tmp171 * _tmp30
-    _tmp173 = _tmp170 * _tmp172
-    _tmp174 = _tmp171 * w[0, 0]
-    _tmp175 = _tmp174 * w[2, 0]
-    _tmp176 = _tmp31 ** (-3.0 / 2.0)
-    _tmp177 = _tmp13 * _tmp34
-    _tmp178 = _tmp176 * _tmp177
-    _tmp179 = _tmp178 * logR[2, 0]
-    _tmp180 = _tmp175 * _tmp179
-    _tmp181 = _tmp178 * logR[0, 0]
-    _tmp182 = _tmp162 * _tmp170
-    _tmp183 = _tmp175 * _tmp182
-    _tmp184 = -_tmp52
-    _tmp185 = _tmp148 * _tmp170
-    _tmp186 = _tmp174 * w[1, 0]
-    _tmp187 = _tmp178 * logR[1, 0]
-    _tmp188 = -_tmp185 * _tmp186 + _tmp186 * _tmp187
-    _tmp189 = (
-        -_tmp169 * w[0, 0]
-        + _tmp172 * _tmp181
-        - _tmp173 * _tmp96
-        + _tmp180
-        - _tmp183
-        + _tmp184
-        + _tmp188
+    _tmp112 = _tmp111 / _tmp110
+    _tmp113 = _tmp106 * _tmp112
+    _tmp114 = _tmp79 * _tmp99
+    _tmp115 = _tmp103 * _tmp94
+    _tmp116 = (1.0 / 2.0) * _tmp49
+    _tmp117 = _tmp116 * _tmp4
+    _tmp118 = _tmp45 * _tmp73
+    _tmp119 = _tmp79 * _tmp96
+    _tmp120 = _tmp104 * _tmp94
+    _tmp121 = (1.0 / 2.0) * w[0, 0]
+    _tmp122 = math.acos(_tmp109)
+    _tmp123 = _tmp122 * _tmp62 / math.sqrt(_tmp110)
+    _tmp124 = _tmp109 * _tmp111 * _tmp122 / _tmp110 ** (3.0 / 2.0)
+    _tmp125 = _tmp106 * _tmp124
+    _tmp126 = _tmp61 * _tmp67
+    _tmp127 = _tmp117 * _tmp79 - _tmp118 * _tmp79
+    _tmp128 = _tmp101 * _tmp94 - _tmp102 * _tmp94
+    _tmp129 = _tmp41 * w[1, 0]
+    _tmp130 = _tmp102 * _tmp79
+    _tmp131 = _tmp101 * _tmp79
+    _tmp132 = _tmp117 * _tmp94 - _tmp118 * _tmp94
+    _tmp133 = _tmp61 * _tmp72
+    _tmp134 = _tmp88 * logR[2, 0]
+    _tmp135 = _tmp91 * logR[2, 0]
+    _tmp136 = _tmp82 * logR[1, 0]
+    _tmp137 = logR[1, 0] ** 3
+    _tmp138 = (1.0 / 2.0) * _tmp66
+    _tmp139 = logR[1, 0] * logR[2, 0]
+    _tmp140 = _tmp139 * _tmp96 - _tmp139 * _tmp99
+    _tmp141 = -_tmp103 * _tmp2 + _tmp104 * _tmp2 + _tmp129 - _tmp130 + _tmp131 + _tmp138 + _tmp140
+    _tmp142 = _tmp112 * _tmp92
+    _tmp143 = _tmp124 * _tmp92
+    _tmp144 = _tmp104 * _tmp139
+    _tmp145 = _tmp103 * _tmp139
+    _tmp146 = _tmp124 * _tmp126
+    _tmp147 = _tmp102 * _tmp139
+    _tmp148 = _tmp101 * _tmp139
+    _tmp149 = _tmp112 * _tmp126
+    _tmp150 = _tmp117 * _tmp139 - _tmp118 * _tmp139
+    _tmp151 = _tmp112 * _tmp133
+    _tmp152 = _tmp124 * _tmp133
+    _tmp153 = _tmp1 * logR[0, 0]
+    _tmp154 = (1.0 / 2.0) * _tmp68
+    _tmp155 = _tmp1 * _tmp96 - _tmp1 * _tmp99 + _tmp128 + _tmp144 - _tmp145 + _tmp154 + _tmp39
+    _tmp156 = _tmp24 * _tmp33
+    _tmp157 = 1 / _tmp27
+    _tmp158 = dt**3
+    _tmp159 = _tmp158 * _tmp26
+    _tmp160 = _tmp157 * _tmp159
+    _tmp161 = _tmp158 * w[0, 0]
+    _tmp162 = _tmp27 ** (-3.0 / 2.0)
+    _tmp163 = _tmp38 * logR[2, 0]
+    _tmp164 = _tmp162 * _tmp163
+    _tmp165 = _tmp161 * _tmp164
+    _tmp166 = _tmp162 * _tmp37
+    _tmp167 = _tmp159 * _tmp166
+    _tmp168 = _tmp154 * _tmp157
+    _tmp169 = _tmp161 * _tmp168
+    _tmp170 = _tmp169 * w[2, 0]
+    _tmp171 = -_tmp70
+    _tmp172 = _tmp138 * _tmp157
+    _tmp173 = _tmp161 * _tmp172
+    _tmp174 = _tmp161 * _tmp166
+    _tmp175 = logR[1, 0] * w[1, 0]
+    _tmp176 = -_tmp173 * w[1, 0] + _tmp174 * _tmp175
+    _tmp177 = (
+        -_tmp121 * _tmp156
+        - _tmp160 * _tmp93
+        + _tmp165
+        + _tmp167 * logR[0, 0]
+        - _tmp170
+        + _tmp171
+        + _tmp176
     )
-    _tmp190 = _tmp60 * (
+    _tmp178 = _tmp60 * (
         (0.0 if 0.999999 - _tmp56 == 0 else math.copysign(1, 0.999999 - _tmp56)) + 1
     )
-    _tmp191 = _tmp190 / _tmp58
-    _tmp192 = _tmp189 * _tmp191
-    _tmp193 = _tmp182 * _tmp186
-    _tmp194 = _tmp167 * _tmp177
-    _tmp195 = _tmp107 * _tmp194
-    _tmp196 = _tmp175 * _tmp185
-    _tmp197 = _tmp121 * _tmp170
-    _tmp198 = _tmp176 * _tmp35
-    _tmp199 = _tmp179 * _tmp186
-    _tmp200 = _tmp175 * _tmp187
-    _tmp201 = _tmp190 * _tmp57 * _tmp59 / _tmp58 ** (3.0 / 2.0)
-    _tmp202 = _tmp117 * _tmp201
-    _tmp203 = _tmp130 * _tmp201
-    _tmp204 = _tmp194 * logR[1, 0]
-    _tmp205 = (1.0 / 2.0) * w[0, 0]
-    _tmp206 = _tmp172 * _tmp178
-    _tmp207 = _tmp171 * _tmp198
-    _tmp208 = _tmp207 * w[0, 0]
-    _tmp209 = _tmp171 * _tmp197
-    _tmp210 = _tmp209 * w[0, 0]
-    _tmp211 = -_tmp208 * w[1, 0] + _tmp210 * w[1, 0]
-    _tmp212 = _tmp170 * _tmp96
-    _tmp213 = _tmp175 * _tmp181 - _tmp175 * _tmp212
-    _tmp214 = -_tmp69
-    _tmp215 = _tmp194 * logR[2, 0]
-    _tmp216 = _tmp181 * _tmp186
-    _tmp217 = _tmp186 * _tmp212
-    _tmp218 = -_tmp208 * w[2, 0] + _tmp210 * w[2, 0]
-    _tmp219 = _tmp142 * _tmp201
-    _tmp220 = w[1, 0] * w[2, 0]
-    _tmp221 = _tmp171 * _tmp220
-    _tmp222 = _tmp185 * _tmp221
-    _tmp223 = _tmp187 * _tmp221
-    _tmp224 = -_tmp166
-    _tmp225 = _tmp171 * _tmp29
-    _tmp226 = _tmp170 * _tmp225
-    _tmp227 = _tmp178 * _tmp225
-    _tmp228 = _tmp179 * _tmp221 - _tmp182 * _tmp221
-    _tmp229 = (
-        -_tmp169 * w[1, 0]
-        - _tmp185 * _tmp225
-        + _tmp214
-        + _tmp216
-        - _tmp217
-        + _tmp227 * logR[1, 0]
-        + _tmp228
+    _tmp179 = _tmp178 / _tmp58
+    _tmp180 = _tmp177 * _tmp179
+    _tmp181 = _tmp169 * w[1, 0]
+    _tmp182 = _tmp24 * _tmp29
+    _tmp183 = _tmp182 * _tmp37
+    _tmp184 = _tmp121 * _tmp183
+    _tmp185 = _tmp173 * w[2, 0]
+    _tmp186 = _tmp116 * _tmp157
+    _tmp187 = _tmp162 * _tmp32
+    _tmp188 = _tmp158 * _tmp187
+    _tmp189 = logR[2, 0] * w[1, 0]
+    _tmp190 = _tmp174 * _tmp189
+    _tmp191 = _tmp162 * _tmp38
+    _tmp192 = _tmp161 * _tmp191
+    _tmp193 = _tmp192 * logR[1, 0]
+    _tmp194 = _tmp178 * _tmp57 * _tmp59 / _tmp58 ** (3.0 / 2.0)
+    _tmp195 = _tmp177 * _tmp194
+    _tmp196 = _tmp157 * _tmp93
+    _tmp197 = _tmp161 * _tmp196
+    _tmp198 = _tmp192 * logR[0, 0] - _tmp197 * w[2, 0]
+    _tmp199 = _tmp188 * w[0, 0]
+    _tmp200 = _tmp158 * _tmp186
+    _tmp201 = _tmp200 * w[0, 0]
+    _tmp202 = -_tmp199 * w[1, 0] + _tmp201 * w[1, 0]
+    _tmp203 = -_tmp51
+    _tmp204 = logR[0, 0] * w[1, 0]
+    _tmp205 = _tmp174 * _tmp204
+    _tmp206 = _tmp197 * w[1, 0]
+    _tmp207 = -_tmp199 * w[2, 0] + _tmp201 * w[2, 0]
+    _tmp208 = -_tmp42
+    _tmp209 = w[1, 0] * w[2, 0]
+    _tmp210 = _tmp158 * _tmp209
+    _tmp211 = _tmp172 * _tmp210
+    _tmp212 = _tmp158 * _tmp191
+    _tmp213 = _tmp175 * _tmp212
+    _tmp214 = _tmp158 * _tmp25
+    _tmp215 = _tmp157 * _tmp214
+    _tmp216 = _tmp166 * _tmp214
+    _tmp217 = (1.0 / 2.0) * _tmp183
+    _tmp218 = (1.0 / 2.0) * _tmp156
+    _tmp219 = _tmp158 * _tmp164 * w[1, 0] - _tmp168 * _tmp210
+    _tmp220 = (
+        -_tmp138 * _tmp215
+        + _tmp203
+        + _tmp205
+        - _tmp206
+        + _tmp216 * logR[1, 0]
+        - _tmp218 * w[1, 0]
+        + _tmp219
     )
-    _tmp230 = _tmp191 * _tmp229
-    _tmp231 = _tmp181 * _tmp221
-    _tmp232 = (1.0 / 2.0) * w[1, 0]
-    _tmp233 = _tmp212 * _tmp221
-    _tmp234 = -_tmp207 * _tmp220 + _tmp209 * _tmp220
-    _tmp235 = _tmp171 * _tmp27
-    _tmp236 = _tmp170 * _tmp235
-    _tmp237 = _tmp178 * _tmp235
-    _tmp238 = (
-        -_tmp137 * _tmp168
-        - _tmp162 * _tmp236
+    _tmp221 = _tmp179 * _tmp220
+    _tmp222 = _tmp194 * _tmp220
+    _tmp223 = _tmp204 * _tmp212
+    _tmp224 = _tmp196 * _tmp210
+    _tmp225 = -_tmp188 * _tmp209 + _tmp200 * _tmp209
+    _tmp226 = _tmp158 * _tmp23
+    _tmp227 = _tmp157 * _tmp226
+    _tmp228 = _tmp166 * _tmp226
+    _tmp229 = (1.0 / 2.0) * _tmp182
+    _tmp230 = _tmp229 * _tmp38
+    _tmp231 = (
+        -_tmp154 * _tmp227
+        + _tmp198
+        + _tmp208
+        - _tmp211
         + _tmp213
-        - _tmp222
-        + _tmp223
-        + _tmp224
-        + _tmp237 * logR[2, 0]
+        - _tmp218 * w[2, 0]
+        + _tmp228 * logR[2, 0]
     )
-    _tmp239 = _tmp191 * _tmp238
+    _tmp232 = _tmp179 * _tmp231
+    _tmp233 = _tmp194 * _tmp231
 
     # Output terms
     _ierr_p_v_logR_w = numpy.zeros(15)
@@ -371,11 +365,11 @@ def dynamics(ierr, p, v, logR, w, p_d, thrust, torque, dt):
     _ierr_p_v_logR_w[4] = dt * v[1, 0] + p[1, 0]
     _ierr_p_v_logR_w[5] = dt * v[2, 0] + p[2, 0]
     _ierr_p_v_logR_w[6] = _tmp17 * thrust + v[0, 0]
-    _ierr_p_v_logR_w[7] = _tmp21 * thrust + v[1, 0]
-    _ierr_p_v_logR_w[8] = dt * (_tmp26 * thrust - 9.81) + v[2, 0]
-    _ierr_p_v_logR_w[9] = _tmp49 * _tmp63
-    _ierr_p_v_logR_w[10] = _tmp63 * _tmp68
-    _ierr_p_v_logR_w[11] = _tmp63 * _tmp74
+    _ierr_p_v_logR_w[7] = _tmp19 * thrust + v[1, 0]
+    _ierr_p_v_logR_w[8] = dt * (_tmp22 * thrust - 9.81) + v[2, 0]
+    _ierr_p_v_logR_w[9] = _tmp48 * _tmp63
+    _ierr_p_v_logR_w[10] = _tmp63 * _tmp67
+    _ierr_p_v_logR_w[11] = _tmp63 * _tmp72
     _ierr_p_v_logR_w[12] = dt * torque[0, 0] + w[0, 0]
     _ierr_p_v_logR_w[13] = dt * torque[1, 0] + w[1, 0]
     _ierr_p_v_logR_w[14] = dt * torque[2, 0] + w[2, 0]
@@ -521,49 +515,49 @@ def dynamics(ierr, p, v, logR, w, p_d, thrust, torque, dt):
     _jacobian[3, 9] = 0
     _jacobian[4, 9] = 0
     _jacobian[5, 9] = 0
-    _jacobian[6, 9] = _tmp90 * (_tmp11 + _tmp79 + _tmp82 - _tmp83 - _tmp87 - _tmp89)
-    _jacobian[7, 9] = _tmp90 * (-_tmp16 - _tmp24 * _tmp80 + _tmp25 + _tmp78 + _tmp91)
-    _jacobian[8, 9] = _tmp90 * (
-        -_tmp77 * _tmp93
-        - _tmp84 * _tmp94
-        + _tmp85 * _tmp93
-        + _tmp92 * logR[0, 0]
-        - _tmp95 * logR[0, 0]
+    _jacobian[6, 9] = _tmp86 * (_tmp11 + _tmp77 + _tmp80 - _tmp81 - _tmp84 - _tmp85)
+    _jacobian[7, 9] = _tmp86 * (-_tmp0 * _tmp78 - _tmp16 + _tmp21 + _tmp76 + _tmp87)
+    _jacobian[8, 9] = _tmp86 * (
+        -_tmp75 * _tmp89
+        + _tmp82 * _tmp89
+        + _tmp88 * logR[0, 0]
+        - _tmp90 * logR[0, 0]
+        - _tmp91 * logR[0, 0]
     )
     _jacobian[9, 9] = (
-        -_tmp110 * _tmp118
-        + _tmp117 * _tmp129
-        + _tmp127
+        -_tmp113 * _tmp92
+        + _tmp123
         * (
-            -_tmp0 * _tmp122
-            - _tmp119
-            + _tmp120
-            + _tmp121 * _tmp24
-            + _tmp123
-            - _tmp125
-            + _tmp47
-            - 1.0 / 2.0 * _tmp53
+            _tmp0 * _tmp117
+            - _tmp0 * _tmp118
+            - _tmp114
+            + _tmp115
+            + _tmp119
+            - _tmp120
+            - _tmp121 * _tmp70
+            + _tmp46
         )
+        + _tmp125 * _tmp92
     )
     _jacobian[10, 9] = (
-        -_tmp110 * _tmp131
-        + _tmp127
-        * (_tmp132 * w[2, 0] + _tmp134 + _tmp135 - _tmp24 * _tmp98 - _tmp42 - 1.0 / 2.0 * _tmp73)
-        + _tmp129 * _tmp130
+        -_tmp113 * _tmp126
+        + _tmp123
+        * (-_tmp0 * _tmp96 + _tmp0 * _tmp99 + _tmp127 + _tmp128 - _tmp39 - 1.0 / 2.0 * _tmp71)
+        + _tmp125 * _tmp126
     )
     _jacobian[11, 9] = (
-        -_tmp110 * _tmp143
-        + _tmp127
+        -_tmp113 * _tmp133
+        + _tmp123
         * (
-            _tmp124 * _tmp24
-            - _tmp132 * w[1, 0]
-            + _tmp136
-            - _tmp137 * _tmp52
-            - _tmp139
-            + _tmp141
-            + _tmp43
+            -_tmp0 * _tmp103
+            + _tmp0 * _tmp104
+            + _tmp129
+            + _tmp130
+            - _tmp131
+            + _tmp132
+            - 1.0 / 2.0 * _tmp65
         )
-        + _tmp129 * _tmp142
+        + _tmp125 * _tmp133
     )
     _jacobian[12, 9] = 0
     _jacobian[13, 9] = 0
@@ -574,45 +568,49 @@ def dynamics(ierr, p, v, logR, w, p_d, thrust, torque, dt):
     _jacobian[3, 10] = 0
     _jacobian[4, 10] = 0
     _jacobian[5, 10] = 0
-    _jacobian[6, 10] = _tmp90 * (_tmp16 + _tmp22 * _tmp80 - _tmp23 + _tmp91 - _tmp95)
-    _jacobian[7, 10] = _tmp90 * (_tmp11 - _tmp144 + _tmp145 - _tmp82 + _tmp83 + _tmp89)
-    _jacobian[8, 10] = _tmp90 * (
-        _tmp0 * _tmp146 - _tmp147 * _tmp77 + _tmp147 * _tmp85 - 4 * _tmp19 - _tmp78 * logR[1, 0]
+    _jacobian[6, 10] = _tmp86 * (_tmp16 + _tmp2 * _tmp78 - _tmp20 + _tmp87 - _tmp91)
+    _jacobian[7, 10] = _tmp86 * (_tmp11 - _tmp134 + _tmp135 - _tmp80 + _tmp81 + _tmp85)
+    _jacobian[8, 10] = _tmp86 * (
+        _tmp0 * _tmp136
+        - _tmp137 * _tmp75
+        + _tmp137 * _tmp82
+        - _tmp76 * logR[1, 0]
+        - _tmp90 * logR[1, 0]
     )
     _jacobian[9, 10] = (
-        _tmp117 * _tmp153
-        - _tmp118 * _tmp152
-        + _tmp127
+        _tmp123
         * (
-            -_tmp102 * _tmp2
-            + _tmp134
-            - _tmp154
-            + _tmp155
-            + _tmp22 * _tmp98
-            + _tmp42
-            - 1.0 / 2.0 * _tmp70
+            -_tmp121 * _tmp51
+            + _tmp127
+            - _tmp144
+            + _tmp145
+            + _tmp2 * _tmp96
+            - _tmp2 * _tmp99
+            + _tmp39
         )
+        - _tmp141 * _tmp142
+        + _tmp141 * _tmp143
     )
     _jacobian[10, 10] = (
-        _tmp127
+        _tmp123
         * (
-            _tmp119
-            + _tmp121 * _tmp22
-            - _tmp122 * _tmp2
-            - _tmp123
-            - _tmp156
-            + _tmp157
-            + _tmp47
-            - 1.0 / 2.0 * _tmp51
+            _tmp114
+            + _tmp117 * _tmp2
+            - _tmp118 * _tmp2
+            - _tmp119
+            - _tmp147
+            + _tmp148
+            + _tmp46
+            - 1.0 / 2.0 * _tmp52
         )
-        + _tmp130 * _tmp153
-        - _tmp131 * _tmp152
+        + _tmp141 * _tmp146
+        - _tmp141 * _tmp149
     )
     _jacobian[11, 10] = (
-        _tmp127
-        * (-_tmp104 * _tmp22 + _tmp105 * _tmp2 + _tmp109 - _tmp137 * _tmp69 + _tmp158 - _tmp65)
-        + _tmp142 * _tmp153
-        - _tmp143 * _tmp152
+        _tmp123
+        * (-_tmp101 * _tmp2 + _tmp102 * _tmp2 + _tmp105 + _tmp150 - 1.0 / 2.0 * _tmp40 - _tmp53)
+        - _tmp141 * _tmp151
+        + _tmp141 * _tmp152
     )
     _jacobian[12, 10] = 0
     _jacobian[13, 10] = 0
@@ -623,57 +621,57 @@ def dynamics(ierr, p, v, logR, w, p_d, thrust, torque, dt):
     _jacobian[3, 11] = 0
     _jacobian[4, 11] = 0
     _jacobian[5, 11] = 0
-    _jacobian[6, 11] = _tmp90 * (
-        _tmp10 * _tmp94
-        + _tmp159 * _tmp77
-        - _tmp159 * _tmp85
-        - _tmp160 * logR[2, 0]
-        - _tmp19 * logR[2, 0]
-        + _tmp81 * logR[2, 0]
+    _jacobian[6, 11] = _tmp86 * (
+        _tmp10 * logR[0, 0]
+        - _tmp139 * _tmp75
+        + _tmp139 * _tmp78
+        - _tmp139 * _tmp9
+        + _tmp153 * _tmp75
+        - _tmp153 * _tmp82
     )
-    _jacobian[7, 11] = _tmp90 * (
-        -_tmp1 * _tmp146
-        + _tmp1 * _tmp160
-        + _tmp100 * _tmp77
-        + _tmp20
-        - _tmp80 * _tmp97
-        + _tmp9 * _tmp97
+    _jacobian[7, 11] = _tmp86 * (
+        -_tmp1 * _tmp136
+        + _tmp1 * _tmp75 * logR[1, 0]
+        + _tmp18
+        + _tmp75 * _tmp94
+        - _tmp78 * _tmp94
+        + _tmp9 * _tmp94
     )
-    _jacobian[8, 11] = _tmp90 * (_tmp144 - _tmp145 - _tmp79 + _tmp87)
+    _jacobian[8, 11] = _tmp86 * (_tmp134 - _tmp135 - _tmp77 + _tmp84)
     _jacobian[9, 11] = (
-        -_tmp117 * _tmp164
-        + _tmp117 * _tmp165
-        + _tmp127
-        * (_tmp1 * _tmp106 - _tmp124 * _tmp161 + _tmp141 + _tmp151 - _tmp43 - 1.0 / 2.0 * _tmp66)
+        _tmp123
+        * (_tmp1 * _tmp103 - _tmp1 * _tmp104 - _tmp121 * _tmp42 - _tmp129 + _tmp132 + _tmp140)
+        - _tmp142 * _tmp155
+        + _tmp143 * _tmp155
     )
     _jacobian[10, 11] = (
-        _tmp127
+        _tmp123
         * (
-            -_tmp1 * _tmp105
-            + _tmp103
-            + _tmp104 * _tmp161
-            + _tmp158
-            - 1.0 / 2.0 * _tmp44
-            + _tmp65
-            - _tmp99
+            _tmp1 * _tmp101
+            - _tmp1 * _tmp102
+            + _tmp100
+            + _tmp150
+            - 1.0 / 2.0 * _tmp43
+            + _tmp53
+            - _tmp97
         )
-        + _tmp130 * _tmp165
-        - _tmp131 * _tmp163
+        + _tmp146 * _tmp155
+        - _tmp149 * _tmp155
     )
     _jacobian[11, 11] = (
-        _tmp127
+        _tmp123
         * (
-            -_tmp1 * _tmp122
-            - _tmp120
-            + _tmp121 * _tmp161
-            + _tmp125
-            - _tmp137 * _tmp166
-            + _tmp156
-            - _tmp157
-            + _tmp47
+            _tmp1 * _tmp117
+            - _tmp1 * _tmp118
+            - _tmp115
+            + _tmp120
+            + _tmp147
+            - _tmp148
+            + _tmp46
+            - 1.0 / 2.0 * _tmp50
         )
-        - _tmp142 * _tmp164
-        + _tmp142 * _tmp165
+        - _tmp151 * _tmp155
+        + _tmp152 * _tmp155
     )
     _jacobian[12, 11] = 0
     _jacobian[13, 11] = 0
@@ -688,45 +686,45 @@ def dynamics(ierr, p, v, logR, w, p_d, thrust, torque, dt):
     _jacobian[7, 12] = 0
     _jacobian[8, 12] = 0
     _jacobian[9, 12] = (
-        -_tmp117 * _tmp192
-        + _tmp189 * _tmp202
+        -_tmp180 * _tmp92
+        + _tmp195 * _tmp92
         + _tmp63
         * (
-            _tmp172 * _tmp197
-            - _tmp172 * _tmp198
+            _tmp159 * _tmp186
+            - _tmp181
+            - _tmp184 * logR[0, 0]
+            + _tmp185
+            - _tmp188 * _tmp26
+            + _tmp190
             - _tmp193
-            - _tmp195 * w[0, 0]
-            + _tmp196
-            + _tmp199
-            - _tmp200
-            + _tmp38
+            + _tmp34
         )
     )
     _jacobian[10, 12] = (
-        -_tmp130 * _tmp192
-        + _tmp189 * _tmp203
+        -_tmp126 * _tmp180
+        + _tmp126 * _tmp195
         + _tmp63
         * (
-            _tmp162 * _tmp173
-            + _tmp166
-            - _tmp204 * _tmp205
-            - _tmp206 * logR[2, 0]
-            + _tmp211
-            + _tmp213
+            _tmp154 * _tmp160
+            - _tmp167 * logR[2, 0]
+            - _tmp184 * logR[1, 0]
+            + _tmp198
+            + _tmp202
+            + _tmp42
         )
     )
     _jacobian[11, 12] = (
-        -_tmp142 * _tmp192
-        + _tmp189 * _tmp219
+        -_tmp133 * _tmp180
+        + _tmp133 * _tmp195
         + _tmp63
         * (
-            -_tmp172 * _tmp185
-            - _tmp205 * _tmp215
-            + _tmp206 * logR[1, 0]
-            + _tmp214
-            - _tmp216
-            + _tmp217
-            + _tmp218
+            -_tmp138 * _tmp160
+            + _tmp167 * logR[1, 0]
+            - _tmp184 * logR[2, 0]
+            + _tmp203
+            - _tmp205
+            + _tmp206
+            + _tmp207
         )
     )
     _jacobian[12, 12] = 1
@@ -742,39 +740,39 @@ def dynamics(ierr, p, v, logR, w, p_d, thrust, torque, dt):
     _jacobian[7, 13] = 0
     _jacobian[8, 13] = 0
     _jacobian[9, 13] = (
-        -_tmp117 * _tmp230
-        + _tmp202 * _tmp229
+        -_tmp221 * _tmp92
+        + _tmp222 * _tmp92
         + _tmp63
         * (
-            -_tmp162 * _tmp226
-            - _tmp195 * w[1, 0]
+            -_tmp154 * _tmp215
+            + _tmp202
+            - _tmp204 * _tmp217
+            + _tmp208
             + _tmp211
-            + _tmp222
-            - _tmp223
-            + _tmp224
-            + _tmp227 * logR[2, 0]
+            - _tmp213
+            + _tmp216 * logR[2, 0]
         )
     )
     _jacobian[10, 13] = (
-        -_tmp130 * _tmp230
-        + _tmp203 * _tmp229
+        -_tmp126 * _tmp221
+        + _tmp126 * _tmp222
         + _tmp63
         * (
-            _tmp193
-            - _tmp199
-            - _tmp204 * _tmp232
-            - _tmp207 * _tmp29
-            + _tmp209 * _tmp29
-            + _tmp231
-            - _tmp233
-            + _tmp38
+            -_tmp175 * _tmp217
+            + _tmp181
+            + _tmp186 * _tmp214
+            - _tmp187 * _tmp214
+            - _tmp190
+            + _tmp223
+            - _tmp224
+            + _tmp34
         )
     )
     _jacobian[11, 13] = (
-        -_tmp142 * _tmp230
-        + _tmp219 * _tmp229
+        -_tmp133 * _tmp221
+        + _tmp133 * _tmp222
         + _tmp63
-        * (-_tmp181 * _tmp225 + _tmp188 - _tmp215 * _tmp232 + _tmp226 * _tmp96 + _tmp234 + _tmp52)
+        * (_tmp176 - _tmp189 * _tmp217 + _tmp215 * _tmp93 - _tmp216 * logR[0, 0] + _tmp225 + _tmp70)
     )
     _jacobian[12, 13] = 0
     _jacobian[13, 13] = 1
@@ -789,45 +787,45 @@ def dynamics(ierr, p, v, logR, w, p_d, thrust, torque, dt):
     _jacobian[7, 14] = 0
     _jacobian[8, 14] = 0
     _jacobian[9, 14] = (
-        -_tmp117 * _tmp239
-        + _tmp202 * _tmp238
+        -_tmp232 * _tmp92
+        + _tmp233 * _tmp92
         + _tmp63
         * (
-            -_tmp137 * _tmp194 * logR[0, 0]
-            + _tmp148 * _tmp236
-            + _tmp218
-            + _tmp228
-            - _tmp237 * logR[1, 0]
-            + _tmp69
+            _tmp138 * _tmp227
+            + _tmp207
+            + _tmp219
+            - _tmp228 * logR[1, 0]
+            - _tmp230 * logR[0, 0]
+            + _tmp51
         )
     )
     _jacobian[10, 14] = (
-        -_tmp130 * _tmp239
-        + _tmp203 * _tmp238
+        -_tmp126 * _tmp232
+        + _tmp126 * _tmp233
         + _tmp63
         * (
-            -_tmp137 * _tmp204
-            - _tmp180
-            + _tmp183
-            + _tmp184
-            + _tmp234
-            - _tmp236 * _tmp96
-            + _tmp237 * logR[0, 0]
+            -_tmp165
+            + _tmp170
+            + _tmp171
+            + _tmp225
+            - _tmp227 * _tmp93
+            + _tmp228 * logR[0, 0]
+            - _tmp230 * logR[1, 0]
         )
     )
     _jacobian[11, 14] = (
-        -_tmp142 * _tmp239
-        + _tmp219 * _tmp238
+        -_tmp133 * _tmp232
+        + _tmp133 * _tmp233
         + _tmp63
         * (
-            -_tmp137 * _tmp215
-            - _tmp196
-            + _tmp197 * _tmp235
-            + _tmp200
-            - _tmp207 * _tmp27
-            - _tmp231
-            + _tmp233
-            + _tmp38
+            -_tmp163 * _tmp229
+            - _tmp185
+            + _tmp186 * _tmp226
+            - _tmp188 * _tmp23
+            + _tmp193
+            - _tmp223
+            + _tmp224
+            + _tmp34
         )
     )
     _jacobian[12, 14] = 0
@@ -840,8 +838,8 @@ def dynamics(ierr, p, v, logR, w, p_d, thrust, torque, dt):
     _jacobian[4, 15] = 0
     _jacobian[5, 15] = 0
     _jacobian[6, 15] = _tmp17
-    _jacobian[7, 15] = _tmp21
-    _jacobian[8, 15] = _tmp26 * dt
+    _jacobian[7, 15] = _tmp19
+    _jacobian[8, 15] = _tmp22 * dt
     _jacobian[9, 15] = 0
     _jacobian[10, 15] = 0
     _jacobian[11, 15] = 0

@@ -41,7 +41,7 @@ def ctrl(ierr, p, v, logR, w, p_d, v_d, a_d, w_d, theta_pos, theta_rot, dt):
                   theta_pos (6), theta_rot (4)
     """
 
-    # Total ops: 1503
+    # Total ops: 1516
 
     # Input arrays
     if ierr.shape == (3,):
@@ -125,908 +125,893 @@ def ctrl(ierr, p, v, logR, w, p_d, v_d, a_d, w_d, theta_pos, theta_rot, dt):
             )
         )
 
-    # Intermediate terms (332)
-    _tmp0 = (
-        a_d[1, 0]
-        - ierr[1, 0] * theta_pos[0, 0]
-        - theta_pos[2, 0] * (p[1, 0] - p_d[1, 0])
-        - theta_pos[4, 0] * (v[1, 0] - v_d[1, 0])
-    )
-    _tmp1 = logR[0, 0] ** 2
-    _tmp2 = logR[2, 0] ** 2
-    _tmp3 = logR[1, 0] ** 2
-    _tmp4 = _tmp1 + _tmp2 + _tmp3 + 1.0e-12
-    _tmp5 = math.sqrt(_tmp4)
-    _tmp6 = (1.0 / 2.0) * _tmp5
-    _tmp7 = math.sin(_tmp6)
-    _tmp8 = _tmp7**2
-    _tmp9 = 1 / _tmp4
-    _tmp10 = _tmp9 * logR[1, 0]
-    _tmp11 = _tmp10 * logR[2, 0]
-    _tmp12 = _tmp11 * _tmp8
-    _tmp13 = _tmp7 / _tmp5
-    _tmp14 = _tmp13 * logR[0, 0]
-    _tmp15 = math.cos(_tmp6)
-    _tmp16 = 2 * _tmp15
-    _tmp17 = 2 * _tmp12 - _tmp14 * _tmp16
-    _tmp18 = (
-        a_d[0, 0]
-        - ierr[0, 0] * theta_pos[0, 0]
-        - theta_pos[2, 0] * (p[0, 0] - p_d[0, 0])
-        - theta_pos[4, 0] * (v[0, 0] - v_d[0, 0])
-    )
-    _tmp19 = _tmp8 * logR[2, 0]
-    _tmp20 = _tmp9 * logR[0, 0]
-    _tmp21 = _tmp19 * _tmp20
-    _tmp22 = _tmp13 * _tmp16
-    _tmp23 = 2 * _tmp21 + _tmp22 * logR[1, 0]
-    _tmp24 = _tmp3 * _tmp9
-    _tmp25 = _tmp24 * _tmp8
-    _tmp26 = _tmp1 * _tmp9
-    _tmp27 = _tmp26 * _tmp8
-    _tmp28 = -2 * _tmp25 - 2 * _tmp27 + 1
-    _tmp29 = (
-        a_d[2, 0]
-        - ierr[2, 0] * theta_pos[1, 0]
-        - theta_pos[3, 0] * (p[2, 0] - p_d[2, 0])
-        - theta_pos[5, 0] * (v[2, 0] - v_d[2, 0])
-        + 9.81
-    )
-    _tmp30 = -theta_rot[2, 0] * (w[0, 0] - w_d[0, 0])
-    _tmp31 = _tmp13 * logR[2, 0]
-    _tmp32 = _tmp29**2
-    _tmp33 = _tmp0**2
-    _tmp34 = _tmp18**2
-    _tmp35 = _tmp32 + _tmp33 + _tmp34 + 1.0e-6
-    _tmp36 = 1 / math.sqrt(_tmp35)
-    _tmp37 = _tmp29 * _tmp36
-    _tmp38 = 2 * _tmp37 + 2.000001
-    _tmp39 = math.sqrt(_tmp38)
-    _tmp40 = 1 / _tmp39
-    _tmp41 = (
-        0.0 if abs(_tmp37 + 1) - 1.0e-6 == 0 else math.copysign(1, abs(_tmp37 + 1) - 1.0e-6)
+    # Intermediate terms (359)
+    _tmp0 = math.exp(theta_pos[2, 0])
+    _tmp1 = p[0, 0] - p_d[0, 0]
+    _tmp2 = _tmp0 * _tmp1
+    _tmp3 = math.exp(theta_pos[4, 0])
+    _tmp4 = v[0, 0] - v_d[0, 0]
+    _tmp5 = _tmp3 * _tmp4
+    _tmp6 = math.exp(theta_pos[0, 0])
+    _tmp7 = _tmp6 * ierr[0, 0]
+    _tmp8 = -_tmp2 - _tmp5 - _tmp7 + a_d[0, 0]
+    _tmp9 = logR[0, 0] ** 2
+    _tmp10 = logR[2, 0] ** 2
+    _tmp11 = logR[1, 0] ** 2
+    _tmp12 = _tmp10 + _tmp11 + _tmp9 + 1.0e-12
+    _tmp13 = 1 / _tmp12
+    _tmp14 = math.sqrt(_tmp12)
+    _tmp15 = (1.0 / 2.0) * _tmp14
+    _tmp16 = math.sin(_tmp15)
+    _tmp17 = _tmp16**2
+    _tmp18 = _tmp13 * _tmp17
+    _tmp19 = _tmp18 * logR[0, 0]
+    _tmp20 = 2 * logR[2, 0]
+    _tmp21 = _tmp16 / _tmp14
+    _tmp22 = _tmp21 * logR[1, 0]
+    _tmp23 = math.cos(_tmp15)
+    _tmp24 = 2 * _tmp23
+    _tmp25 = _tmp19 * _tmp20 + _tmp22 * _tmp24
+    _tmp26 = _tmp11 * _tmp13
+    _tmp27 = _tmp17 * _tmp26
+    _tmp28 = _tmp13 * _tmp9
+    _tmp29 = _tmp17 * _tmp28
+    _tmp30 = -2 * _tmp27 - 2 * _tmp29 + 1
+    _tmp31 = math.exp(theta_pos[3, 0])
+    _tmp32 = _tmp31 * (p[2, 0] - p_d[2, 0])
+    _tmp33 = math.exp(theta_pos[5, 0])
+    _tmp34 = _tmp33 * (v[2, 0] - v_d[2, 0])
+    _tmp35 = math.exp(theta_pos[1, 0])
+    _tmp36 = _tmp35 * ierr[2, 0]
+    _tmp37 = -_tmp32 - _tmp34 - _tmp36 + a_d[2, 0] + 9.81
+    _tmp38 = _tmp0 * (p[1, 0] - p_d[1, 0])
+    _tmp39 = _tmp3 * (v[1, 0] - v_d[1, 0])
+    _tmp40 = _tmp6 * ierr[1, 0]
+    _tmp41 = -_tmp38 - _tmp39 - _tmp40 + a_d[1, 0]
+    _tmp42 = _tmp18 * logR[1, 0]
+    _tmp43 = 2 * _tmp42
+    _tmp44 = _tmp21 * _tmp24
+    _tmp45 = _tmp43 * logR[2, 0] - _tmp44 * logR[0, 0]
+    _tmp46 = _tmp37**2
+    _tmp47 = _tmp41**2
+    _tmp48 = _tmp8**2
+    _tmp49 = _tmp46 + _tmp47 + _tmp48 + 1.0e-6
+    _tmp50 = 1 / math.sqrt(_tmp49)
+    _tmp51 = _tmp37 * _tmp50
+    _tmp52 = 2 * _tmp51 + 2.000001
+    _tmp53 = math.sqrt(_tmp52)
+    _tmp54 = 1 / _tmp53
+    _tmp55 = (
+        0.0 if abs(_tmp51 + 1) - 1.0e-6 == 0 else math.copysign(1, abs(_tmp51 + 1) - 1.0e-6)
     ) + 1
-    _tmp42 = (1.0 / 2.0) * _tmp41
-    _tmp43 = _tmp40 * _tmp42
-    _tmp44 = _tmp36 * _tmp43
-    _tmp45 = _tmp18 * _tmp44
-    _tmp46 = (1.0 / 4.0) * _tmp39
-    _tmp47 = _tmp41 * _tmp46
-    _tmp48 = _tmp0 * _tmp36
-    _tmp49 = -_tmp42 - _tmp43 * _tmp48 + 1
-    _tmp50 = _tmp15 * _tmp49
-    _tmp51 = _tmp14 * _tmp47 + _tmp31 * _tmp45 - _tmp50
-    _tmp52 = _tmp13 * _tmp49
-    _tmp53 = _tmp52 * logR[0, 0]
-    _tmp54 = _tmp13 * logR[1, 0]
-    _tmp55 = _tmp45 * _tmp54
-    _tmp56 = -_tmp53 - _tmp55
-    _tmp57 = _tmp15 * _tmp41
-    _tmp58 = _tmp46 * _tmp57
-    _tmp59 = 2 * min(0, (0.0 if -_tmp56 + _tmp58 == 0 else math.copysign(1, -_tmp56 + _tmp58))) + 1
-    _tmp60 = 2 * _tmp59
-    _tmp61 = _tmp60 * theta_rot[0, 0]
-    _tmp62 = min(0.999999, abs(_tmp56 - _tmp58))
-    _tmp63 = math.acos(_tmp62) / math.sqrt(1 - _tmp62**2)
-    _tmp64 = _tmp61 * _tmp63
-    _tmp65 = -theta_rot[2, 0] * (w[1, 0] - w_d[1, 0])
-    _tmp66 = _tmp15 * _tmp44
-    _tmp67 = _tmp52 * logR[2, 0]
-    _tmp68 = -_tmp18 * _tmp66 + _tmp47 * _tmp54 - _tmp67
-    _tmp69 = -theta_rot[3, 0] * (w[2, 0] - w_d[2, 0])
-    _tmp70 = _tmp52 * logR[1, 0]
-    _tmp71 = -_tmp14 * _tmp45 + _tmp31 * _tmp47 + _tmp70
-    _tmp72 = _tmp71 * theta_rot[1, 0]
-    _tmp73 = _tmp35 ** (-3.0 / 2.0)
-    _tmp74 = _tmp43 * _tmp73
-    _tmp75 = _tmp34 * _tmp74
-    _tmp76 = _tmp31 * _tmp75
-    _tmp77 = _tmp31 * theta_pos[0, 0]
-    _tmp78 = _tmp38 ** (-3.0 / 2.0)
-    _tmp79 = _tmp29 / _tmp35**2
-    _tmp80 = _tmp42 * _tmp79
-    _tmp81 = _tmp78 * _tmp80
-    _tmp82 = _tmp34 * _tmp81
-    _tmp83 = _tmp44 * theta_pos[0, 0]
-    _tmp84 = _tmp18 * _tmp29
-    _tmp85 = (1.0 / 4.0) * _tmp41
-    _tmp86 = _tmp40 * _tmp73
-    _tmp87 = _tmp85 * _tmp86
-    _tmp88 = _tmp14 * _tmp87
-    _tmp89 = _tmp84 * _tmp88
-    _tmp90 = _tmp18 * _tmp78
-    _tmp91 = _tmp0 * _tmp80 * _tmp90
-    _tmp92 = _tmp91 * theta_pos[0, 0]
-    _tmp93 = _tmp0 * _tmp74
-    _tmp94 = _tmp18 * _tmp93
-    _tmp95 = _tmp94 * theta_pos[0, 0]
-    _tmp96 = _tmp92 - _tmp95
-    _tmp97 = _tmp53 + _tmp55 + _tmp58
-    _tmp98 = abs(_tmp97)
-    _tmp99 = min(0.999999, _tmp98)
-    _tmp100 = 1 - _tmp99**2
-    _tmp101 = math.acos(_tmp99)
-    _tmp102 = _tmp101 / math.sqrt(_tmp100)
-    _tmp103 = _tmp102 * _tmp61
-    _tmp104 = _tmp54 * _tmp75
-    _tmp105 = _tmp54 * _tmp82
-    _tmp106 = _tmp13 * _tmp96
-    _tmp107 = (1.0 / 4.0) * _tmp57
-    _tmp108 = _tmp107 * _tmp86
-    _tmp109 = _tmp108 * _tmp18
-    _tmp110 = _tmp109 * _tmp29
-    _tmp111 = (
-        _tmp104 * theta_pos[0, 0]
-        - _tmp105 * theta_pos[0, 0]
-        + _tmp106 * logR[0, 0]
-        + _tmp110 * theta_pos[0, 0]
-        - _tmp54 * _tmp83
+    _tmp56 = (1.0 / 2.0) * _tmp55
+    _tmp57 = _tmp54 * _tmp56
+    _tmp58 = _tmp50 * _tmp57
+    _tmp59 = -_tmp41 * _tmp58 - _tmp56 + 1
+    _tmp60 = _tmp23 * _tmp59
+    _tmp61 = _tmp21 * logR[2, 0]
+    _tmp62 = _tmp58 * _tmp8
+    _tmp63 = _tmp21 * logR[0, 0]
+    _tmp64 = (1.0 / 4.0) * _tmp53
+    _tmp65 = _tmp55 * _tmp64
+    _tmp66 = -_tmp60 + _tmp61 * _tmp62 + _tmp63 * _tmp65
+    _tmp67 = math.exp(theta_rot[0, 0])
+    _tmp68 = _tmp22 * _tmp62
+    _tmp69 = _tmp21 * _tmp59
+    _tmp70 = _tmp69 * logR[0, 0]
+    _tmp71 = -_tmp68 - _tmp70
+    _tmp72 = _tmp23 * _tmp55
+    _tmp73 = _tmp64 * _tmp72
+    _tmp74 = 2 * min(0, (0.0 if -_tmp71 + _tmp73 == 0 else math.copysign(1, -_tmp71 + _tmp73))) + 1
+    _tmp75 = 2 * _tmp74
+    _tmp76 = _tmp67 * _tmp75
+    _tmp77 = min(0.999999, abs(_tmp71 - _tmp73))
+    _tmp78 = math.acos(_tmp77) / math.sqrt(1 - _tmp77**2)
+    _tmp79 = _tmp76 * _tmp78
+    _tmp80 = math.exp(theta_rot[2, 0])
+    _tmp81 = _tmp80 * (w[0, 0] - w_d[0, 0])
+    _tmp82 = -_tmp81
+    _tmp83 = _tmp69 * logR[2, 0]
+    _tmp84 = _tmp22 * _tmp65 - _tmp23 * _tmp62 - _tmp83
+    _tmp85 = w[1, 0] - w_d[1, 0]
+    _tmp86 = -_tmp80 * _tmp85
+    _tmp87 = _tmp69 * logR[1, 0]
+    _tmp88 = _tmp61 * _tmp65 - _tmp62 * _tmp63 + _tmp87
+    _tmp89 = math.exp(theta_rot[1, 0])
+    _tmp90 = _tmp75 * _tmp89
+    _tmp91 = math.exp(theta_rot[3, 0])
+    _tmp92 = w[2, 0] - w_d[2, 0]
+    _tmp93 = -_tmp91 * _tmp92
+    _tmp94 = _tmp25 * _tmp6
+    _tmp95 = _tmp49 ** (-3.0 / 2.0)
+    _tmp96 = _tmp72 * _tmp8
+    _tmp97 = _tmp54 * _tmp96
+    _tmp98 = _tmp95 * _tmp97
+    _tmp99 = (1.0 / 4.0) * _tmp98
+    _tmp100 = _tmp37 * _tmp6
+    _tmp101 = _tmp52 ** (-3.0 / 2.0)
+    _tmp102 = _tmp37 / _tmp49**2
+    _tmp103 = _tmp101 * _tmp102
+    _tmp104 = _tmp103 * _tmp56
+    _tmp105 = _tmp104 * _tmp48
+    _tmp106 = _tmp105 * _tmp6
+    _tmp107 = _tmp58 * _tmp6
+    _tmp108 = _tmp6 * _tmp8
+    _tmp109 = _tmp104 * _tmp41
+    _tmp110 = _tmp108 * _tmp109
+    _tmp111 = _tmp41 * _tmp95
+    _tmp112 = _tmp111 * _tmp57
+    _tmp113 = _tmp108 * _tmp112
+    _tmp114 = _tmp110 - _tmp113
+    _tmp115 = _tmp57 * _tmp95
+    _tmp116 = _tmp115 * _tmp48
+    _tmp117 = _tmp116 * _tmp22
+    _tmp118 = (
+        _tmp100 * _tmp99 - _tmp106 * _tmp22 - _tmp107 * _tmp22 + _tmp114 * _tmp63 + _tmp117 * _tmp6
     )
-    _tmp112 = (
-        _tmp59
-        * ((0.0 if 0.999999 - _tmp98 == 0 else math.copysign(1, 0.999999 - _tmp98)) + 1)
-        * (0.0 if _tmp97 == 0 else math.copysign(1, _tmp97))
+    _tmp119 = _tmp68 + _tmp70 + _tmp73
+    _tmp120 = abs(_tmp119)
+    _tmp121 = min(0.999999, _tmp120)
+    _tmp122 = 1 - _tmp121**2
+    _tmp123 = (
+        _tmp74
+        * ((0.0 if 0.999999 - _tmp120 == 0 else math.copysign(1, 0.999999 - _tmp120)) + 1)
+        * (0.0 if _tmp119 == 0 else math.copysign(1, _tmp119))
     )
-    _tmp113 = _tmp112 / _tmp100
-    _tmp114 = _tmp113 * theta_rot[0, 0]
-    _tmp115 = _tmp114 * _tmp51
-    _tmp116 = _tmp101 * _tmp112 * _tmp99 / _tmp100 ** (3.0 / 2.0)
-    _tmp117 = _tmp116 * theta_rot[0, 0]
-    _tmp118 = _tmp117 * _tmp51
-    _tmp119 = 1 - math.tanh((1.0 / 268.0) * _tmp103 * _tmp51 - 1.0 / 268.0 * _tmp30) ** 2
-    _tmp120 = 1 - math.tanh((1.0 / 268.0) * _tmp103 * _tmp68 - 1.0 / 268.0 * _tmp65) ** 2
-    _tmp121 = _tmp114 * _tmp68
-    _tmp122 = _tmp117 * _tmp68
-    _tmp123 = _tmp54 * _tmp87
-    _tmp124 = _tmp123 * _tmp84
-    _tmp125 = _tmp15 * _tmp34
-    _tmp126 = _tmp125 * _tmp74
-    _tmp127 = _tmp125 * _tmp81
-    _tmp128 = _tmp102 * _tmp60
-    _tmp129 = _tmp128 * theta_rot[1, 0]
-    _tmp130 = 1 - math.tanh((1.0 / 56.0) * _tmp129 * _tmp71 - 1.0 / 56.0 * _tmp69) ** 2
-    _tmp131 = _tmp116 * _tmp72
-    _tmp132 = _tmp31 * _tmp87
-    _tmp133 = _tmp132 * _tmp84
-    _tmp134 = _tmp14 * _tmp82
-    _tmp135 = _tmp14 * _tmp75
-    _tmp136 = _tmp113 * _tmp72
-    _tmp137 = _tmp0 * _tmp29
-    _tmp138 = _tmp108 * _tmp137
-    _tmp139 = _tmp33 * _tmp74
-    _tmp140 = _tmp33 * _tmp81
-    _tmp141 = -_tmp139 * theta_pos[0, 0] + _tmp140 * theta_pos[0, 0] + _tmp83
-    _tmp142 = _tmp138 * theta_pos[0, 0] + _tmp14 * _tmp141 - _tmp54 * _tmp92 + _tmp54 * _tmp95
-    _tmp143 = _tmp0 * _tmp87
-    _tmp144 = _tmp143 * _tmp29
-    _tmp145 = _tmp14 * _tmp144
-    _tmp146 = _tmp29 * _tmp54
-    _tmp147 = _tmp143 * _tmp146
-    _tmp148 = _tmp13 * _tmp141
-    _tmp149 = _tmp74 * _tmp84
-    _tmp150 = _tmp149 * _tmp31
-    _tmp151 = 2 * _tmp36
-    _tmp152 = 2 * _tmp32
-    _tmp153 = _tmp152 * _tmp73
-    _tmp154 = -_tmp151 * theta_pos[1, 0] + _tmp153 * theta_pos[1, 0]
-    _tmp155 = _tmp78 * _tmp85
-    _tmp156 = _tmp18 * _tmp36
-    _tmp157 = _tmp155 * _tmp156
-    _tmp158 = _tmp157 * _tmp31
-    _tmp159 = (1.0 / 8.0) * _tmp41
-    _tmp160 = _tmp159 * _tmp40
-    _tmp161 = _tmp14 * _tmp160
-    _tmp162 = _tmp155 * _tmp48
-    _tmp163 = _tmp29 * _tmp93
-    _tmp164 = _tmp154 * _tmp162 - _tmp163 * theta_pos[1, 0]
-    _tmp165 = (1.0 / 8.0) * _tmp57
-    _tmp166 = _tmp165 * _tmp40
-    _tmp167 = _tmp157 * _tmp54
-    _tmp168 = _tmp54 * _tmp84
-    _tmp169 = _tmp168 * _tmp74
-    _tmp170 = _tmp14 * _tmp164 + _tmp154 * _tmp166 - _tmp154 * _tmp167 + _tmp169 * theta_pos[1, 0]
-    _tmp171 = _tmp160 * _tmp54
-    _tmp172 = _tmp107 * _tmp90
-    _tmp173 = _tmp172 * _tmp36
-    _tmp174 = _tmp15 * _tmp84
-    _tmp175 = _tmp174 * _tmp74
-    _tmp176 = _tmp160 * _tmp31
-    _tmp177 = _tmp14 * _tmp157
-    _tmp178 = _tmp14 * _tmp149
-    _tmp179 = _tmp44 * theta_pos[2, 0]
-    _tmp180 = _tmp91 * theta_pos[2, 0]
-    _tmp181 = _tmp94 * theta_pos[2, 0]
-    _tmp182 = _tmp180 - _tmp181
-    _tmp183 = (
-        _tmp104 * theta_pos[2, 0]
-        - _tmp105 * theta_pos[2, 0]
-        + _tmp110 * theta_pos[2, 0]
-        + _tmp14 * _tmp182
-        - _tmp179 * _tmp54
+    _tmp124 = _tmp123 / _tmp122
+    _tmp125 = _tmp124 * _tmp67
+    _tmp126 = _tmp125 * _tmp66
+    _tmp127 = math.acos(_tmp121)
+    _tmp128 = _tmp121 * _tmp123 * _tmp127 / _tmp122 ** (3.0 / 2.0)
+    _tmp129 = _tmp66 * _tmp67
+    _tmp130 = _tmp128 * _tmp129
+    _tmp131 = _tmp54 * _tmp55
+    _tmp132 = _tmp37 * _tmp95
+    _tmp133 = (1.0 / 4.0) * _tmp108 * _tmp131 * _tmp132
+    _tmp134 = _tmp116 * _tmp61
+    _tmp135 = _tmp127 / math.sqrt(_tmp122)
+    _tmp136 = _tmp135 * _tmp76
+    _tmp137 = _tmp136 * _tmp66
+    _tmp138 = 1 - math.tanh((1.0 / 268.0) * _tmp137 - 1.0 / 268.0 * _tmp82) ** 2
+    _tmp139 = _tmp116 * _tmp23
+    _tmp140 = _tmp105 * _tmp23
+    _tmp141 = _tmp118 * _tmp128
+    _tmp142 = _tmp67 * _tmp84
+    _tmp143 = _tmp125 * _tmp84
+    _tmp144 = _tmp136 * _tmp84
+    _tmp145 = 1 - math.tanh((1.0 / 268.0) * _tmp144 - 1.0 / 268.0 * _tmp86) ** 2
+    _tmp146 = _tmp88 * _tmp89
+    _tmp147 = _tmp124 * _tmp146
+    _tmp148 = _tmp116 * _tmp63
+    _tmp149 = _tmp135 * _tmp90
+    _tmp150 = _tmp149 * _tmp88
+    _tmp151 = 1 - math.tanh((1.0 / 56.0) * _tmp150 - 1.0 / 56.0 * _tmp93) ** 2
+    _tmp152 = _tmp45 * _tmp6
+    _tmp153 = _tmp104 * _tmp47
+    _tmp154 = _tmp115 * _tmp47
+    _tmp155 = _tmp107 + _tmp153 * _tmp6 - _tmp154 * _tmp6
+    _tmp156 = _tmp111 * _tmp54 * _tmp72
+    _tmp157 = (1.0 / 4.0) * _tmp156
+    _tmp158 = _tmp100 * _tmp157 - _tmp110 * _tmp22 + _tmp113 * _tmp22 + _tmp155 * _tmp63
+    _tmp159 = _tmp111 * _tmp131
+    _tmp160 = (1.0 / 4.0) * _tmp159
+    _tmp161 = _tmp160 * _tmp63
+    _tmp162 = _tmp128 * _tmp142
+    _tmp163 = _tmp128 * _tmp146
+    _tmp164 = _tmp160 * _tmp61
+    _tmp165 = _tmp30 * _tmp35
+    _tmp166 = _tmp37 * _tmp57
+    _tmp167 = _tmp111 * _tmp166
+    _tmp168 = 2 * _tmp50
+    _tmp169 = 2 * _tmp46
+    _tmp170 = _tmp169 * _tmp95
+    _tmp171 = -_tmp168 * _tmp35 + _tmp170 * _tmp35
+    _tmp172 = (1.0 / 4.0) * _tmp101
+    _tmp173 = _tmp172 * _tmp50
+    _tmp174 = _tmp41 * _tmp55
+    _tmp175 = _tmp173 * _tmp174
+    _tmp176 = -_tmp167 * _tmp35 + _tmp171 * _tmp175
+    _tmp177 = _tmp115 * _tmp37
+    _tmp178 = _tmp177 * _tmp8
+    _tmp179 = _tmp178 * _tmp35
+    _tmp180 = (1.0 / 8.0) * _tmp72
+    _tmp181 = _tmp180 * _tmp54
+    _tmp182 = _tmp55 * _tmp8
+    _tmp183 = _tmp173 * _tmp182
+    _tmp184 = _tmp183 * _tmp22
+    _tmp185 = _tmp171 * _tmp181 - _tmp171 * _tmp184 + _tmp176 * _tmp63 + _tmp179 * _tmp22
+    _tmp186 = _tmp171 * _tmp61
+    _tmp187 = (1.0 / 8.0) * _tmp131
+    _tmp188 = _tmp187 * _tmp63
+    _tmp189 = _tmp23 * _tmp8
+    _tmp190 = _tmp177 * _tmp189
+    _tmp191 = (1.0 / 8.0) * _tmp22
+    _tmp192 = _tmp131 * _tmp191
+    _tmp193 = _tmp173 * _tmp96
+    _tmp194 = _tmp183 * _tmp63
+    _tmp195 = _tmp0 * _tmp25
+    _tmp196 = _tmp0 * _tmp37
+    _tmp197 = _tmp0 * _tmp58
+    _tmp198 = _tmp0 * _tmp105
+    _tmp199 = _tmp112 * _tmp8
+    _tmp200 = _tmp0 * _tmp199
+    _tmp201 = _tmp109 * _tmp8
+    _tmp202 = _tmp0 * _tmp201
+    _tmp203 = -_tmp200 + _tmp202
+    _tmp204 = (
+        _tmp0 * _tmp117 + _tmp196 * _tmp99 - _tmp197 * _tmp22 - _tmp198 * _tmp22 + _tmp203 * _tmp63
     )
-    _tmp184 = _tmp31 * theta_pos[2, 0]
-    _tmp185 = _tmp33 * theta_pos[2, 0]
-    _tmp186 = _tmp179 - _tmp185 * _tmp74 + _tmp185 * _tmp81
-    _tmp187 = _tmp138 * theta_pos[2, 0] + _tmp14 * _tmp186 - _tmp180 * _tmp54 + _tmp181 * _tmp54
-    _tmp188 = _tmp13 * _tmp186
-    _tmp189 = -_tmp151 * theta_pos[3, 0] + _tmp153 * theta_pos[3, 0]
-    _tmp190 = _tmp162 * _tmp189 - _tmp163 * theta_pos[3, 0]
-    _tmp191 = _tmp14 * _tmp190 + _tmp166 * _tmp189 - _tmp167 * _tmp189 + _tmp169 * theta_pos[3, 0]
-    _tmp192 = _tmp91 * theta_pos[4, 0]
-    _tmp193 = _tmp18 * theta_pos[4, 0]
-    _tmp194 = _tmp193 * _tmp93
-    _tmp195 = _tmp192 - _tmp194
-    _tmp196 = _tmp54 * theta_pos[4, 0]
-    _tmp197 = _tmp44 * theta_pos[4, 0]
-    _tmp198 = _tmp193 * _tmp29
-    _tmp199 = (
-        _tmp108 * _tmp198
-        + _tmp14 * _tmp195
-        + _tmp196 * _tmp75
-        - _tmp196 * _tmp82
-        - _tmp197 * _tmp54
+    _tmp205 = _tmp125 * _tmp204
+    _tmp206 = _tmp131 * _tmp8
+    _tmp207 = _tmp206 * _tmp95
+    _tmp208 = (1.0 / 4.0) * _tmp207
+    _tmp209 = _tmp196 * _tmp208
+    _tmp210 = _tmp196 * _tmp22
+    _tmp211 = _tmp0 * _tmp23
+    _tmp212 = _tmp0 * _tmp153 - _tmp0 * _tmp154 + _tmp197
+    _tmp213 = _tmp157 * _tmp196 + _tmp200 * _tmp22 - _tmp202 * _tmp22 + _tmp212 * _tmp63
+    _tmp214 = -_tmp168 * _tmp31 + _tmp170 * _tmp31
+    _tmp215 = -_tmp167 * _tmp31 + _tmp175 * _tmp214
+    _tmp216 = _tmp178 * _tmp31
+    _tmp217 = _tmp181 * _tmp214 - _tmp184 * _tmp214 + _tmp215 * _tmp63 + _tmp216 * _tmp22
+    _tmp218 = _tmp183 * _tmp61
+    _tmp219 = _tmp187 * _tmp61
+    _tmp220 = _tmp25 * _tmp3
+    _tmp221 = _tmp3 * _tmp58
+    _tmp222 = _tmp105 * _tmp3
+    _tmp223 = _tmp201 * _tmp3
+    _tmp224 = _tmp199 * _tmp3
+    _tmp225 = _tmp223 - _tmp224
+    _tmp226 = _tmp3 * _tmp37
+    _tmp227 = (
+        _tmp117 * _tmp3 - _tmp22 * _tmp221 - _tmp22 * _tmp222 + _tmp225 * _tmp63 + _tmp226 * _tmp99
     )
-    _tmp200 = _tmp31 * theta_pos[4, 0]
-    _tmp201 = -_tmp139 * theta_pos[4, 0] + _tmp140 * theta_pos[4, 0] + _tmp197
-    _tmp202 = _tmp138 * theta_pos[4, 0] + _tmp14 * _tmp201 - _tmp192 * _tmp54 + _tmp194 * _tmp54
-    _tmp203 = _tmp13 * _tmp201
-    _tmp204 = -_tmp151 * theta_pos[5, 0] + _tmp153 * theta_pos[5, 0]
-    _tmp205 = _tmp18 * _tmp54
-    _tmp206 = _tmp204 * _tmp36
-    _tmp207 = _tmp155 * _tmp206
-    _tmp208 = _tmp162 * _tmp204 - _tmp163 * theta_pos[5, 0]
-    _tmp209 = _tmp14 * _tmp208 + _tmp166 * _tmp204 + _tmp169 * theta_pos[5, 0] - _tmp205 * _tmp207
-    _tmp210 = _tmp18 * _tmp31
-    _tmp211 = _tmp14 * _tmp18
-    _tmp212 = _tmp7 / _tmp4 ** (3.0 / 2.0)
-    _tmp213 = _tmp16 * _tmp212
-    _tmp214 = _tmp1 * _tmp213
-    _tmp215 = _tmp214 * logR[2, 0]
-    _tmp216 = _tmp15**2
-    _tmp217 = _tmp10 * logR[0, 0]
-    _tmp218 = _tmp216 * _tmp217
-    _tmp219 = _tmp217 * _tmp8
-    _tmp220 = _tmp4 ** (-2)
-    _tmp221 = 4 * _tmp19 * _tmp220
-    _tmp222 = _tmp1 * _tmp221
-    _tmp223 = 2 * _tmp19 * _tmp9
-    _tmp224 = logR[0, 0] * logR[1, 0]
-    _tmp225 = _tmp213 * _tmp224
-    _tmp226 = 4 * _tmp8
-    _tmp227 = _tmp220 * _tmp226
-    _tmp228 = _tmp227 * logR[0, 0]
-    _tmp229 = logR[0, 0] ** 3
-    _tmp230 = _tmp213 * _tmp3
-    _tmp231 = logR[0, 0] * logR[2, 0]
-    _tmp232 = _tmp213 * _tmp231
-    _tmp233 = -_tmp221 * _tmp224 + _tmp232 * logR[1, 0]
-    _tmp234 = _tmp156 * _tmp40
-    _tmp235 = _tmp107 * _tmp234
-    _tmp236 = _tmp217 * _tmp235
-    _tmp237 = _tmp212 * _tmp45
-    _tmp238 = _tmp224 * _tmp237
-    _tmp239 = _tmp159 * _tmp39
-    _tmp240 = (1.0 / 2.0) * _tmp50
-    _tmp241 = _tmp212 * _tmp49
-    _tmp242 = -_tmp1 * _tmp241 - _tmp14 * _tmp239 + _tmp236 - _tmp238 + _tmp240 * _tmp26 + _tmp52
-    _tmp243 = _tmp231 * _tmp237
-    _tmp244 = _tmp212 * _tmp47
-    _tmp245 = _tmp20 * logR[2, 0]
-    _tmp246 = _tmp235 * _tmp245
-    _tmp247 = _tmp13 * _tmp47
-    _tmp248 = _tmp165 * _tmp39
-    _tmp249 = _tmp234 * _tmp85
-    _tmp250 = _tmp231 * _tmp241
-    _tmp251 = _tmp240 * _tmp245
-    _tmp252 = _tmp217 * _tmp248 - _tmp224 * _tmp244
-    _tmp253 = _tmp13 * _tmp45
-    _tmp254 = _tmp241 * logR[1, 0]
-    _tmp255 = _tmp217 * _tmp240 - _tmp254 * logR[0, 0]
-    _tmp256 = -_tmp231 * _tmp244 + _tmp245 * _tmp248
-    _tmp257 = _tmp221 * _tmp3
-    _tmp258 = _tmp230 * logR[2, 0]
-    _tmp259 = _tmp227 * logR[1, 0]
-    _tmp260 = logR[1, 0] ** 3
-    _tmp261 = _tmp235 * _tmp24 - _tmp237 * _tmp3 - _tmp239 * _tmp54 + _tmp253 + _tmp255
-    _tmp262 = logR[1, 0] * logR[2, 0]
-    _tmp263 = _tmp11 * _tmp235 - _tmp237 * _tmp262
-    _tmp264 = _tmp11 * _tmp240
-    _tmp265 = _tmp254 * logR[2, 0]
-    _tmp266 = _tmp11 * _tmp248 - _tmp244 * _tmp262
-    _tmp267 = 2 * _tmp8
-    _tmp268 = _tmp213 * logR[1, 0]
-    _tmp269 = _tmp2 * _tmp9
-    _tmp270 = -_tmp239 * _tmp31 - _tmp250 + _tmp251 + _tmp263
-    _tmp271 = 2 * _tmp0
-    _tmp272 = 2 * _tmp18
-    _tmp273 = -_tmp271 * ierr[1, 0] - _tmp272 * ierr[0, 0]
-    _tmp274 = _tmp18 * _tmp273
-    _tmp275 = _tmp155 * _tmp79
-    _tmp276 = _tmp275 * _tmp54
-    _tmp277 = _tmp166 * _tmp73
-    _tmp278 = _tmp277 * _tmp29
-    _tmp279 = _tmp44 * ierr[0, 0]
-    _tmp280 = _tmp0 * _tmp275
-    _tmp281 = _tmp143 * _tmp273 - _tmp273 * _tmp280 + _tmp44 * ierr[1, 0]
-    _tmp282 = (
-        -_tmp123 * _tmp274
-        + _tmp14 * _tmp281
-        - _tmp273 * _tmp278
-        + _tmp274 * _tmp276
-        - _tmp279 * _tmp54
+    _tmp228 = (1.0 / 4.0) * _tmp226
+    _tmp229 = _tmp207 * _tmp228
+    _tmp230 = _tmp160 * _tmp226
+    _tmp231 = _tmp3 * _tmp47
+    _tmp232 = _tmp104 * _tmp231 - _tmp115 * _tmp231 + _tmp221
+    _tmp233 = _tmp156 * _tmp228 - _tmp22 * _tmp223 + _tmp22 * _tmp224 + _tmp232 * _tmp63
+    _tmp234 = _tmp33 * _tmp95
+    _tmp235 = _tmp166 * _tmp234
+    _tmp236 = -_tmp168 * _tmp33 + _tmp169 * _tmp234
+    _tmp237 = _tmp175 * _tmp236 - _tmp235 * _tmp41
+    _tmp238 = _tmp235 * _tmp8
+    _tmp239 = _tmp21 * _tmp237
+    _tmp240 = _tmp181 * _tmp236 - _tmp184 * _tmp236 + _tmp22 * _tmp238 + _tmp239 * logR[0, 0]
+    _tmp241 = _tmp23**2
+    _tmp242 = _tmp16 / _tmp12 ** (3.0 / 2.0)
+    _tmp243 = _tmp24 * _tmp242
+    _tmp244 = _tmp243 * _tmp9
+    _tmp245 = logR[0, 0] * logR[2, 0]
+    _tmp246 = 4 * _tmp17 / _tmp12**2
+    _tmp247 = _tmp246 * logR[1, 0]
+    _tmp248 = _tmp243 * _tmp245
+    _tmp249 = -_tmp245 * _tmp247 + _tmp248 * logR[1, 0]
+    _tmp250 = _tmp246 * logR[0, 0]
+    _tmp251 = logR[0, 0] ** 3
+    _tmp252 = _tmp11 * _tmp243
+    _tmp253 = _tmp244 * logR[2, 0]
+    _tmp254 = _tmp13 * _tmp241
+    _tmp255 = _tmp254 * logR[1, 0]
+    _tmp256 = _tmp255 * logR[0, 0]
+    _tmp257 = _tmp42 * logR[0, 0]
+    _tmp258 = _tmp246 * logR[2, 0]
+    _tmp259 = _tmp258 * _tmp9
+    _tmp260 = _tmp18 * _tmp20
+    _tmp261 = _tmp243 * logR[1, 0]
+    _tmp262 = _tmp261 * logR[0, 0]
+    _tmp263 = (1.0 / 4.0) * _tmp50
+    _tmp264 = _tmp263 * _tmp97
+    _tmp265 = _tmp13 * _tmp264
+    _tmp266 = _tmp245 * _tmp265
+    _tmp267 = _tmp242 * _tmp65
+    _tmp268 = _tmp21 * _tmp65
+    _tmp269 = _tmp180 * _tmp53
+    _tmp270 = _tmp242 * _tmp62
+    _tmp271 = _tmp245 * _tmp270
+    _tmp272 = logR[0, 0] * logR[1, 0]
+    _tmp273 = _tmp265 * _tmp272
+    _tmp274 = (1.0 / 2.0) * _tmp60
+    _tmp275 = _tmp53 * _tmp55
+    _tmp276 = (1.0 / 8.0) * _tmp275
+    _tmp277 = _tmp270 * _tmp272
+    _tmp278 = _tmp242 * _tmp59
+    _tmp279 = _tmp273 + _tmp274 * _tmp28 - _tmp276 * _tmp63 - _tmp277 - _tmp278 * _tmp9 + _tmp69
+    _tmp280 = _tmp13 * _tmp274
+    _tmp281 = _tmp245 * _tmp280
+    _tmp282 = _tmp245 * _tmp278
+    _tmp283 = _tmp206 * _tmp263
+    _tmp284 = _tmp13 * _tmp269
+    _tmp285 = -_tmp267 * _tmp272 + _tmp272 * _tmp284
+    _tmp286 = _tmp21 * _tmp62
+    _tmp287 = -_tmp245 * _tmp267 + _tmp245 * _tmp284
+    _tmp288 = _tmp278 * logR[1, 0]
+    _tmp289 = _tmp280 * logR[1, 0]
+    _tmp290 = -_tmp288 * logR[0, 0] + _tmp289 * logR[0, 0]
+    _tmp291 = _tmp11 * _tmp258
+    _tmp292 = _tmp252 * logR[2, 0]
+    _tmp293 = logR[1, 0] ** 3
+    _tmp294 = -_tmp11 * _tmp270 - _tmp191 * _tmp275 + _tmp26 * _tmp264 + _tmp286 + _tmp290
+    _tmp295 = logR[1, 0] * logR[2, 0]
+    _tmp296 = _tmp265 * _tmp295 - _tmp270 * _tmp295
+    _tmp297 = _tmp288 * logR[2, 0]
+    _tmp298 = _tmp289 * logR[2, 0]
+    _tmp299 = -_tmp267 * _tmp295 + _tmp284 * _tmp295
+    _tmp300 = -_tmp276 * _tmp61 + _tmp281 - _tmp282 + _tmp296
+    _tmp301 = _tmp128 * _tmp300
+    _tmp302 = _tmp145 * _tmp80
+    _tmp303 = _tmp151 * _tmp91
+    _tmp304 = 2 * _tmp8
+    _tmp305 = 2 * _tmp41
+    _tmp306 = -_tmp304 * _tmp7 - _tmp305 * _tmp40
+    _tmp307 = _tmp102 * _tmp174
+    _tmp308 = _tmp172 * _tmp307
+    _tmp309 = _tmp160 * _tmp306 - _tmp306 * _tmp308 + _tmp40 * _tmp58
+    _tmp310 = _tmp182 * _tmp22
+    _tmp311 = _tmp102 * _tmp172
+    _tmp312 = _tmp306 * _tmp311
+    _tmp313 = _tmp22 * _tmp58
+    _tmp314 = _tmp306 * _tmp95
+    _tmp315 = _tmp181 * _tmp37
+    _tmp316 = (1.0 / 4.0) * _tmp314
+    _tmp317 = _tmp206 * _tmp316
+    _tmp318 = (
+        -_tmp22 * _tmp317
+        + _tmp309 * _tmp63
+        + _tmp310 * _tmp312
+        - _tmp313 * _tmp7
+        - _tmp314 * _tmp315
     )
-    _tmp283 = _tmp274 * _tmp275
-    _tmp284 = _tmp159 * _tmp86
-    _tmp285 = _tmp284 * _tmp29
-    _tmp286 = _tmp273 * _tmp285
-    _tmp287 = _tmp146 * _tmp284
-    _tmp288 = _tmp172 * _tmp79
-    _tmp289 = _tmp73 * ierr[2, 0]
-    _tmp290 = -_tmp151 * ierr[2, 0] + _tmp152 * _tmp289
-    _tmp291 = _tmp289 * _tmp43
-    _tmp292 = -_tmp137 * _tmp291 + _tmp162 * _tmp290
-    _tmp293 = _tmp14 * _tmp292 + _tmp166 * _tmp290 - _tmp167 * _tmp290 + _tmp168 * _tmp291
-    _tmp294 = _tmp291 * _tmp84
-    _tmp295 = _tmp290 * _tmp31
-    _tmp296 = _tmp13 * _tmp292
-    _tmp297 = -p[0, 0] + p_d[0, 0]
-    _tmp298 = -p[1, 0] + p_d[1, 0]
-    _tmp299 = _tmp271 * _tmp298 + _tmp272 * _tmp297
-    _tmp300 = _tmp18 * _tmp299
-    _tmp301 = _tmp275 * _tmp300
-    _tmp302 = _tmp285 * _tmp299
-    _tmp303 = _tmp143 * _tmp299 - _tmp280 * _tmp299 - _tmp298 * _tmp44
-    _tmp304 = _tmp297 * _tmp44
-    _tmp305 = (
-        -_tmp123 * _tmp300
-        + _tmp14 * _tmp303
-        + _tmp276 * _tmp300
-        - _tmp278 * _tmp299
-        + _tmp304 * _tmp54
+    _tmp319 = _tmp182 * _tmp61
+    _tmp320 = _tmp314 * _tmp37
+    _tmp321 = _tmp58 * _tmp61
+    _tmp322 = _tmp23 * _tmp58
+    _tmp323 = _tmp311 * _tmp96
+    _tmp324 = _tmp182 * _tmp63
+    _tmp325 = _tmp58 * _tmp63
+    _tmp326 = _tmp178 * _tmp36
+    _tmp327 = -_tmp168 * _tmp36 + _tmp170 * _tmp36
+    _tmp328 = -_tmp167 * _tmp36 + _tmp175 * _tmp327
+    _tmp329 = _tmp181 * _tmp327 - _tmp184 * _tmp327 + _tmp22 * _tmp326 + _tmp328 * _tmp63
+    _tmp330 = _tmp183 * _tmp327
+    _tmp331 = _tmp178 * _tmp63
+    _tmp332 = -_tmp2 * _tmp304 - _tmp305 * _tmp38
+    _tmp333 = (1.0 / 4.0) * _tmp332
+    _tmp334 = _tmp103 * _tmp333
+    _tmp335 = -_tmp101 * _tmp307 * _tmp333 + _tmp159 * _tmp333 + _tmp38 * _tmp58
+    _tmp336 = _tmp207 * _tmp333
+    _tmp337 = _tmp132 * _tmp332
+    _tmp338 = _tmp315 * _tmp95
+    _tmp339 = (
+        -_tmp2 * _tmp313
+        - _tmp22 * _tmp336
+        + _tmp310 * _tmp334
+        - _tmp332 * _tmp338
+        + _tmp335 * _tmp63
     )
-    _tmp306 = _tmp13 * _tmp303
-    _tmp307 = -p[2, 0] + p_d[2, 0]
-    _tmp308 = _tmp151 * _tmp307 - _tmp153 * _tmp307
-    _tmp309 = _tmp157 * _tmp308
-    _tmp310 = _tmp162 * _tmp308 + _tmp163 * _tmp307
-    _tmp311 = _tmp13 * _tmp310
-    _tmp312 = _tmp166 * _tmp308 - _tmp169 * _tmp307 - _tmp309 * _tmp54 + _tmp311 * logR[0, 0]
-    _tmp313 = _tmp160 * _tmp308
-    _tmp314 = -v[0, 0] + v_d[0, 0]
-    _tmp315 = -v[1, 0] + v_d[1, 0]
-    _tmp316 = _tmp271 * _tmp315 + _tmp272 * _tmp314
-    _tmp317 = _tmp316 * _tmp87
-    _tmp318 = _tmp314 * _tmp44
-    _tmp319 = _tmp275 * _tmp316
-    _tmp320 = _tmp0 * _tmp316
-    _tmp321 = -_tmp275 * _tmp320 - _tmp315 * _tmp44 + _tmp320 * _tmp87
-    _tmp322 = _tmp29 * _tmp316
-    _tmp323 = (
-        _tmp14 * _tmp321
-        - _tmp205 * _tmp317
-        + _tmp205 * _tmp319
-        - _tmp277 * _tmp322
-        + _tmp318 * _tmp54
+    _tmp340 = -_tmp168 * _tmp32 + _tmp170 * _tmp32
+    _tmp341 = _tmp178 * _tmp32
+    _tmp342 = _tmp173 * _tmp340
+    _tmp343 = _tmp182 * _tmp342
+    _tmp344 = -_tmp167 * _tmp32 + _tmp174 * _tmp342
+    _tmp345 = _tmp21 * _tmp344
+    _tmp346 = _tmp181 * _tmp340 + _tmp22 * _tmp341 - _tmp22 * _tmp343 + _tmp345 * logR[0, 0]
+    _tmp347 = _tmp5 * _tmp58
+    _tmp348 = -_tmp304 * _tmp5 - _tmp305 * _tmp39
+    _tmp349 = _tmp311 * _tmp348
+    _tmp350 = _tmp160 * _tmp348 - _tmp308 * _tmp348 + _tmp39 * _tmp58
+    _tmp351 = _tmp208 * _tmp348
+    _tmp352 = (
+        -_tmp22 * _tmp347
+        - _tmp22 * _tmp351
+        + _tmp310 * _tmp349
+        - _tmp338 * _tmp348
+        + _tmp350 * _tmp63
     )
-    _tmp324 = _tmp284 * _tmp322
-    _tmp325 = _tmp13 * _tmp321
-    _tmp326 = -v[2, 0] + v_d[2, 0]
-    _tmp327 = _tmp151 * _tmp326 - _tmp153 * _tmp326
-    _tmp328 = _tmp162 * _tmp327 + _tmp163 * _tmp326
-    _tmp329 = _tmp13 * _tmp328
-    _tmp330 = _tmp166 * _tmp327 - _tmp167 * _tmp327 - _tmp169 * _tmp326 + _tmp329 * logR[0, 0]
-    _tmp331 = _tmp160 * _tmp327
+    _tmp353 = _tmp132 * _tmp348
+    _tmp354 = _tmp348 * _tmp61
+    _tmp355 = _tmp178 * _tmp34
+    _tmp356 = -_tmp168 * _tmp34 + _tmp170 * _tmp34
+    _tmp357 = -_tmp167 * _tmp34 + _tmp175 * _tmp356
+    _tmp358 = _tmp181 * _tmp356 - _tmp184 * _tmp356 + _tmp22 * _tmp355 + _tmp357 * _tmp63
 
     # Output terms
     _thrust_torque = numpy.zeros(4)
-    _thrust_torque[0] = _tmp0 * _tmp17 + _tmp18 * _tmp23 + _tmp28 * _tmp29
-    _thrust_torque[1] = 268 * math.tanh((1.0 / 268.0) * _tmp30 - 1.0 / 268.0 * _tmp51 * _tmp64)
-    _thrust_torque[2] = -268 * math.tanh((1.0 / 268.0) * _tmp64 * _tmp68 - 1.0 / 268.0 * _tmp65)
+    _thrust_torque[0] = _tmp25 * _tmp8 + _tmp30 * _tmp37 + _tmp41 * _tmp45
+    _thrust_torque[1] = -268 * math.tanh((1.0 / 268.0) * _tmp66 * _tmp79 - 1.0 / 268.0 * _tmp82)
+    _thrust_torque[2] = -268 * math.tanh((1.0 / 268.0) * _tmp79 * _tmp84 - 1.0 / 268.0 * _tmp86)
     _thrust_torque[3] = -56 * math.tanh(
-        (1.0 / 56.0) * _tmp60 * _tmp63 * _tmp72 - 1.0 / 56.0 * _tmp69
+        (1.0 / 56.0) * _tmp78 * _tmp88 * _tmp90 - 1.0 / 56.0 * _tmp93
     )
     _jacobian = numpy.zeros((4, 25))
-    _jacobian[0, 0] = -_tmp23 * theta_pos[0, 0]
-    _jacobian[1, 0] = _tmp119 * (
-        -_tmp103
+    _jacobian[0, 0] = -_tmp94
+    _jacobian[1, 0] = _tmp138 * (
+        _tmp118 * _tmp126
+        - _tmp118 * _tmp130
+        - _tmp136
         * (
-            -_tmp15 * _tmp96
-            - _tmp31 * _tmp83
-            + _tmp76 * theta_pos[0, 0]
-            - _tmp77 * _tmp82
-            + _tmp89 * theta_pos[0, 0]
-        )
-        + _tmp111 * _tmp115
-        - _tmp111 * _tmp118
-    )
-    _jacobian[2, 0] = _tmp120 * (
-        -_tmp103
-        * (
-            -_tmp106 * logR[2, 0]
-            + _tmp124 * theta_pos[0, 0]
-            - _tmp126 * theta_pos[0, 0]
-            + _tmp127 * theta_pos[0, 0]
-            + _tmp15 * _tmp83
-        )
-        + _tmp111 * _tmp121
-        - _tmp111 * _tmp122
-    )
-    _jacobian[3, 0] = _tmp130 * (
-        -_tmp111 * _tmp131
-        + _tmp111 * _tmp136
-        - _tmp129
-        * (
-            _tmp106 * logR[1, 0]
-            + _tmp133 * theta_pos[0, 0]
-            + _tmp134 * theta_pos[0, 0]
-            - _tmp135 * theta_pos[0, 0]
-            + _tmp14 * _tmp83
+            -_tmp106 * _tmp61
+            - _tmp107 * _tmp61
+            - _tmp114 * _tmp23
+            + _tmp133 * _tmp63
+            + _tmp134 * _tmp6
         )
     )
-    _jacobian[0, 1] = -_tmp17 * theta_pos[0, 0]
-    _jacobian[1, 1] = _tmp119 * (
-        -_tmp103
-        * (-_tmp141 * _tmp15 + _tmp145 * theta_pos[0, 0] - _tmp31 * _tmp92 + _tmp31 * _tmp95)
-        + _tmp115 * _tmp142
-        - _tmp118 * _tmp142
-    )
-    _jacobian[2, 1] = _tmp120 * (
-        -_tmp103
-        * (_tmp147 * theta_pos[0, 0] - _tmp148 * logR[2, 0] + _tmp15 * _tmp92 - _tmp15 * _tmp95)
-        + _tmp121 * _tmp142
-        - _tmp122 * _tmp142
-    )
-    _jacobian[3, 1] = _tmp130 * (
-        -_tmp129 * (_tmp14 * _tmp92 - _tmp14 * _tmp95 + _tmp144 * _tmp77 + _tmp148 * logR[1, 0])
-        - _tmp131 * _tmp142
-        + _tmp136 * _tmp142
-    )
-    _jacobian[0, 2] = -_tmp28 * theta_pos[1, 0]
-    _jacobian[1, 2] = _tmp119 * (
-        -_tmp103
-        * (-_tmp15 * _tmp164 + _tmp150 * theta_pos[1, 0] - _tmp154 * _tmp158 + _tmp154 * _tmp161)
-        + _tmp115 * _tmp170
-        - _tmp118 * _tmp170
-    )
-    _jacobian[2, 2] = _tmp120 * (
-        -_tmp103
-        * (_tmp154 * _tmp171 + _tmp154 * _tmp173 - _tmp164 * _tmp31 - _tmp175 * theta_pos[1, 0])
-        + _tmp121 * _tmp170
-        - _tmp122 * _tmp170
-    )
-    _jacobian[3, 2] = _tmp130 * (
-        -_tmp129
-        * (_tmp154 * _tmp176 + _tmp154 * _tmp177 + _tmp164 * _tmp54 - _tmp178 * theta_pos[1, 0])
-        - _tmp131 * _tmp170
-        + _tmp136 * _tmp170
-    )
-    _jacobian[0, 3] = -_tmp23 * theta_pos[2, 0]
-    _jacobian[1, 3] = _tmp119 * (
-        -_tmp103
+    _jacobian[2, 0] = _tmp145 * (
+        _tmp118 * _tmp143
+        - _tmp136
         * (
-            -_tmp15 * _tmp182
-            - _tmp179 * _tmp31
-            - _tmp184 * _tmp82
-            + _tmp76 * theta_pos[2, 0]
-            + _tmp89 * theta_pos[2, 0]
+            _tmp107 * _tmp23
+            - _tmp114 * _tmp61
+            + _tmp133 * _tmp22
+            - _tmp139 * _tmp6
+            + _tmp140 * _tmp6
         )
-        + _tmp115 * _tmp183
-        - _tmp118 * _tmp183
+        - _tmp141 * _tmp142
     )
-    _jacobian[2, 3] = _tmp120 * (
-        -_tmp103
+    _jacobian[3, 0] = _tmp151 * (
+        _tmp118 * _tmp147
+        - _tmp141 * _tmp146
+        - _tmp149
         * (
-            _tmp124 * theta_pos[2, 0]
-            - _tmp126 * theta_pos[2, 0]
-            + _tmp127 * theta_pos[2, 0]
-            + _tmp15 * _tmp179
-            - _tmp182 * _tmp31
+            _tmp106 * _tmp63
+            + _tmp107 * _tmp63
+            + _tmp114 * _tmp22
+            + _tmp133 * _tmp61
+            - _tmp148 * _tmp6
         )
-        + _tmp121 * _tmp183
-        - _tmp122 * _tmp183
     )
-    _jacobian[3, 3] = _tmp130 * (
-        -_tmp129
+    _jacobian[0, 1] = -_tmp152
+    _jacobian[1, 1] = _tmp138 * (
+        _tmp126 * _tmp158
+        - _tmp130 * _tmp158
+        - _tmp136 * (_tmp100 * _tmp161 - _tmp110 * _tmp61 + _tmp113 * _tmp61 - _tmp155 * _tmp23)
+    )
+    _jacobian[2, 1] = _tmp145 * (
+        -_tmp136
+        * (_tmp100 * _tmp160 * _tmp22 + _tmp110 * _tmp23 - _tmp113 * _tmp23 - _tmp155 * _tmp61)
+        + _tmp143 * _tmp158
+        - _tmp158 * _tmp162
+    )
+    _jacobian[3, 1] = _tmp151 * (
+        _tmp147 * _tmp158
+        - _tmp149 * (_tmp100 * _tmp164 + _tmp110 * _tmp63 - _tmp113 * _tmp63 + _tmp155 * _tmp22)
+        - _tmp158 * _tmp163
+    )
+    _jacobian[0, 2] = -_tmp165
+    _jacobian[1, 2] = _tmp138 * (
+        _tmp126 * _tmp185
+        - _tmp130 * _tmp185
+        - _tmp136 * (_tmp171 * _tmp188 - _tmp176 * _tmp23 + _tmp179 * _tmp61 - _tmp183 * _tmp186)
+    )
+    _jacobian[2, 2] = _tmp145 * (
+        -_tmp136 * (_tmp171 * _tmp192 + _tmp171 * _tmp193 - _tmp176 * _tmp61 - _tmp190 * _tmp35)
+        + _tmp143 * _tmp185
+        - _tmp162 * _tmp185
+    )
+    _jacobian[3, 2] = _tmp151 * (
+        _tmp147 * _tmp185
+        - _tmp149 * (_tmp171 * _tmp194 + _tmp176 * _tmp22 - _tmp179 * _tmp63 + _tmp186 * _tmp187)
+        - _tmp163 * _tmp185
+    )
+    _jacobian[0, 3] = -_tmp195
+    _jacobian[1, 3] = _tmp138 * (
+        -_tmp130 * _tmp204
+        - _tmp136
         * (
-            _tmp133 * theta_pos[2, 0]
-            + _tmp134 * theta_pos[2, 0]
-            - _tmp135 * theta_pos[2, 0]
-            + _tmp14 * _tmp179
-            + _tmp182 * _tmp54
+            _tmp0 * _tmp134
+            - _tmp197 * _tmp61
+            - _tmp198 * _tmp61
+            - _tmp203 * _tmp23
+            + _tmp209 * _tmp63
         )
-        - _tmp131 * _tmp183
-        + _tmp136 * _tmp183
+        + _tmp205 * _tmp66
     )
-    _jacobian[0, 4] = -_tmp17 * theta_pos[2, 0]
-    _jacobian[1, 4] = _tmp119 * (
-        -_tmp103
-        * (_tmp145 * theta_pos[2, 0] - _tmp15 * _tmp186 - _tmp180 * _tmp31 + _tmp181 * _tmp31)
-        + _tmp115 * _tmp187
-        - _tmp118 * _tmp187
-    )
-    _jacobian[2, 4] = _tmp120 * (
-        -_tmp103
-        * (_tmp147 * theta_pos[2, 0] + _tmp15 * _tmp180 - _tmp15 * _tmp181 - _tmp188 * logR[2, 0])
-        + _tmp121 * _tmp187
-        - _tmp122 * _tmp187
-    )
-    _jacobian[3, 4] = _tmp130 * (
-        -_tmp129 * (_tmp14 * _tmp180 - _tmp14 * _tmp181 + _tmp144 * _tmp184 + _tmp188 * logR[1, 0])
-        - _tmp131 * _tmp187
-        + _tmp136 * _tmp187
-    )
-    _jacobian[0, 5] = -_tmp28 * theta_pos[3, 0]
-    _jacobian[1, 5] = _tmp119 * (
-        -_tmp103
-        * (-_tmp15 * _tmp190 + _tmp150 * theta_pos[3, 0] - _tmp158 * _tmp189 + _tmp161 * _tmp189)
-        + _tmp115 * _tmp191
-        - _tmp118 * _tmp191
-    )
-    _jacobian[2, 5] = _tmp120 * (
-        -_tmp103
-        * (_tmp171 * _tmp189 + _tmp173 * _tmp189 - _tmp175 * theta_pos[3, 0] - _tmp190 * _tmp31)
-        + _tmp121 * _tmp191
-        - _tmp122 * _tmp191
-    )
-    _jacobian[3, 5] = _tmp130 * (
-        -_tmp129
-        * (_tmp176 * _tmp189 + _tmp177 * _tmp189 - _tmp178 * theta_pos[3, 0] + _tmp190 * _tmp54)
-        - _tmp131 * _tmp191
-        + _tmp136 * _tmp191
-    )
-    _jacobian[0, 6] = -_tmp23 * theta_pos[4, 0]
-    _jacobian[1, 6] = _tmp119 * (
-        -_tmp103
+    _jacobian[2, 3] = _tmp145 * (
+        -_tmp136
         * (
-            -_tmp15 * _tmp195
-            - _tmp197 * _tmp31
-            + _tmp198 * _tmp88
-            - _tmp200 * _tmp82
-            + _tmp76 * theta_pos[4, 0]
+            _tmp105 * _tmp211
+            - _tmp116 * _tmp211
+            + _tmp197 * _tmp23
+            - _tmp203 * _tmp61
+            + _tmp208 * _tmp210
         )
-        + _tmp115 * _tmp199
-        - _tmp118 * _tmp199
+        - _tmp162 * _tmp204
+        + _tmp205 * _tmp84
     )
-    _jacobian[2, 6] = _tmp120 * (
-        -_tmp103
+    _jacobian[3, 3] = _tmp151 * (
+        _tmp147 * _tmp204
+        - _tmp149
         * (
-            _tmp123 * _tmp198
-            - _tmp126 * theta_pos[4, 0]
-            + _tmp127 * theta_pos[4, 0]
-            + _tmp15 * _tmp197
-            - _tmp195 * _tmp31
+            -_tmp0 * _tmp148
+            + _tmp197 * _tmp63
+            + _tmp198 * _tmp63
+            + _tmp203 * _tmp22
+            + _tmp209 * _tmp61
         )
-        + _tmp121 * _tmp199
-        - _tmp122 * _tmp199
+        - _tmp163 * _tmp204
     )
-    _jacobian[3, 6] = _tmp130 * (
-        -_tmp129
+    _jacobian[0, 4] = -_tmp0 * _tmp45
+    _jacobian[1, 4] = _tmp138 * (
+        _tmp126 * _tmp213
+        - _tmp130 * _tmp213
+        - _tmp136 * (_tmp161 * _tmp196 + _tmp200 * _tmp61 - _tmp202 * _tmp61 - _tmp212 * _tmp23)
+    )
+    _jacobian[2, 4] = _tmp145 * (
+        -_tmp136 * (_tmp160 * _tmp210 - _tmp199 * _tmp211 + _tmp201 * _tmp211 - _tmp212 * _tmp61)
+        + _tmp143 * _tmp213
+        - _tmp162 * _tmp213
+    )
+    _jacobian[3, 4] = _tmp151 * (
+        _tmp147 * _tmp213
+        - _tmp149 * (_tmp164 * _tmp196 - _tmp200 * _tmp63 + _tmp202 * _tmp63 + _tmp212 * _tmp22)
+        - _tmp163 * _tmp213
+    )
+    _jacobian[0, 5] = -_tmp30 * _tmp31
+    _jacobian[1, 5] = _tmp138 * (
+        _tmp126 * _tmp217
+        - _tmp130 * _tmp217
+        - _tmp136 * (_tmp188 * _tmp214 - _tmp214 * _tmp218 - _tmp215 * _tmp23 + _tmp216 * _tmp61)
+    )
+    _jacobian[2, 5] = _tmp145 * (
+        -_tmp136 * (-_tmp190 * _tmp31 + _tmp192 * _tmp214 + _tmp193 * _tmp214 - _tmp215 * _tmp61)
+        + _tmp143 * _tmp217
+        - _tmp162 * _tmp217
+    )
+    _jacobian[3, 5] = _tmp151 * (
+        _tmp147 * _tmp217
+        - _tmp149 * (_tmp194 * _tmp214 + _tmp214 * _tmp219 + _tmp215 * _tmp22 - _tmp216 * _tmp63)
+        - _tmp163 * _tmp217
+    )
+    _jacobian[0, 6] = -_tmp220
+    _jacobian[1, 6] = _tmp138 * (
+        _tmp126 * _tmp227
+        - _tmp130 * _tmp227
+        - _tmp136
         * (
-            _tmp132 * _tmp198
-            + _tmp134 * theta_pos[4, 0]
-            - _tmp135 * theta_pos[4, 0]
-            + _tmp14 * _tmp197
-            + _tmp195 * _tmp54
+            _tmp134 * _tmp3
+            - _tmp221 * _tmp61
+            - _tmp222 * _tmp61
+            - _tmp225 * _tmp23
+            + _tmp229 * _tmp63
         )
-        - _tmp131 * _tmp199
-        + _tmp136 * _tmp199
     )
-    _jacobian[0, 7] = -_tmp17 * theta_pos[4, 0]
-    _jacobian[1, 7] = _tmp119 * (
-        -_tmp103
-        * (_tmp145 * theta_pos[4, 0] - _tmp15 * _tmp201 - _tmp192 * _tmp31 + _tmp194 * _tmp31)
-        + _tmp115 * _tmp202
-        - _tmp118 * _tmp202
+    _jacobian[2, 6] = _tmp145 * (
+        -_tmp136
+        * (
+            -_tmp139 * _tmp3
+            + _tmp140 * _tmp3
+            + _tmp22 * _tmp229
+            + _tmp221 * _tmp23
+            - _tmp225 * _tmp61
+        )
+        + _tmp143 * _tmp227
+        - _tmp162 * _tmp227
     )
-    _jacobian[2, 7] = _tmp120 * (
-        -_tmp103 * (_tmp144 * _tmp196 + _tmp15 * _tmp192 - _tmp15 * _tmp194 - _tmp203 * logR[2, 0])
-        + _tmp121 * _tmp202
-        - _tmp122 * _tmp202
+    _jacobian[3, 6] = _tmp151 * (
+        _tmp147 * _tmp227
+        - _tmp149
+        * (
+            -_tmp148 * _tmp3
+            + _tmp22 * _tmp225
+            + _tmp221 * _tmp63
+            + _tmp222 * _tmp63
+            + _tmp229 * _tmp61
+        )
+        - _tmp163 * _tmp227
     )
-    _jacobian[3, 7] = _tmp130 * (
-        -_tmp129 * (_tmp14 * _tmp192 - _tmp14 * _tmp194 + _tmp144 * _tmp200 + _tmp203 * logR[1, 0])
-        - _tmp131 * _tmp202
-        + _tmp136 * _tmp202
+    _jacobian[0, 7] = -_tmp3 * _tmp45
+    _jacobian[1, 7] = _tmp138 * (
+        _tmp126 * _tmp233
+        - _tmp130 * _tmp233
+        - _tmp136 * (-_tmp223 * _tmp61 + _tmp224 * _tmp61 - _tmp23 * _tmp232 + _tmp230 * _tmp63)
     )
-    _jacobian[0, 8] = -_tmp28 * theta_pos[5, 0]
-    _jacobian[1, 8] = _tmp119 * (
-        -_tmp103
-        * (-_tmp15 * _tmp208 + _tmp150 * theta_pos[5, 0] + _tmp161 * _tmp204 - _tmp207 * _tmp210)
-        + _tmp115 * _tmp209
-        - _tmp118 * _tmp209
+    _jacobian[2, 7] = _tmp145 * (
+        -_tmp136
+        * (_tmp109 * _tmp189 * _tmp3 + _tmp22 * _tmp230 - _tmp224 * _tmp23 - _tmp232 * _tmp61)
+        + _tmp143 * _tmp233
+        - _tmp162 * _tmp233
     )
-    _jacobian[2, 8] = _tmp120 * (
-        -_tmp103
-        * (_tmp171 * _tmp204 + _tmp172 * _tmp206 - _tmp175 * theta_pos[5, 0] - _tmp208 * _tmp31)
-        + _tmp121 * _tmp209
-        - _tmp122 * _tmp209
+    _jacobian[3, 7] = _tmp151 * (
+        _tmp147 * _tmp233
+        - _tmp149 * (_tmp164 * _tmp226 + _tmp22 * _tmp232 + _tmp223 * _tmp63 - _tmp224 * _tmp63)
+        - _tmp163 * _tmp233
     )
-    _jacobian[3, 8] = _tmp130 * (
-        -_tmp129
-        * (_tmp176 * _tmp204 - _tmp178 * theta_pos[5, 0] + _tmp207 * _tmp211 + _tmp208 * _tmp54)
-        - _tmp131 * _tmp209
-        + _tmp136 * _tmp209
+    _jacobian[0, 8] = -_tmp30 * _tmp33
+    _jacobian[1, 8] = _tmp138 * (
+        _tmp126 * _tmp240
+        - _tmp130 * _tmp240
+        - _tmp136 * (_tmp188 * _tmp236 - _tmp218 * _tmp236 - _tmp23 * _tmp237 + _tmp238 * _tmp61)
+    )
+    _jacobian[2, 8] = _tmp145 * (
+        -_tmp136
+        * (-_tmp189 * _tmp235 + _tmp192 * _tmp236 + _tmp193 * _tmp236 - _tmp239 * logR[2, 0])
+        + _tmp143 * _tmp240
+        - _tmp162 * _tmp240
+    )
+    _jacobian[3, 8] = _tmp151 * (
+        _tmp147 * _tmp240
+        - _tmp149
+        * (_tmp194 * _tmp236 + _tmp219 * _tmp236 - _tmp238 * _tmp63 + _tmp239 * logR[1, 0])
+        - _tmp163 * _tmp240
     )
     _jacobian[0, 9] = (
-        _tmp0 * (_tmp214 - _tmp216 * _tmp26 - _tmp22 + _tmp233 + _tmp27)
-        + _tmp18 * (_tmp215 + _tmp218 - _tmp219 - _tmp222 + _tmp223 - _tmp225)
-        + _tmp29
+        _tmp37
         * (
-            -_tmp20 * _tmp226
-            - _tmp213 * _tmp229
-            + _tmp227 * _tmp229
-            + _tmp228 * _tmp3
-            - _tmp230 * logR[0, 0]
+            _tmp11 * _tmp250
+            - 4 * _tmp19
+            - _tmp243 * _tmp251
+            + _tmp246 * _tmp251
+            - _tmp252 * logR[0, 0]
         )
+        + _tmp41 * (-_tmp241 * _tmp28 + _tmp244 + _tmp249 + _tmp29 - _tmp44)
+        + _tmp8 * (_tmp253 + _tmp256 - _tmp257 - _tmp259 + _tmp260 - _tmp262)
     )
-    _jacobian[1, 9] = _tmp119 * (
-        -_tmp103
-        * (-_tmp1 * _tmp244 - _tmp243 + _tmp246 + _tmp247 + _tmp248 * _tmp26 + (1.0 / 2.0) * _tmp53)
-        + _tmp115 * _tmp242
-        - _tmp118 * _tmp242
+    _jacobian[1, 9] = _tmp138 * (
+        _tmp126 * _tmp279
+        - _tmp130 * _tmp279
+        - _tmp136
+        * (_tmp266 - _tmp267 * _tmp9 + _tmp268 + _tmp269 * _tmp28 - _tmp271 + (1.0 / 2.0) * _tmp70)
     )
-    _jacobian[2, 9] = _tmp120 * (
-        -_tmp103 * (_tmp14 * _tmp249 + _tmp250 - _tmp251 + _tmp252)
-        + _tmp121 * _tmp242
-        - _tmp122 * _tmp242
+    _jacobian[2, 9] = _tmp145 * (
+        -_tmp136 * (-_tmp281 + _tmp282 + _tmp283 * _tmp63 + _tmp285)
+        + _tmp143 * _tmp279
+        - _tmp162 * _tmp279
     )
-    _jacobian[3, 9] = _tmp130 * (
-        -_tmp129 * (_tmp1 * _tmp237 - _tmp235 * _tmp26 - _tmp253 + _tmp255 + _tmp256)
-        - _tmp131 * _tmp242
-        + _tmp136 * _tmp242
+    _jacobian[3, 9] = _tmp151 * (
+        _tmp147 * _tmp279
+        - _tmp149 * (-_tmp264 * _tmp28 + _tmp270 * _tmp9 - _tmp286 + _tmp287 + _tmp290)
+        - _tmp163 * _tmp279
     )
     _jacobian[0, 10] = (
-        _tmp0 * (-_tmp218 + _tmp219 + _tmp223 + _tmp225 - _tmp257 + _tmp258)
-        + _tmp18 * (_tmp216 * _tmp24 + _tmp22 - _tmp230 + _tmp233 - _tmp25)
-        + _tmp29
+        _tmp37
         * (
-            _tmp1 * _tmp259
-            - _tmp10 * _tmp226
-            - _tmp213 * _tmp260
-            - _tmp214 * logR[1, 0]
-            + _tmp227 * _tmp260
+            -_tmp243 * _tmp293
+            - _tmp244 * logR[1, 0]
+            + _tmp246 * _tmp293
+            + _tmp247 * _tmp9
+            - 4 * _tmp42
         )
+        + _tmp41 * (-_tmp256 + _tmp257 + _tmp260 + _tmp262 - _tmp291 + _tmp292)
+        + _tmp8 * (_tmp241 * _tmp26 + _tmp249 - _tmp252 - _tmp27 + _tmp44)
     )
-    _jacobian[1, 10] = _tmp119 * (
-        -_tmp103 * (_tmp252 + _tmp263 + (1.0 / 2.0) * _tmp70)
-        + _tmp115 * _tmp261
-        - _tmp118 * _tmp261
+    _jacobian[1, 10] = _tmp138 * (
+        _tmp126 * _tmp294 - _tmp130 * _tmp294 - _tmp136 * (_tmp285 + _tmp296 + (1.0 / 2.0) * _tmp87)
     )
-    _jacobian[2, 10] = _tmp120 * (
-        -_tmp103
-        * (_tmp24 * _tmp248 - _tmp244 * _tmp3 + _tmp247 + _tmp249 * _tmp54 - _tmp264 + _tmp265)
-        + _tmp121 * _tmp261
-        - _tmp122 * _tmp261
+    _jacobian[2, 10] = _tmp145 * (
+        -_tmp136
+        * (-_tmp11 * _tmp267 + _tmp22 * _tmp283 + _tmp26 * _tmp269 + _tmp268 + _tmp297 - _tmp298)
+        + _tmp143 * _tmp294
+        - _tmp162 * _tmp294
     )
-    _jacobian[3, 10] = _tmp130 * (
-        -_tmp129 * (-_tmp236 + _tmp238 + _tmp24 * _tmp240 - _tmp241 * _tmp3 + _tmp266 + _tmp52)
-        - _tmp131 * _tmp261
-        + _tmp136 * _tmp261
+    _jacobian[3, 10] = _tmp151 * (
+        _tmp147 * _tmp294
+        - _tmp149 * (-_tmp11 * _tmp278 + _tmp26 * _tmp274 - _tmp273 + _tmp277 + _tmp299 + _tmp69)
+        - _tmp163 * _tmp294
     )
     _jacobian[0, 11] = (
-        _tmp0
+        _tmp37 * (-_tmp253 + _tmp259 + _tmp291 - _tmp292)
+        + _tmp41
         * (
-            _tmp10 * _tmp267
-            - _tmp2 * _tmp259
-            + _tmp2 * _tmp268
-            + _tmp21
-            - _tmp216 * _tmp245
-            + _tmp232
+            -_tmp10 * _tmp247
+            + _tmp10 * _tmp261
+            + _tmp19 * logR[2, 0]
+            - _tmp245 * _tmp254
+            + _tmp248
+            + _tmp43
         )
-        + _tmp18
+        + _tmp8
         * (
-            _tmp11 * _tmp216
-            - _tmp12
-            + _tmp2 * _tmp213 * logR[0, 0]
-            - _tmp2 * _tmp228
-            + _tmp20 * _tmp267
-            - _tmp268 * logR[2, 0]
+            _tmp10 * _tmp243 * logR[0, 0]
+            - _tmp10 * _tmp250
+            + 2 * _tmp19
+            + _tmp255 * logR[2, 0]
+            - _tmp261 * logR[2, 0]
+            - _tmp42 * logR[2, 0]
         )
-        + _tmp29 * (-_tmp215 + _tmp222 + _tmp257 - _tmp258)
     )
-    _jacobian[1, 11] = _tmp119 * (
-        -_tmp103 * (-_tmp2 * _tmp237 + _tmp235 * _tmp269 + _tmp253 + _tmp256 + (1.0 / 2.0) * _tmp67)
-        + _tmp115 * _tmp270
-        - _tmp118 * _tmp270
+    _jacobian[1, 11] = _tmp138 * (
+        _tmp126 * _tmp300
+        - _tmp129 * _tmp301
+        - _tmp136 * (_tmp10 * _tmp265 - _tmp10 * _tmp270 + _tmp286 + _tmp287 + (1.0 / 2.0) * _tmp83)
     )
-    _jacobian[2, 11] = _tmp120 * (
-        -_tmp103 * (_tmp2 * _tmp241 - _tmp240 * _tmp269 + _tmp249 * _tmp31 + _tmp266 - _tmp52)
-        + _tmp121 * _tmp270
-        - _tmp122 * _tmp270
+    _jacobian[2, 11] = _tmp145 * (
+        -_tmp136 * (_tmp10 * _tmp278 - _tmp10 * _tmp280 + _tmp283 * _tmp61 + _tmp299 - _tmp69)
+        - _tmp142 * _tmp301
+        + _tmp143 * _tmp300
     )
-    _jacobian[3, 11] = _tmp130 * (
-        -_tmp129
-        * (-_tmp2 * _tmp244 + _tmp243 - _tmp246 + _tmp247 + _tmp248 * _tmp269 + _tmp264 - _tmp265)
-        - _tmp131 * _tmp270
-        + _tmp136 * _tmp270
+    _jacobian[3, 11] = _tmp151 * (
+        -_tmp146 * _tmp301
+        + _tmp147 * _tmp300
+        - _tmp149
+        * (-_tmp10 * _tmp267 + _tmp10 * _tmp284 - _tmp266 + _tmp268 + _tmp271 - _tmp297 + _tmp298)
     )
     _jacobian[0, 12] = 0
-    _jacobian[1, 12] = -_tmp119 * theta_rot[2, 0]
+    _jacobian[1, 12] = -_tmp138 * _tmp80
     _jacobian[2, 12] = 0
     _jacobian[3, 12] = 0
     _jacobian[0, 13] = 0
     _jacobian[1, 13] = 0
-    _jacobian[2, 13] = -_tmp120 * theta_rot[2, 0]
+    _jacobian[2, 13] = -_tmp302
     _jacobian[3, 13] = 0
     _jacobian[0, 14] = 0
     _jacobian[1, 14] = 0
     _jacobian[2, 14] = 0
-    _jacobian[3, 14] = -_tmp130 * theta_rot[3, 0]
-    _jacobian[0, 15] = -_tmp17 * ierr[1, 0] - _tmp23 * ierr[0, 0]
-    _jacobian[1, 15] = _tmp119 * (
-        -_tmp103
+    _jacobian[3, 14] = -_tmp303
+    _jacobian[0, 15] = -_tmp152 * ierr[1, 0] - _tmp94 * ierr[0, 0]
+    _jacobian[1, 15] = _tmp138 * (
+        _tmp126 * _tmp318
+        - _tmp130 * _tmp318
+        - _tmp136
         * (
-            -_tmp132 * _tmp274
-            - _tmp14 * _tmp286
-            - _tmp15 * _tmp281
-            - _tmp279 * _tmp31
-            + _tmp283 * _tmp31
+            -_tmp188 * _tmp320
+            - _tmp23 * _tmp309
+            + _tmp312 * _tmp319
+            - _tmp317 * _tmp61
+            - _tmp321 * _tmp7
         )
-        + _tmp115 * _tmp282
-        - _tmp118 * _tmp282
     )
-    _jacobian[2, 15] = _tmp120 * (
-        -_tmp103
+    _jacobian[2, 15] = _tmp145 * (
+        -_tmp136
         * (
-            _tmp108 * _tmp274
-            - _tmp273 * _tmp287
-            - _tmp273 * _tmp288
-            - _tmp281 * _tmp31
-            + _tmp66 * ierr[0, 0]
+            -_tmp192 * _tmp320
+            - _tmp306 * _tmp323
+            - _tmp309 * _tmp61
+            + _tmp316 * _tmp97
+            + _tmp322 * _tmp7
         )
-        + _tmp121 * _tmp282
-        - _tmp122 * _tmp282
+        + _tmp143 * _tmp318
+        - _tmp162 * _tmp318
     )
-    _jacobian[3, 15] = _tmp130 * (
-        -_tmp129
+    _jacobian[3, 15] = _tmp151 * (
+        _tmp147 * _tmp318
+        - _tmp149
         * (
-            _tmp14 * _tmp279
-            - _tmp14 * _tmp283
-            + _tmp274 * _tmp88
-            + _tmp281 * _tmp54
-            - _tmp286 * _tmp31
+            -_tmp219 * _tmp320
+            + _tmp22 * _tmp309
+            - _tmp312 * _tmp324
+            + _tmp317 * _tmp63
+            + _tmp325 * _tmp7
         )
-        - _tmp131 * _tmp282
-        + _tmp136 * _tmp282
+        - _tmp163 * _tmp318
     )
-    _jacobian[0, 16] = -_tmp28 * ierr[2, 0]
-    _jacobian[1, 16] = _tmp119 * (
-        -_tmp103 * (-_tmp15 * _tmp292 - _tmp157 * _tmp295 + _tmp161 * _tmp290 + _tmp294 * _tmp31)
-        + _tmp115 * _tmp293
-        - _tmp118 * _tmp293
+    _jacobian[0, 16] = -_tmp165 * ierr[2, 0]
+    _jacobian[1, 16] = _tmp138 * (
+        _tmp126 * _tmp329
+        - _tmp130 * _tmp329
+        - _tmp136 * (_tmp188 * _tmp327 - _tmp23 * _tmp328 + _tmp326 * _tmp61 - _tmp330 * _tmp61)
     )
-    _jacobian[2, 16] = _tmp120 * (
-        -_tmp103
-        * (_tmp171 * _tmp290 + _tmp173 * _tmp290 - _tmp174 * _tmp291 - _tmp296 * logR[2, 0])
-        + _tmp121 * _tmp293
-        - _tmp122 * _tmp293
+    _jacobian[2, 16] = _tmp145 * (
+        -_tmp136 * (-_tmp190 * _tmp36 + _tmp192 * _tmp327 + _tmp193 * _tmp327 - _tmp328 * _tmp61)
+        + _tmp143 * _tmp329
+        - _tmp162 * _tmp329
     )
-    _jacobian[3, 16] = _tmp130 * (
-        -_tmp129
-        * (-_tmp14 * _tmp294 + _tmp160 * _tmp295 + _tmp177 * _tmp290 + _tmp296 * logR[1, 0])
-        - _tmp131 * _tmp293
-        + _tmp136 * _tmp293
+    _jacobian[3, 16] = _tmp151 * (
+        _tmp147 * _tmp329
+        - _tmp149 * (_tmp219 * _tmp327 + _tmp22 * _tmp328 + _tmp330 * _tmp63 - _tmp331 * _tmp36)
+        - _tmp163 * _tmp329
     )
-    _jacobian[0, 17] = _tmp17 * _tmp298 + _tmp23 * _tmp297
-    _jacobian[1, 17] = _tmp119 * (
-        -_tmp103
+    _jacobian[0, 17] = -_tmp1 * _tmp195 - _tmp38 * _tmp45
+    _jacobian[1, 17] = _tmp138 * (
+        _tmp126 * _tmp339
+        - _tmp130 * _tmp339
+        - _tmp136
         * (
-            -_tmp132 * _tmp300
-            - _tmp14 * _tmp302
-            - _tmp15 * _tmp303
-            + _tmp301 * _tmp31
-            + _tmp304 * _tmp31
+            -_tmp188 * _tmp337
+            - _tmp2 * _tmp321
+            - _tmp23 * _tmp335
+            + _tmp319 * _tmp334
+            - _tmp336 * _tmp61
         )
-        + _tmp115 * _tmp305
-        - _tmp118 * _tmp305
     )
-    _jacobian[2, 17] = _tmp120 * (
-        -_tmp103
+    _jacobian[2, 17] = _tmp145 * (
+        -_tmp136
         * (
-            _tmp109 * _tmp299
-            - _tmp287 * _tmp299
-            - _tmp288 * _tmp299
-            - _tmp297 * _tmp66
-            - _tmp306 * logR[2, 0]
+            -_tmp192 * _tmp337
+            + _tmp2 * _tmp322
+            + _tmp333 * _tmp98
+            - _tmp334 * _tmp96
+            - _tmp335 * _tmp61
         )
-        + _tmp121 * _tmp305
-        - _tmp122 * _tmp305
+        + _tmp143 * _tmp339
+        - _tmp162 * _tmp339
     )
-    _jacobian[3, 17] = _tmp130 * (
-        -_tmp129
+    _jacobian[3, 17] = _tmp151 * (
+        _tmp147 * _tmp339
+        - _tmp149
         * (
-            -_tmp14 * _tmp301
-            - _tmp14 * _tmp304
-            + _tmp300 * _tmp88
-            - _tmp302 * _tmp31
-            + _tmp306 * logR[1, 0]
+            _tmp2 * _tmp325
+            - _tmp219 * _tmp337
+            + _tmp22 * _tmp335
+            - _tmp324 * _tmp334
+            + _tmp336 * _tmp63
         )
-        - _tmp131 * _tmp305
-        + _tmp136 * _tmp305
+        - _tmp163 * _tmp339
     )
-    _jacobian[0, 18] = _tmp28 * _tmp307
-    _jacobian[1, 18] = _tmp119 * (
-        -_tmp103 * (-_tmp15 * _tmp310 - _tmp150 * _tmp307 + _tmp161 * _tmp308 - _tmp309 * _tmp31)
-        + _tmp115 * _tmp312
-        - _tmp118 * _tmp312
+    _jacobian[0, 18] = -_tmp30 * _tmp32
+    _jacobian[1, 18] = _tmp138 * (
+        _tmp126 * _tmp346
+        - _tmp130 * _tmp346
+        - _tmp136 * (_tmp188 * _tmp340 - _tmp23 * _tmp344 + _tmp341 * _tmp61 - _tmp343 * _tmp61)
     )
-    _jacobian[2, 18] = _tmp120 * (
-        -_tmp103 * (_tmp173 * _tmp308 + _tmp175 * _tmp307 - _tmp311 * logR[2, 0] + _tmp313 * _tmp54)
-        + _tmp121 * _tmp312
-        - _tmp122 * _tmp312
+    _jacobian[2, 18] = _tmp145 * (
+        -_tmp136 * (-_tmp190 * _tmp32 + _tmp192 * _tmp340 + _tmp342 * _tmp96 - _tmp345 * logR[2, 0])
+        + _tmp143 * _tmp346
+        - _tmp162 * _tmp346
     )
-    _jacobian[3, 18] = _tmp130 * (
-        -_tmp129 * (_tmp177 * _tmp308 + _tmp178 * _tmp307 + _tmp31 * _tmp313 + _tmp311 * logR[1, 0])
-        - _tmp131 * _tmp312
-        + _tmp136 * _tmp312
+    _jacobian[3, 18] = _tmp151 * (
+        _tmp147 * _tmp346
+        - _tmp149 * (_tmp219 * _tmp340 + _tmp22 * _tmp344 - _tmp32 * _tmp331 + _tmp343 * _tmp63)
+        - _tmp163 * _tmp346
     )
-    _jacobian[0, 19] = _tmp17 * _tmp315 + _tmp23 * _tmp314
-    _jacobian[1, 19] = _tmp119 * (
-        -_tmp103
+    _jacobian[0, 19] = -_tmp220 * _tmp4 - _tmp39 * _tmp45
+    _jacobian[1, 19] = _tmp138 * (
+        _tmp126 * _tmp352
+        - _tmp130 * _tmp352
+        - _tmp136
         * (
-            -_tmp14 * _tmp324
-            - _tmp15 * _tmp321
-            - _tmp210 * _tmp317
-            + _tmp210 * _tmp319
-            + _tmp31 * _tmp318
+            _tmp182 * _tmp311 * _tmp354
+            - _tmp188 * _tmp353
+            - _tmp208 * _tmp354
+            - _tmp23 * _tmp350
+            - _tmp347 * _tmp61
         )
-        + _tmp115 * _tmp323
-        - _tmp118 * _tmp323
     )
-    _jacobian[2, 19] = _tmp120 * (
-        -_tmp103
+    _jacobian[2, 19] = _tmp145 * (
+        -_tmp136
         * (
-            _tmp109 * _tmp316
-            - _tmp288 * _tmp316
-            - _tmp314 * _tmp66
-            - _tmp324 * _tmp54
-            - _tmp325 * logR[2, 0]
+            -_tmp192 * _tmp353
+            + _tmp322 * _tmp5
+            - _tmp323 * _tmp348
+            + _tmp348 * _tmp99
+            - _tmp350 * _tmp61
         )
-        + _tmp121 * _tmp323
-        - _tmp122 * _tmp323
+        + _tmp143 * _tmp352
+        - _tmp162 * _tmp352
     )
-    _jacobian[3, 19] = _tmp130 * (
-        -_tmp129
+    _jacobian[3, 19] = _tmp151 * (
+        _tmp147 * _tmp352
+        - _tmp149
         * (
-            -_tmp14 * _tmp318
-            + _tmp18 * _tmp316 * _tmp88
-            - _tmp211 * _tmp319
-            - _tmp31 * _tmp324
-            + _tmp325 * logR[1, 0]
+            -_tmp219 * _tmp353
+            + _tmp22 * _tmp350
+            - _tmp324 * _tmp349
+            + _tmp347 * _tmp63
+            + _tmp351 * _tmp63
         )
-        - _tmp131 * _tmp323
-        + _tmp136 * _tmp323
+        - _tmp163 * _tmp352
     )
-    _jacobian[0, 20] = _tmp28 * _tmp326
-    _jacobian[1, 20] = _tmp119 * (
-        -_tmp103 * (_tmp14 * _tmp331 - _tmp15 * _tmp328 - _tmp150 * _tmp326 - _tmp158 * _tmp327)
-        + _tmp115 * _tmp330
-        - _tmp118 * _tmp330
+    _jacobian[0, 20] = -_tmp30 * _tmp34
+    _jacobian[1, 20] = _tmp138 * (
+        _tmp126 * _tmp358
+        - _tmp130 * _tmp358
+        - _tmp136 * (_tmp188 * _tmp356 - _tmp218 * _tmp356 - _tmp23 * _tmp357 + _tmp355 * _tmp61)
     )
-    _jacobian[2, 20] = _tmp120 * (
-        -_tmp103 * (_tmp173 * _tmp327 + _tmp175 * _tmp326 - _tmp329 * logR[2, 0] + _tmp331 * _tmp54)
-        + _tmp121 * _tmp330
-        - _tmp122 * _tmp330
+    _jacobian[2, 20] = _tmp145 * (
+        -_tmp136 * (-_tmp190 * _tmp34 + _tmp192 * _tmp356 + _tmp193 * _tmp356 - _tmp357 * _tmp61)
+        + _tmp143 * _tmp358
+        - _tmp162 * _tmp358
     )
-    _jacobian[3, 20] = _tmp130 * (
-        -_tmp129 * (_tmp177 * _tmp327 + _tmp178 * _tmp326 + _tmp31 * _tmp331 + _tmp329 * logR[1, 0])
-        - _tmp131 * _tmp330
-        + _tmp136 * _tmp330
+    _jacobian[3, 20] = _tmp151 * (
+        _tmp147 * _tmp358
+        - _tmp149 * (_tmp194 * _tmp356 + _tmp219 * _tmp356 + _tmp22 * _tmp357 - _tmp331 * _tmp34)
+        - _tmp163 * _tmp358
     )
     _jacobian[0, 21] = 0
-    _jacobian[1, 21] = -_tmp119 * _tmp128 * _tmp51
-    _jacobian[2, 21] = -_tmp120 * _tmp128 * _tmp68
+    _jacobian[1, 21] = -_tmp137 * _tmp138
+    _jacobian[2, 21] = -_tmp144 * _tmp145
     _jacobian[3, 21] = 0
     _jacobian[0, 22] = 0
     _jacobian[1, 22] = 0
     _jacobian[2, 22] = 0
-    _jacobian[3, 22] = -_tmp128 * _tmp130 * _tmp71
+    _jacobian[3, 22] = -_tmp150 * _tmp151
     _jacobian[0, 23] = 0
-    _jacobian[1, 23] = _tmp119 * (-w[0, 0] + w_d[0, 0])
-    _jacobian[2, 23] = _tmp120 * (-w[1, 0] + w_d[1, 0])
+    _jacobian[1, 23] = -_tmp138 * _tmp81
+    _jacobian[2, 23] = -_tmp302 * _tmp85
     _jacobian[3, 23] = 0
     _jacobian[0, 24] = 0
     _jacobian[1, 24] = 0
     _jacobian[2, 24] = 0
-    _jacobian[3, 24] = _tmp130 * (-w[2, 0] + w_d[2, 0])
+    _jacobian[3, 24] = -_tmp303 * _tmp92
     return _thrust_torque, _jacobian
