@@ -180,7 +180,7 @@ static Theta random_spherical()
 	// Dividing by the norm gives us a RV with covariance 1/sqrt(TDIM) * I.
 	// Scale up to have identity covariance. Note this means our "radius" is
 	// not really a radius since it's applied elementwise.
-	return std::sqrt<FLOAT>(TDIM) * th;
+	return std::sqrt((float)TDIM) * th;
 }
 
 
