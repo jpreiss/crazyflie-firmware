@@ -11,9 +11,25 @@ import SO3
 Z3 = np.zeros(3)
 I3 = np.eye(3)
 
-HI_GAIN_THETA_POS = np.log((1, 1, 10, 10, 5, 5))
-HI_GAIN_THETA_ROT = np.log((100, 20, 20, 2))
+HI_GAIN_THETA_POS = [
+    0.444686,
+    0.444686,
+    2.525729,
+    3.663562,
+    1.832581,
+    2.525729,
+]
+HI_GAIN_THETA_ROT = [
+    7.414573,
+    5.683580,
+    5.470168,
+    3.391147,
+]
 HI_GAIN_THETA = np.concatenate([HI_GAIN_THETA_POS, HI_GAIN_THETA_ROT])
+# Scaling firmware I windup limits down by factor of 10. Firmware limits are
+# really big and don't play nicely with tests initialized far from goal.
+# Probably the firmware should be changed.
+ILIM = 0.1 * np.array([2, 2, 0.4])
 
 
 def test_cost_sanity():
@@ -102,14 +118,14 @@ def test_ctrl_signs():
 
 def test_stabilizing():
     dt = 1e-2
-    # TODO: tune so we don't need 80 seconds - closedloop must be underdamped.
-    T = int(80 / dt)
+    T = int(10 / dt)
     Z3 = np.zeros(3)
     target = Target(p_d=Z3, v_d=Z3, a_d=Z3, w_d=Z3)
     rng = np.random.default_rng(0)
     def close(x):
         return (
-            np.allclose(x.p, Z3, atol=1e-2)
+            True
+            and np.allclose(x.p, Z3, atol=1e-2)
             and np.allclose(x.v, Z3, atol=1e-3)
             and np.allclose(x.logR, Z3, atol=1e-4)
             and np.allclose(x.w, Z3, atol=1e-4)
