@@ -142,3 +142,24 @@ def default_inputs(detune=1.0):
     u = Action(thrust=0, torque=Z3)
     Q = CostParam(p=1, v=0, w=0, thrust=0, torque=0, reg_L2=0)
     return x, xd, th, Q, u
+
+
+HI_GAIN_THETA_POS = [
+    0.444686,
+    0.444686,
+    2.525729,
+    3.663562,
+    1.832581,
+    2.525729,
+]
+HI_GAIN_THETA_ROT = [
+    7.414573,
+    5.683580,
+    5.470168,
+    3.391147,
+]
+HI_GAIN_THETA = np.concatenate([HI_GAIN_THETA_POS, HI_GAIN_THETA_ROT])
+# Scaling firmware I windup limits down by factor of 10. Firmware limits are
+# really big and don't play nicely with tests initialized far from goal.
+# Probably the firmware should be changed.
+ILIM = 0.1 * np.array([2, 2, 0.4])

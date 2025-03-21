@@ -11,25 +11,6 @@ import SO3
 Z3 = np.zeros(3)
 I3 = np.eye(3)
 
-HI_GAIN_THETA_POS = [
-    0.444686,
-    0.444686,
-    2.525729,
-    3.663562,
-    1.832581,
-    2.525729,
-]
-HI_GAIN_THETA_ROT = [
-    7.414573,
-    5.683580,
-    5.470168,
-    3.391147,
-]
-HI_GAIN_THETA = np.concatenate([HI_GAIN_THETA_POS, HI_GAIN_THETA_ROT])
-# Scaling firmware I windup limits down by factor of 10. Firmware limits are
-# really big and don't play nicely with tests initialized far from goal.
-# Probably the firmware should be changed.
-ILIM = 0.1 * np.array([2, 2, 0.4])
 
 
 def test_cost_sanity():
