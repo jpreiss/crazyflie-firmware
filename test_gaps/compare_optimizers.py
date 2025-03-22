@@ -1,7 +1,11 @@
+import itertools as it
+import multiprocessing
 import sys
 
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
+import seaborn as sns
 import symforce.symbolic as sf
 
 
@@ -10,8 +14,10 @@ from crazyswarm.ros_ws.src.crazyswarm.scripts.uav_trajectory import compute_omeg
 
 from testlib import *
 
+# experiment constants
 PERIOD = 4
 RADIUS = 0.75
+LAPS = 4
 Q = CostParam(
     p=1e0,
     v=1e-4,
@@ -20,6 +26,10 @@ Q = CostParam(
     torque=1e-7,
     reg_L2=1e-10,
 )
+
+# plotting constants
+RATE = "learning rate $\\eta$"
+REGRET = '"regret" vs. expert'
 
 def logR_from_acc(acc):
     thrust = sf.Vector3(acc) + sf.Vector3([0, 0, 9.81])
@@ -34,21 +44,52 @@ def logR_from_acc(acc):
 #             = dF / dphi * 1 / theta
 #             = dF / dphi * 1 / exp(phi).
 
-def step_ogd(phi, grad, rate):
+def OMD(phi, grad, rate, mgrad, mgradinv):
     theta = np.exp(phi)
     grad2 = grad / theta
-    theta -= rate * grad2
+    theta = mgradinv(mgrad(theta) - rate * grad2)
     return np.log(theta)
 
-def step_omd(phi, grad, rate):
-    theta = np.exp(phi)
-    grad2 = grad / theta
-    # TODO: mirror map
-    theta -= rate * grad2
-    return np.log(theta)
+eucsq_grad = eucsq_gradinv = lambda x : x
+ent_grad = lambda x : np.log(x) - 1
+ent_gradinv = lambda x : np.exp(x + 1)
+log_grad = log_gradinv = lambda x : -1 / x
 
-def step_reparam(phi, grad, rate):
+def OGD(phi, grad, rate):
+    return OMD(phi, grad, rate, eucsq_grad, eucsq_gradinv)
+
+def OMD_KL(phi, grad, rate):
+    return OMD(phi, grad, rate, ent_grad, ent_gradinv)
+
+# expand:
+# phi' = log(theta')
+#      = log(log_gradinv(log_grad(theta) - rate * grad / theta))
+#      = log(log_gradinv(log_grad(exp(phi)) - rate * grad / exp(phi)))
+#      = log(-1/(-1/exp(phi) - rate * grad / exp(phi)))
+#      = log(1/(1/exp(phi) + rate * grad / exp(phi)))
+#      = -log(1/exp(phi) + rate * grad / exp(phi))
+#      = -log(1 + rate * grad) - log(1/exp(phi))
+#      = -log(1 + rate * grad) + phi
+# approx phi - rate * grad when rate * grad is small
+
+def OMD_IS(phi, grad, rate):
+    return OMD(phi, grad, rate, log_grad, log_gradinv)
+
+def Log(phi, grad, rate):
     return phi - rate * grad
+
+# These were for debugging to make sure my OMD was correct
+# def OGD(phi, grad, rate):
+#     theta = np.exp(phi)
+#     grad2 = grad / theta
+#     theta -= rate * grad2
+#     return np.log(theta)
+
+# def MultWeights(phi, grad, rate):
+#     theta = np.exp(phi)
+#     grad2 = grad / theta
+#     theta *= np.exp(-rate * grad2)
+#     return np.log(theta)
 
 
 def run(opt, rate):
@@ -56,8 +97,7 @@ def run(opt, rate):
     traj_minor = TrigTrajectory.Sine(amplitude=RADIUS/2, period=PERIOD/2)
 
     dt = 1 / 500
-    laps = 8
-    T = int(laps * PERIOD / dt)
+    T = int(LAPS * PERIOD / dt)
 
     derivs = np.zeros((4, 3))
     yaw = 0
@@ -113,9 +153,34 @@ def run(opt, rate):
 # pytest... didn't feel like figuring it out
 def test_main():
     cost_base = run(None, None)
-    costs = run(step_reparam, 2e-2)
-    plt.plot(np.cumsum(costs - cost_base))
-    plt.savefig("gaps_grads.pdf")
+    opts = [Log, OMD_IS, OMD_KL, OGD]
+    rate_lims = [1e-3, 1e1]
+    rates = np.geomspace(*rate_lims, 10)
+    args = list(it.product(opts, rates))
+    pool = multiprocessing.Pool(multiprocessing.cpu_count() - 1)
+    costs = pool.starmap(run, args)
+    records = []
+    for costs, (opt, rate) in zip(costs, args):
+        regret = np.sum(costs - cost_base)
+        records.append({
+            "opt": opt.__name__,
+            RATE: rate,
+            REGRET: regret,
+        })
+    df = pd.DataFrame(records)
+    grid = sns.relplot(
+        kind="line",
+        data=df,
+        x=RATE,
+        y=REGRET,
+        hue="opt",
+        style="opt",
+        aspect=1.4,
+        height=3.0,
+    )
+    grid.set(xlim=rate_lims, xscale="log")
+    grid.savefig("gaps_grads.pdf")
+
 
 if __name__ == "__main__":
     main()
