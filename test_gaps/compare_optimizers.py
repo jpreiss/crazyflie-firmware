@@ -55,10 +55,10 @@ ent_grad = lambda x : np.log(x) - 1
 ent_gradinv = lambda x : np.exp(x + 1)
 log_grad = log_gradinv = lambda x : -1 / x
 
-def OGD(phi, grad, rate):
+def grad(phi, grad, rate):
     return OMD(phi, grad, rate, eucsq_grad, eucsq_gradinv)
 
-def OMD_KL(phi, grad, rate):
+def mirror_KL(phi, grad, rate):
     return OMD(phi, grad, rate, ent_grad, ent_gradinv)
 
 # expand:
@@ -75,7 +75,7 @@ def OMD_KL(phi, grad, rate):
 def OMD_IS(phi, grad, rate):
     return OMD(phi, grad, rate, log_grad, log_gradinv)
 
-def Log(phi, grad, rate):
+def log_param(phi, grad, rate):
     return phi - rate * grad
 
 # These were for debugging to make sure my OMD was correct
@@ -153,9 +153,9 @@ def run(opt, rate):
 # pytest... didn't feel like figuring it out
 def test_main():
     cost_base = run(None, None)
-    opts = [Log, OMD_IS, OMD_KL, OGD]
+    opts = [grad, mirror_KL, log_param]
     rate_lims = [1e-3, 1e1]
-    rates = np.geomspace(*rate_lims, 10)
+    rates = np.geomspace(*rate_lims, 30)
     args = list(it.product(opts, rates))
     pool = multiprocessing.Pool(multiprocessing.cpu_count() - 1)
     costs = pool.starmap(run, args)
@@ -163,20 +163,23 @@ def test_main():
     for costs, (opt, rate) in zip(costs, args):
         regret = np.sum(costs - cost_base)
         records.append({
-            "opt": opt.__name__,
+            "gradstep": opt.__name__,
             RATE: rate,
             REGRET: regret,
         })
     df = pd.DataFrame(records)
+    sns.set_style("whitegrid")
+    if True:
+        plt.rcParams.update({"text.usetex": True, "font.size": 12})
     grid = sns.relplot(
         kind="line",
         data=df,
         x=RATE,
         y=REGRET,
-        hue="opt",
-        style="opt",
+        hue="gradstep",
+        #style="opt",
         aspect=1.4,
-        height=3.0,
+        height=2.5,
     )
     grid.set(xlim=rate_lims, xscale="log")
     grid.savefig("gaps_grads.pdf")
