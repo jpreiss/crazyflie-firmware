@@ -58,7 +58,7 @@ log_grad = log_gradinv = lambda x : -1 / x
 def grad(phi, grad, rate):
     return OMD(phi, grad, rate, eucsq_grad, eucsq_gradinv)
 
-def mirror_KL(phi, grad, rate):
+def mirror_ent(phi, grad, rate):
     return OMD(phi, grad, rate, ent_grad, ent_gradinv)
 
 # expand:
@@ -153,7 +153,7 @@ def run(opt, rate):
 # pytest... didn't feel like figuring it out
 def test_main():
     cost_base = run(None, None)
-    opts = [grad, mirror_KL, log_param]
+    opts = [grad, mirror_ent, log_param]
     rate_lims = [1e-3, 1e1]
     rates = np.geomspace(*rate_lims, 30)
     args = list(it.product(opts, rates))
@@ -178,11 +178,25 @@ def test_main():
         y=REGRET,
         hue="gradstep",
         #style="opt",
-        aspect=1.4,
-        height=2.5,
+        aspect=1.8,
+        height=2.2,
     )
     grid.set(xlim=rate_lims, xscale="log")
     grid.savefig("gaps_grads.pdf")
+
+
+def test_trajlen():
+    traj_major = TrigTrajectory.Cosine(amplitude=RADIUS, period=PERIOD)
+    traj_minor = TrigTrajectory.Sine(amplitude=RADIUS/2, period=PERIOD/2)
+    vel = []
+    acc = []
+    for t in np.arange(0, PERIOD, 1/500):
+        major = traj_major(t)
+        minor = traj_minor(t)
+        vel.append([major[1], -minor[1], minor[1]])
+        acc.append([major[2], -minor[2], minor[2]])
+    print("avg speed:", np.mean(np.linalg.norm(vel, axis=-1)))
+    print("max acc:", np.amax(np.linalg.norm(acc, axis=-1)))
 
 
 if __name__ == "__main__":
